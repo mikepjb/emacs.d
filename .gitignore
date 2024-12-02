@@ -2,4 +2,6 @@ org
 elpa
 *cache*
 history
+custom.el
 *~
+projects

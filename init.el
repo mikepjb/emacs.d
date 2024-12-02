@@ -10,6 +10,17 @@
 ;; only supported in Emacs 29
 ;;  (setq pixel-scroll-precision-large-scroll-height 40.0)
 
+(setq custom-file (concat user-emacs-directory "custom.el")
+      bidi-paragraph-direction 'left-to-right ;; performance
+      bidi-inhibit-bpa t
+      ring-bell-function nil
+      enable-local-variables :safe
+      inhibit-startup-screen t
+      )
+(setq read-buffer-completion-ignore-case t)
+(setq read-file-name-completion-ignore-case t)
+(add-to-list 'completion-ignored-extensions ".git") ;; will still match if there are no other candidates.
+
 (eval-when-compile (require 'subr-x)) ;; string-join comes from here
 
 (defconst *is-a-mac* (eq system-type 'darwin))
@@ -81,6 +92,10 @@
 		electric-indent-mode)) ;; enabling this, disables indent for C-j
   (set-mode mode :disable))
 
+(load-theme 'wombat t)
+(add-hook 'hl-line-mode-hook
+	  (lambda ()
+	    (set-face-attribute 'hl-line nil :inherit nil :background "#2d2d2d")))
 
 (defun code-config ()
   (display-line-numbers-mode 1)
@@ -90,7 +105,10 @@
 
 (dolist (hook '(prog-mode-hook css-mode-hook)) (add-hook hook 'code-config))
 
-;; (load-theme 'tango-dark t) ;; how to load this IF other theme can't be found?
+(defun prose-config ()
+  (variable-pitch-mode))
+
+(dolist (hook '(markdown-mode)) (add-hook hook 'prose-config))
 
 (defmacro ifn (fn)
   `(lambda () (interactive) ,fn))
@@ -99,14 +117,19 @@
   `(lambda () (interactive)
      (let ((default-directory ,from-dir)) (call-interactively ,fn))))
 
+;; TODO does it matter if we include methods that may not exist in the keybindings?
 (dolist
     (binding
      `(
        ("M-o" . other-window)
+       ("C-c p" . project-find-file)
        ("C-c i" . ,(ifn (find-file user-init-file)))
        ("C-c n" . ,(ifn (find-file (concat user-emacs-directory "org/notes.org"))))
        ("C-c o" . ,(ifn (find-file (concat user-emacs-directory "org/ops.org"))))
        ("C-c O" . ,(ifn-from "~/.emacs.d/org/" 'find-file))
+       ("C-c g" . magit)
+       ("C-c l" . flycheck-list-errors)
+       ("C-c P" . ,(ifn-from "~/src/" 'find-file))
        ("M-F" . toggle-frame-fullscreen)))
   (global-set-key (kbd (car binding)) (cdr binding)))
 
@@ -117,12 +140,10 @@
 			   (set-face-attribute 'org-table nil :inherit 'fixed-pitch)))
 (add-hook 'org-agenda-mode-hook 'variable-pitch-mode)
 
-;; (use-package gruvbox :ensure t)
-;; doom themes!
-;; tomorrow
-
 ;; also checkout purcell config
 ;; lsp-java?
+
+;; TODO hl-line setting fails until after emacs fully loaded? it fails at startup either way, whatever the cause.
 
 (require 'local nil t) ;; optionally load a local.el
 
@@ -137,23 +158,22 @@
   (package-refresh-contents)
   (package-install 'use-package))
 
-(use-package gruvbox-theme :ensure t
-  :config (load-theme 'gruvbox-theme t))
+(use-package company
+  :ensure t
+  ;; :config #'global-company-mode ;; does not work
+  )
 
+(use-package eglot :ensure t
+  :hook (prog-mode . eglot-ensure))
+;; TODO not sure eglot is actually started in coding buffers.
 
-;; TODO do not use custom in this file.
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   '("51fa6edfd6c8a4defc2681e4c438caf24908854c12ea12a1fbfd4d055a9647a3" "0517759e6b71f4ad76d8d38b69c51a5c2f7196675d202e3c2507124980c3c2a3" "8363207a952efb78e917230f5a4d3326b2916c63237c1f61d7e5fe07def8d378" default))
- '(package-selected-packages
-   '(gruvbox-theme gruvbox use-package "use-package" "use-package" "use-package" "use-package")))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+(use-package flycheck :ensure t
+  :init (global-flycheck-mode))
+
+(use-package markdown-mode :ensure t)
+
+(use-package magit :ensure t)
+
+(provide 'init)
+
+;;; init.el ends here
