@@ -1,7 +1,13 @@
+;;; init.el -- Summary
+;;; Commentary:
+;;; comments for use go here.. bits that you won't find in the config itself but you might forget (or would be useful for other people to learn).
+
 ;; -*- lexical-binding: t -*-
 
-;; check for emacs 28+
-;; do not early-init disable package loading, assuming this will always happen since it's been introduced since emacs 27 and even Debian has 28 LOL.
+;; check for Emacs 28+
+;; do not early-init disable package loading, assuming this will always happen since it's been introduced since Emacs 27 and even Debian has 28 LOL.
+
+;;; Code:
 
 (let ((minver "28.2"))
   (when (version< emacs-version minver)
@@ -129,6 +135,11 @@
        ("C-c O" . ,(ifn-from "~/.emacs.d/org/" 'find-file))
        ("C-c g" . magit)
        ("C-c l" . flycheck-list-errors)
+       ;; ("s-d" . duplicate-line) ;; think this is a recent function, Emacs 29.1
+       ("s-s" . save-buffer)
+       ("s-o" . switch-to-buffer)
+       ("s-k" . kill-buffer) ;; actually originally matched to kill-current-buffer, maybe try that out too.
+       ("s-f" . find-file)
        ("C-c P" . ,(ifn-from "~/src/" 'find-file))
        ("M-F" . toggle-frame-fullscreen)))
   (global-set-key (kbd (car binding)) (cdr binding)))
@@ -149,6 +160,7 @@
 
 ;; 3rd party territory, everything up to this point should not fail without an internet connection.
 
+(require 'package) ;; TODO built-in, should use as conditional for setting archives
 (when (not (member "melpa" (mapcar 'car package-archives))) ;; check there isn't a local override
   (setq package-archives '(("melpa" . "https://melpa.org/packages/")
                            ("org" . "https://orgmode.org/elpa/")
