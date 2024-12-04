@@ -1,17 +1,28 @@
 ;;; init.el -- Summary
 ;;; Commentary:
-;;; comments for use go here.. bits that you won't find in the config itself but you might forget (or would be useful for other people to learn).
+;;;
+;;; This setup prefers using Recursive as both a sans-serif and mono font, you can get it here https://recursive.design.
+;;; In the top right you can download a zip containing a lot of fonts! Install the static linear + casual versions.
+;;; Specifically under ~Recursive_Code -> RecMono{Casual,Linear} -> RecMono{Casual,Linear}-Regular-1.085.ttf
+;;; Also on Mac OS, you should disable the keyboard shortcut under "Input Sources" labelled "Select the previous input source" as it conflicts with C-SPC (set-mark-command)
 
 ;; -*- lexical-binding: t -*-
 
 ;; check for Emacs 28+
 ;; do not early-init disable package loading, assuming this will always happen since it's been introduced since Emacs 27 and even Debian has 28 LOL.
 
+;; TODO company-mode always enabled please
+;; ielm/open relevant repl pls! (what is that for java?)
+;; emacs jdtls should not create tons of rubbish files when running.
+
 ;;; Code:
 
 (let ((minver "28.2"))
   (when (version< emacs-version minver)
     (error "Your Emacs is too old -- this config requires v%s or higher" minver)))
+
+;; TODO if 29.1
+(pixel-scroll-precision-mode 1)
 
 ;; only supported in Emacs 29
 ;;  (setq pixel-scroll-precision-large-scroll-height 40.0)
@@ -48,14 +59,16 @@
     ":")))
 
 (defconst *fixed-font*
-  (cond ((x-list-fonts "Recursive Mono Linear Static") "Recursive Mono Linear Static")
+  (cond ((x-list-fonts "Rec Mono Linear") "Rec Mono Linear")
+	((x-list-fonts "Recursive Mono Linear Static") "Recursive Mono Linear Static")
 	((x-list-fonts "Monaco") "Monaco") ;; defaul mac os
 	((x-list-fonts "Menlo") "Menlo") ;; mac os with vertical line glyph
 	((x-list-fonts "Monospace") "Monospace") ;; linux deja vu sans mono default
 	(t nil)))
 
 (defconst *variable-font*
-  (cond ((x-list-fonts "Recursive") "Recursive")
+  (cond ((x-list-fonts "Rec Mono Casual") "Rec Mono Casual")
+	((x-list-fonts "Recursive") "Recursive")
 	((x-list-fonts "Recursive Mono Casual Static") "Recursive Mono Casual Static")
 	((x-list-fonts "Novaletra Serif CF") "Novaletra Serif CF")
 	((x-list-fonts "Georgia") "Georgia")
@@ -103,6 +116,17 @@
 	  (lambda ()
 	    (set-face-attribute 'hl-line nil :inherit nil :background "#2d2d2d")))
 
+;; for light modes
+;; (set-face-attribute 'hl-line nil :inherit nil :background "#eeeeee")
+;; choices:
+;; tango.. dirty white but nice
+;; leuven, awesome org stuff (e.g background table)
+;; modus-operandi pretty cool
+
+;; WHAT leuven-dark is sick!!!! modeline is a bit weird but that's fine.
+;; misterioso is pretty cool too.
+;; modus-vivendi is very nice, but a bit high constrast, maybe we can lighten the background very slightly.
+
 (defun code-config ()
   (display-line-numbers-mode 1)
   (display-fill-column-indicator-mode 1)
@@ -123,6 +147,20 @@
   `(lambda () (interactive)
      (let ((default-directory ,from-dir)) (call-interactively ,fn))))
 
+;; TODO C-z crack open eshell in GUI mode
+;; TODO super-z is undo even outside mac os.
+;; TODO s-r to open repl.
+(defun mikepjb/open-repl ()
+  ;; TODO if already in  a "repl buffer", then close it
+  (interactive)
+  (progn
+    (if (= (count-windows) 1)
+	(split-window-below))
+    (other-window 1)
+    (cond ((eq major-mode 'emacs-lisp-mode) (ielm))
+	  ((eq major-mode 'python-mode) (run-python))
+	  (eshell))))
+
 ;; TODO does it matter if we include methods that may not exist in the keybindings?
 (dolist
     (binding
@@ -136,6 +174,7 @@
        ("C-c g" . magit)
        ("C-c l" . flycheck-list-errors)
        ;; ("s-d" . duplicate-line) ;; think this is a recent function, Emacs 29.1
+       ("C-z" . mikepjb/open-repl)
        ("s-s" . save-buffer)
        ("s-o" . switch-to-buffer)
        ("s-k" . kill-buffer) ;; actually originally matched to kill-current-buffer, maybe try that out too.
@@ -185,6 +224,10 @@
 (use-package markdown-mode :ensure t)
 
 (use-package magit :ensure t)
+
+;; all use-packages fail if you don't have internet. "failed to install"
+(use-package clojure-mode :ensure t)
+(use-package cider :ensure t)
 
 (provide 'init)
 
