@@ -5,6 +5,7 @@
 ;;; In the top right you can download a zip containing a lot of fonts! Install the static linear + casual versions.
 ;;; Specifically under ~Recursive_Code -> RecMono{Casual,Linear} -> RecMono{Casual,Linear}-Regular-1.085.ttf
 ;;; Also on Mac OS, you should disable the keyboard shortcut under "Input Sources" labelled "Select the previous input source" as it conflicts with C-SPC (set-mark-command)
+;;; Under Gnome, disable "Show the overview" shortcut under "System" (originally bound to s-s)
 
 ;; -*- lexical-binding: t -*-
 
@@ -22,7 +23,7 @@
     (error "Your Emacs is too old -- this config requires v%s or higher" minver)))
 
 ;; TODO if 29.1
-(pixel-scroll-precision-mode 1)
+;; (pixel-scroll-precision-mode 1)
 
 ;; only supported in Emacs 29
 ;;  (setq pixel-scroll-precision-large-scroll-height 40.0)
@@ -58,6 +59,17 @@
       "/opt/homebrew/opt/node@16/bin")
     ":")))
 
+(setq modus-themes-mode-line '(borderless)
+      modus-themes-vivendi-color-overrides '((bg-main . "#111111")
+					     (bg-dim . "#111111"))
+      module-themes-org-blocks 'tinted-background
+      modus-themes-italic-constructs t ;; TODO doesn't work?
+      ;; TODO only seems to change color, 1.8/number should affect the size I think?
+      ;; modus-themes-headings '((1 . (rainbow overline background 1.8)))
+      )
+(load-theme 'modus-vivendi t)
+
+
 (defconst *fixed-font*
   (cond ((x-list-fonts "Rec Mono Linear") "Rec Mono Linear")
 	((x-list-fonts "Recursive Mono Linear Static") "Recursive Mono Linear Static")
@@ -83,8 +95,7 @@
 (set-face-attribute 'variable-pitch nil :font *variable-font* :height *font-size* :weight 'regular)
 
 (defadvice kill-region (before unix-werase activate compile)
-  "When called interactively with no active region, delete a single word
-    backwards instead."
+  "When called interactively with no active region, delete a single word backwards instead."
   (interactive
    (if mark-active (list (region-beginning) (region-end))
      (list (save-excursion (backward-word 1) (point)) (point)))))
@@ -110,11 +121,6 @@
 		tool-bar-mode
 		electric-indent-mode)) ;; enabling this, disables indent for C-j
   (set-mode mode :disable))
-
-(load-theme 'wombat t)
-(add-hook 'hl-line-mode-hook
-	  (lambda ()
-	    (set-face-attribute 'hl-line nil :inherit nil :background "#2d2d2d")))
 
 ;; for light modes
 ;; (set-face-attribute 'hl-line nil :inherit nil :background "#eeeeee")
@@ -166,15 +172,29 @@
     (binding
      `(
        ("M-o" . other-window)
-       ("C-c p" . project-find-file)
+       ;; ("C-c p" . project-find-file)
+       ("C-c a" . ,(ifn (org-agenda nil "d")))
+       ("C-c A" . org-agenda)
        ("C-c i" . ,(ifn (find-file user-init-file)))
        ("C-c n" . ,(ifn (find-file (concat user-emacs-directory "org/notes.org"))))
        ("C-c o" . ,(ifn (find-file (concat user-emacs-directory "org/ops.org"))))
        ("C-c O" . ,(ifn-from "~/.emacs.d/org/" 'find-file))
        ("C-c g" . magit)
        ("C-c l" . flycheck-list-errors)
+       ("C-c '" . modus-themes-toggle)
        ;; ("s-d" . duplicate-line) ;; think this is a recent function, Emacs 29.1
+       ("C-;" . company-capf)
+       ("M-D" . ,(ifn (progn (end-of-line 1)
+			     (open-line 1)
+			     (next-line 1)
+			     (copy-from-above-command))))
+       ("s-s" . save-buffer)
+       ("M-k" . paredit-forward-barf-sexp)
+       ("M-l" . paredit-forward-slurp-sexp)
+       ("C-h" . delete-backward-char)
        ("C-z" . mikepjb/open-repl)
+       ("M-j" . ,(ifn (join-line -1)))
+       ("M-H" . ,help-map)
        ("s-s" . save-buffer)
        ("s-o" . switch-to-buffer)
        ("s-k" . kill-buffer) ;; actually originally matched to kill-current-buffer, maybe try that out too.
@@ -205,13 +225,16 @@
                            ("org" . "https://orgmode.org/elpa/")
                            ("elpa" . "https://elpa.gnu.org/packages/"))))
 
+(require 'package)
+(package-initialize)
+
 (when (not (require 'use-package nil t))
   (package-refresh-contents)
   (package-install 'use-package))
 
 (use-package company
   :ensure t
-  ;; :config #'global-company-mode ;; does not work
+  :init (global-company-mode t)
   )
 
 (use-package eglot :ensure t
@@ -223,9 +246,10 @@
 
 (use-package markdown-mode :ensure t)
 
-(use-package magit :ensure t)
+;; (use-package magit :ensure t)
 
 ;; all use-packages fail if you don't have internet. "failed to install"
+(use-package paredit :ensure t)
 (use-package clojure-mode :ensure t)
 (use-package cider :ensure t)
 

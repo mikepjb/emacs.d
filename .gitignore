@@ -6,3 +6,6 @@ custom.el
 *~
 projects
 transient/
+ido.last
+eshell/*
+session.*
