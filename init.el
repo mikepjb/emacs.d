@@ -173,7 +173,7 @@
      `(
        ("M-o" . other-window)
        ;; ("C-c p" . project-find-file)
-       ("C-c a" . ,(ifn (org-agenda nil "d")))
+       ("C-c a" . org-agenda-list)
        ("C-c A" . org-agenda)
        ("C-c i" . ,(ifn (find-file user-init-file)))
        ("C-c n" . ,(ifn (find-file (concat user-emacs-directory "org/notes.org"))))
@@ -181,6 +181,7 @@
        ("C-c O" . ,(ifn-from "~/.emacs.d/org/" 'find-file))
        ("C-c g" . magit)
        ("C-c l" . flycheck-list-errors)
+       ("C-c s" . vc-git-grep)
        ("C-c '" . modus-themes-toggle)
        ;; ("s-d" . duplicate-line) ;; think this is a recent function, Emacs 29.1
        ("C-;" . company-capf)
@@ -189,6 +190,7 @@
 			     (next-line 1)
 			     (copy-from-above-command))))
        ("s-s" . save-buffer)
+       ("s-x" . execute-extended-command)
        ("M-k" . paredit-forward-barf-sexp)
        ("M-l" . paredit-forward-slurp-sexp)
        ("C-h" . delete-backward-char)
@@ -196,13 +198,22 @@
        ("M-j" . ,(ifn (join-line -1)))
        ("M-H" . ,help-map)
        ("s-s" . save-buffer)
-       ("s-o" . switch-to-buffer)
+       ;; ("s-o" . switch-to-buffer)
+       ("s-o" . other-window)
        ("s-k" . kill-buffer) ;; actually originally matched to kill-current-buffer, maybe try that out too.
        ("s-f" . find-file)
        ("C-c P" . ,(ifn-from "~/src/" 'find-file))
        ("M-F" . toggle-frame-fullscreen)))
   (global-set-key (kbd (car binding)) (cdr binding)))
 
+(setq org-agenda-files `(,(concat user-emacs-directory "org"))
+      org-agenda-start-on-weekday nil ;; show the next 7 days
+      org-agenda-start-day "0d"
+      org-todo-keywords
+      '((sequence "TODO(t)" "NEXT(n)" "DOING(d)" "|" "DONE(d!)" "COMPLETE(c)" "CANCELLED(x)") ;; no blocking state
+	;; (sequence "BACKLOG(b)" "PLAN(p)" "COMPLETED(c)" "|" "RELEASED(r)" "CANCELLED(k@)")
+	)
+      )
 (advice-add 'org-refile :after 'org-save-all-org-buffers)
 (add-hook 'org-mode-hook (lambda ()
 			   (variable-pitch-mode)
@@ -252,6 +263,7 @@
 (use-package paredit :ensure t)
 (use-package clojure-mode :ensure t)
 (use-package cider :ensure t)
+(use-package yaml-mode :ensure t)
 
 (provide 'init)
 
