@@ -34,6 +34,7 @@
       ring-bell-function nil
       enable-local-variables :safe
       inhibit-startup-screen t
+      backup-directory-alist `((".*" . "~/.saves")) ;; can also use temp-file-dir
       )
 (setq read-buffer-completion-ignore-case t)
 (setq read-file-name-completion-ignore-case t)
@@ -88,7 +89,7 @@
 	(t nil)))
 
 (defconst *font-size*
-  (if *is-a-mac* 120 110))
+  (if *is-a-mac* 120 120))
 
 (set-face-attribute 'default nil :font *fixed-font* :height *font-size*)
 (set-face-attribute 'fixed-pitch nil :font *fixed-font* :height *font-size*)
@@ -179,6 +180,9 @@
        ("C-c n" . ,(ifn (find-file (concat user-emacs-directory "org/notes.org"))))
        ("C-c o" . ,(ifn (find-file (concat user-emacs-directory "org/ops.org"))))
        ("C-c O" . ,(ifn-from "~/.emacs.d/org/" 'find-file))
+       ("C-c m" . recompile)
+       ("C-c M" . ,(ifn-from (vc-git-root buffer-file-name) 'compile)) ;; compile from git root
+       ("C-c p" . project-find-file)
        ("C-c g" . magit)
        ("C-c l" . flycheck-list-errors)
        ("C-c s" . vc-git-grep)
@@ -264,6 +268,12 @@
 (use-package clojure-mode :ensure t)
 (use-package cider :ensure t)
 (use-package yaml-mode :ensure t)
+(use-package go-mode :ensure t
+  :init (add-hook 'before-save-hook
+		  (lambda ()
+		    (gofmt-before-save)
+		    (eglot-code-action-organize-imports 1)
+		    )))
 
 (provide 'init)
 
