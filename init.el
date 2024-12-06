@@ -31,10 +31,13 @@
 (setq custom-file (concat user-emacs-directory "custom.el")
       bidi-paragraph-direction 'left-to-right ;; performance
       bidi-inhibit-bpa t
-      ring-bell-function nil
+      visible-bell t
+      ring-bell-function 'ignore
       enable-local-variables :safe
       inhibit-startup-screen t
       backup-directory-alist `((".*" . "~/.saves")) ;; can also use temp-file-dir
+      ;; do we need this with the above backup dir setting?
+      ;;make-backup-files nil ;; stop creating ~ files TODO maybe change the directory instead?
       )
 (setq read-buffer-completion-ignore-case t)
 (setq read-file-name-completion-ignore-case t)
@@ -168,12 +171,19 @@
 	  ((eq major-mode 'python-mode) (run-python))
 	  (eshell))))
 
+(defun mikepjb/toggle-frame-size ()
+  (interactive) ;; width height
+  (if (eq (frame-width) 140)
+      (set-frame-size (selected-frame) 280 100)
+      (set-frame-size (selected-frame) 140 80)))
+
 ;; TODO does it matter if we include methods that may not exist in the keybindings?
 (dolist
     (binding
      `(
        ("M-o" . other-window)
        ;; ("C-c p" . project-find-file)
+       ("C-c 0" . mikepjb/toggle-frame-size)
        ("C-c a" . org-agenda-list)
        ("C-c A" . org-agenda)
        ("C-c i" . ,(ifn (find-file user-init-file)))
