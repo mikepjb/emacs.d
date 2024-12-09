@@ -33,12 +33,15 @@
       bidi-inhibit-bpa t
       visible-bell t
       ring-bell-function 'ignore
-      enable-local-variables :safe
+      ;; enable-local-variables :safe
+      enable-local-variables t ;; :safe
       inhibit-startup-screen t
       backup-directory-alist `((".*" . "~/.saves")) ;; can also use temp-file-dir
       ;; do we need this with the above backup dir setting?
       ;;make-backup-files nil ;; stop creating ~ files TODO maybe change the directory instead?
       )
+
+;; (setq sql-postgres-login-params (append sql-postgres-login-params '(port)))
 (setq read-buffer-completion-ignore-case t)
 (setq read-file-name-completion-ignore-case t)
 (add-to-list 'completion-ignored-extensions ".git") ;; will still match if there are no other candidates.
@@ -204,6 +207,7 @@
 			     (next-line 1)
 			     (copy-from-above-command))))
        ("s-s" . save-buffer)
+       ("s-o" . switch-to-buffer)
        ("s-x" . execute-extended-command)
        ("M-k" . paredit-forward-barf-sexp)
        ("M-l" . paredit-forward-slurp-sexp)

@@ -10,3 +10,4 @@ ido.last
 eshell/*
 session.*
 flycheck_init.el
+tramp
