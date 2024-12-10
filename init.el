@@ -289,6 +289,8 @@
 		    (eglot-code-action-organize-imports 1)
 		    )))
 
+(use-package ansi-color :hook (compilation-filter . ansi-color-compilation-filter))
+
 (provide 'init)
 
 ;;; init.el ends here
