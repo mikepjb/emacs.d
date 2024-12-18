@@ -225,6 +225,7 @@
   (global-set-key (kbd (car binding)) (cdr binding)))
 
 (setq org-agenda-files `(,(concat user-emacs-directory "org"))
+      org-archive-location (concat user-emacs-directory "org/archive.org::")
       org-agenda-start-on-weekday nil ;; show the next 7 days
       org-agenda-start-day "0d"
       org-todo-keywords
@@ -238,6 +239,14 @@
 			   (org-indent-mode)
 			   (set-face-attribute 'org-table nil :inherit 'fixed-pitch)))
 (add-hook 'org-agenda-mode-hook 'variable-pitch-mode)
+
+(defun org-archive-done-tasks ()
+  (interactive)
+  (org-map-entries
+    (lambda ()
+      (org-archive-subtree)
+      (setq org-map-continue-from (org-element-property :begin (org-element-at-point))))
+   "/DONE" 'tree))
 
 ;; also checkout purcell config
 ;; lsp-java?
