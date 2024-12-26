@@ -1,0 +1,17 @@
+* emacs.d
+
+- Consider having notes in private repo as a submodule so everything can be bound togerher.
+- How much do we care about working without an internet connection? Maybe only as a backup (e.g still have a minimal working config but no lsp)
+
+** LSP Setup
+
+*** Ruby
+
+- gem install ruby-lsp ruby-lsp-rails
+
+** Fonts
+This setup prefers using Recursive as both a sans-serif and mono font, you can get it here https://recursive.design.
+In the top right you can download a zip containing a lot of fonts! Install the static linear + casual versions.
+Specifically under ~Recursive_Code -> RecMono{Casual,Linear} -> RecMono{Casual,Linear}-Regular-1.085.ttf
+Also on Mac OS, you should disable the keyboard shortcut under "Input Sources" labelled "Select the previous input source" as it conflicts with C-SPC (set-mark-command)
+Under Gnome, disable "Show the overview" shortcut under "System" (originally bound to s-s)

@@ -11,3 +11,5 @@ eshell/*
 session.*
 flycheck_init.el
 tramp
+places
+recentf
