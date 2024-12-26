@@ -1,20 +1,7 @@
 ;;; init.el -- Summary
+;;; -*- lexical-binding: t -*-
 ;;; Commentary:
-;;;
-;;; This setup prefers using Recursive as both a sans-serif and mono font, you can get it here https://recursive.design.
-;;; In the top right you can download a zip containing a lot of fonts! Install the static linear + casual versions.
-;;; Specifically under ~Recursive_Code -> RecMono{Casual,Linear} -> RecMono{Casual,Linear}-Regular-1.085.ttf
-;;; Also on Mac OS, you should disable the keyboard shortcut under "Input Sources" labelled "Select the previous input source" as it conflicts with C-SPC (set-mark-command)
-;;; Under Gnome, disable "Show the overview" shortcut under "System" (originally bound to s-s)
-
-;; -*- lexical-binding: t -*-
-
-;; check for Emacs 28+
-;; do not early-init disable package loading, assuming this will always happen since it's been introduced since Emacs 27 and even Debian has 28 LOL.
-
-;; TODO company-mode always enabled please
-;; ielm/open relevant repl pls! (what is that for java?)
-;; emacs jdtls should not create tons of rubbish files when running.
+;;; Designed to work as my main programming environment.
 
 ;;; Code:
 
@@ -22,29 +9,38 @@
   (when (version< emacs-version minver)
     (error "Your Emacs is too old -- this config requires v%s or higher" minver)))
 
-;; TODO if 29.1
-;; (pixel-scroll-precision-mode 1)
+;; Performance Tuning ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; only supported in Emacs 29
-;;  (setq pixel-scroll-precision-large-scroll-height 40.0)
+(when (and (fboundp 'native-comp-available-p)
+           (native-comp-available-p))
+  (setq native-comp-async-report-warnings-errors nil)
+  (setq native-comp-deferred-compilation t)
+  (setq native-comp-async-jobs-number 4)) ;; assumes at least 4 cpus
 
-(setq custom-file (concat user-emacs-directory "custom.el")
-      bidi-paragraph-direction 'left-to-right ;; performance
+(setq gc-cons-threshold 100000000 ; 100mb
+      gc-cons-percentage 0.6
+      read-process-output-max (* 1024 1024) ;; Increase read process output max to 1mb
+      create-lockfiles nil
+      make-backup-files nil
+      auto-save-default nil
+      inhibit-compacting-font-caches t
       bidi-inhibit-bpa t
-      visible-bell t
-      ring-bell-function 'ignore
-      ;; enable-local-variables :safe
-      enable-local-variables t ;; :safe
-      inhibit-startup-screen t
-      backup-directory-alist `((".*" . "~/.saves")) ;; can also use temp-file-dir
-      ;; do we need this with the above backup dir setting?
-      ;;make-backup-files nil ;; stop creating ~ files TODO maybe change the directory instead?
-      )
+      frame-resize-pixelwise t
+      inhibit-redisplay nil
+      x-wait-for-event-timeout nil)
 
-;; (setq sql-postgres-login-params (append sql-postgres-login-params '(port)))
-(setq read-buffer-completion-ignore-case t)
-(setq read-file-name-completion-ignore-case t)
-(add-to-list 'completion-ignored-extensions ".git") ;; will still match if there are no other candidates.
+(setq-default bidi-paragraph-direction 'left-to-right)
+(run-with-idle-timer 5 t #'garbage-collect) ;; Only garbage collect when idle for 5 seconds
+
+(defun mx/check-large-file ()
+  "Avoid slowing down Emacs by disabling major-mode work in large files."
+  (when (> (buffer-size) (* 1024 1024))
+    (fundamental-mode)
+    (display-line-numbers-mode -1)
+    (font-lock-mode -1)))
+(add-hook 'find-file-hook #'mx/check-large-file)
+
+;; Environment ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (eval-when-compile (require 'subr-x)) ;; string-join comes from here
 
@@ -66,50 +62,59 @@
       "/opt/homebrew/opt/node@16/bin")
     ":")))
 
-(setq modus-themes-mode-line '(borderless)
-      modus-themes-vivendi-color-overrides '((bg-main . "#111111")
-					     (bg-dim . "#111111"))
-      module-themes-org-blocks 'tinted-background
-      modus-themes-italic-constructs t ;; TODO doesn't work?
-      ;; TODO only seems to change color, 1.8/number should affect the size I think?
-      ;; modus-themes-headings '((1 . (rainbow overline background 1.8)))
-      )
+
+;; Appearance ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defvar modus-themes-mode-line '(borderless))
+(defvar modus-themes-vivendi-color-overrides '((bg-main . "#111111") (bg-dim . "#111111")))
+(defvar modus-themes-org-blocks 'tinted-background "Style configuration for org blocks.")
+(defvar modus-themes-italic-constructs t)
 (load-theme 'modus-vivendi t)
 
-
-(defconst *fixed-font*
-  (cond ((x-list-fonts "Rec Mono Linear") "Rec Mono Linear")
-	((x-list-fonts "Recursive Mono Linear Static") "Recursive Mono Linear Static")
-	((x-list-fonts "Monaco") "Monaco") ;; defaul mac os
-	((x-list-fonts "Menlo") "Menlo") ;; mac os with vertical line glyph
-	((x-list-fonts "Monospace") "Monospace") ;; linux deja vu sans mono default
-	(t nil)))
-
-(defconst *variable-font*
-  (cond ((x-list-fonts "Rec Mono Casual") "Rec Mono Casual")
-	((x-list-fonts "Recursive") "Recursive")
-	((x-list-fonts "Recursive Mono Casual Static") "Recursive Mono Casual Static")
-	((x-list-fonts "Novaletra Serif CF") "Novaletra Serif CF")
-	((x-list-fonts "Georgia") "Georgia")
-	((x-list-fonts "Sans Serif") "Sans Serif")
-	(t nil)))
-
-(defconst *font-size*
-  (if *is-a-mac* 120 120))
+(defconst *fixed-font* (seq-find #'x-list-fonts '("Rec Mono Linear" "Monaco" "Monospace")))
+(defconst *variable-font* (seq-find #'x-list-fonts '("Rec Mono Casual" "Novaletra Serif CF" "Sans Serif")))
+(defconst *font-size* 120)
 
 (set-face-attribute 'default nil :font *fixed-font* :height *font-size*)
 (set-face-attribute 'fixed-pitch nil :font *fixed-font* :height *font-size*)
 (set-face-attribute 'variable-pitch nil :font *variable-font* :height *font-size* :weight 'regular)
+
+(when window-system
+    (scroll-bar-mode -1)
+    (set-frame-size (selected-frame) 140 80))
+
+;; Emacs Behaviour ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setq custom-file (concat user-emacs-directory "custom.el")
+      inhibit-startup-screen t
+      visible-bell t
+      ring-bell-function 'ignore
+      enable-local-variables :safe ;; dir-locals.el files can load most vars without asking.
+      read-buffer-completion-ignore-case t
+      read-file-name-completion-ignore-case t
+      tab-always-indent 'complete
+      recentf-max-menu-items 25
+      recentf-max-saved-items 25
+      )
+
+;; instead of company mode?
+;; TODO this doesn't exist?
+;; (add-hook 'after-init-hook #'global-completion-at-point-mode)
+
+(recentf-mode 1)
+(global-so-long-mode 1)
+(global-auto-revert-mode 1)
+
+(add-to-list 'completion-ignored-extensions ".git") ;; will still match if there are no other candidates.
+
+(when (version<= "29.1" emacs-version)
+  (pixel-scroll-precision-mode 1))
 
 (defadvice kill-region (before unix-werase activate compile)
   "When called interactively with no active region, delete a single word backwards instead."
   (interactive
    (if mark-active (list (region-beginning) (region-end))
      (list (save-excursion (backward-word 1) (point)) (point)))))
-
-(when window-system
-    (scroll-bar-mode -1)
-    (set-frame-size (selected-frame) 140 80))
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 
@@ -119,8 +124,8 @@
 (dolist (mode '(electric-pair-mode
 		fido-mode
 		show-paren-mode
+		save-place-mode
 		column-number-mode
-		global-auto-revert-mode
 		savehist-mode))
   (set-mode mode :enable))
 
@@ -129,64 +134,46 @@
 		electric-indent-mode)) ;; enabling this, disables indent for C-j
   (set-mode mode :disable))
 
-;; for light modes
-;; (set-face-attribute 'hl-line nil :inherit nil :background "#eeeeee")
-;; choices:
-;; tango.. dirty white but nice
-;; leuven, awesome org stuff (e.g background table)
-;; modus-operandi pretty cool
-
-;; WHAT leuven-dark is sick!!!! modeline is a bit weird but that's fine.
-;; misterioso is pretty cool too.
-;; modus-vivendi is very nice, but a bit high constrast, maybe we can lighten the background very slightly.
-
 (defun code-config ()
+  "Default configuration for code editing buffers."
   (display-line-numbers-mode 1)
   (display-fill-column-indicator-mode 1)
   (hl-line-mode 1)
+  (flycheck-mode 1)
   (setq-local show-trailing-whitespace t))
 
 (dolist (hook '(prog-mode-hook css-mode-hook)) (add-hook hook 'code-config))
 
 (defun prose-config ()
+  "Default configuration for writing buffers."
   (variable-pitch-mode))
-
 (dolist (hook '(markdown-mode)) (add-hook hook 'prose-config))
 
-(defmacro ifn (fn)
-  `(lambda () (interactive) ,fn))
+;; TODO watching-video-mode (set-frame-parameter nil 'alpha '(90 . 75))
+;; TODO prose "focus" mode
 
+(defmacro ifn (fn) "Execute FN interactively." `(lambda () (interactive) ,fn))
 (defmacro ifn-from (from-dir fn)
+  "Execute FN in FROM-DIR."
   `(lambda () (interactive)
      (let ((default-directory ,from-dir)) (call-interactively ,fn))))
 
-;; TODO C-z crack open eshell in GUI mode
-;; TODO super-z is undo even outside mac os.
-;; TODO s-r to open repl.
-(defun mikepjb/open-repl ()
-  ;; TODO if already in  a "repl buffer", then close it
-  (interactive)
-  (progn
-    (if (= (count-windows) 1)
-	(split-window-below))
-    (other-window 1)
-    (cond ((eq major-mode 'emacs-lisp-mode) (ielm))
-	  ((eq major-mode 'python-mode) (run-python))
-	  (eshell))))
-
-(defun mikepjb/toggle-frame-size ()
+(defun mx/toggle-frame-size ()
   (interactive) ;; width height
   (if (eq (frame-width) 140)
       (set-frame-size (selected-frame) 280 100)
       (set-frame-size (selected-frame) 140 80)))
 
-;; TODO does it matter if we include methods that may not exist in the keybindings?
+;;TODO repl pls.
+
+;; Keybindings ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (dolist
     (binding
      `(
+       ;; vc-dir (show current changes in repo)
        ("M-o" . other-window)
-       ;; ("C-c p" . project-find-file)
-       ("C-c 0" . mikepjb/toggle-frame-size)
+       ("C-c 0" . mx/toggle-frame-size)
        ("C-c a" . org-agenda-list)
        ("C-c A" . org-agenda)
        ("C-c i" . ,(ifn (find-file user-init-file)))
@@ -196,7 +183,7 @@
        ("C-c m" . recompile)
        ("C-c M" . ,(ifn-from (vc-git-root buffer-file-name) 'compile)) ;; compile from git root
        ("C-c p" . project-find-file)
-       ("C-c g" . magit)
+       ("C-c g" . ,(ifn (vc-dir (vc-git-root buffer-file-name))))
        ("C-c l" . flycheck-list-errors)
        ("C-c s" . vc-git-grep)
        ("C-c '" . modus-themes-toggle)
@@ -212,9 +199,11 @@
        ("M-k" . paredit-forward-barf-sexp)
        ("M-l" . paredit-forward-slurp-sexp)
        ("C-h" . delete-backward-char)
-       ("C-z" . mikepjb/open-repl)
+       ("C-z" . mikepjb/toggle-repl)
+       ("C-c r" . recentf-open-files)
        ("M-j" . ,(ifn (join-line -1)))
        ("M-H" . ,help-map)
+       ("M-/" . comment-or-uncomment-region)
        ("s-s" . save-buffer)
        ;; ("s-o" . switch-to-buffer)
        ("s-o" . other-window)
@@ -223,6 +212,11 @@
        ("C-c P" . ,(ifn-from "~/src/" 'find-file))
        ("M-F" . toggle-frame-fullscreen)))
   (global-set-key (kbd (car binding)) (cdr binding)))
+
+
+(require 'local nil t) ;; optionally load a local.el
+
+;; Packages & Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (setq org-agenda-files `(,(concat user-emacs-directory "org"))
       org-archive-location (concat user-emacs-directory "org/archive.org::")
@@ -240,66 +234,33 @@
 			   (set-face-attribute 'org-table nil :inherit 'fixed-pitch)))
 (add-hook 'org-agenda-mode-hook 'variable-pitch-mode)
 
-(defun org-archive-done-tasks ()
-  (interactive)
-  (org-map-entries
-    (lambda ()
-      (org-archive-subtree)
-      (setq org-map-continue-from (org-element-property :begin (org-element-at-point))))
-   "/DONE" 'tree))
-
-;; also checkout purcell config
-;; lsp-java?
-
-;; TODO hl-line setting fails until after emacs fully loaded? it fails at startup either way, whatever the cause.
-
-(require 'local nil t) ;; optionally load a local.el
-
-;; 3rd party territory, everything up to this point should not fail without an internet connection.
-
-(require 'package) ;; TODO built-in, should use as conditional for setting archives
-(when (not (member "melpa" (mapcar 'car package-archives))) ;; check there isn't a local override
-  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                           ("org" . "https://orgmode.org/elpa/")
-                           ("elpa" . "https://elpa.gnu.org/packages/"))))
-
 (require 'package)
-(package-initialize)
+(setq package-archives
+      '(("gnu" . "https://elpa.gnu.org/packages/")
+        ("melpa" . "https://melpa.org/packages/")))
 
-(when (not (require 'use-package nil t))
-  (package-refresh-contents)
-  (package-install 'use-package))
+(condition-case err
+    (package-initialize)
+  (error (message "Failed to initialize packages: %s" err)))
 
-(use-package company
-  :ensure t
-  :init (global-company-mode t)
-  )
+(defmacro maybe-require (package &rest body)
+  "Safely load PACKAGE and configure with BODY."
+  `(if (require ',package nil 'noerror)
+       (progn ,@body)
+     (message "Package '%s' not available" ',package)))
 
-(use-package eglot :ensure t
-  :hook (prog-mode . eglot-ensure))
-;; TODO not sure eglot is actually started in coding buffers.
+(setq mx-packages
+      '((project . '((setq project-vc-extra-root-markers '(".git"))))
+	(eglot . '((add-hook 'prog-mode-hook 'eglot-ensure)))
+	(flycheck-mode)
+	(rust-mode)
+	(typescript-mode)
+	(markdown-mode)))
 
-(use-package flycheck :ensure t
-  :init (global-flycheck-mode))
-
-(use-package markdown-mode :ensure t)
-
-;; (use-package magit :ensure t)
-
-;; all use-packages fail if you don't have internet. "failed to install"
-(use-package paredit :ensure t)
-(use-package clojure-mode :ensure t)
-(use-package cider :ensure t)
-(use-package yaml-mode :ensure t)
-(use-package go-mode :ensure t
-  :init (add-hook 'before-save-hook
-		  (lambda ()
-		    (gofmt-before-save)
-		    (eglot-code-action-organize-imports 1)
-		    )))
-
-(use-package ansi-color :hook (compilation-filter . ansi-color-compilation-filter))
+(dolist (config mx-packages)
+  (let ((package (car config))
+	(setup-forms (cdr config)))
+    (when (maybe-require package)
+      (eval `(progn ,@setup-forms)))))
 
 (provide 'init)
-
-;;; init.el ends here
