@@ -13,9 +13,10 @@
 
 (when (and (fboundp 'native-comp-available-p)
            (native-comp-available-p))
-  (setq native-comp-async-report-warnings-errors nil)
-  (setq native-comp-deferred-compilation t)
-  (setq native-comp-async-jobs-number 4)) ;; assumes at least 4 cpus
+  (setq-default
+   native-comp-async-report-warnings-errors nil
+   native-comp-deferred-compilation t
+   native-comp-async-jobs-number 4)) ;; assumes at least 4 cpus
 
 (setq gc-cons-threshold 100000000 ; 100mb
       gc-cons-percentage 0.6
@@ -92,10 +93,10 @@
       enable-local-variables :safe ;; dir-locals.el files can load most vars without asking.
       read-buffer-completion-ignore-case t
       read-file-name-completion-ignore-case t
-      tab-always-indent 'complete
-      recentf-max-menu-items 25
-      recentf-max-saved-items 25
-      )
+      tab-always-indent 'complete)
+
+(setq-default recentf-max-menu-items 25
+	      recentf-max-saved-items 25)
 
 ;; instead of company mode?
 ;; TODO this doesn't exist?
@@ -164,6 +165,11 @@
       (set-frame-size (selected-frame) 280 100)
       (set-frame-size (selected-frame) 140 80)))
 
+(defun mx/toggle-frame-translucency ()
+  (interactive)
+  (let ((level (if (eq (car (frame-parameter nil 'alpha)) 90) 100 90)))
+    (set-frame-parameter nil 'alpha `(,level . ,level))))
+
 ;;TODO repl pls.
 
 ;; Keybindings ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -184,17 +190,16 @@
        ("C-c M" . ,(ifn-from (vc-git-root buffer-file-name) 'compile)) ;; compile from git root
        ("C-c p" . project-find-file)
        ("C-c g" . ,(ifn (vc-dir (vc-git-root buffer-file-name))))
+       ("C-c L" . vc-print-root-log) ;; git log
        ("C-c l" . flycheck-list-errors)
-       ("C-c s" . vc-git-grep)
-       ("C-c '" . modus-themes-toggle)
+       ("C-c s" . vc-git-grep) ;; grep over current project
+       ("C-c '" . modus-themes-toggle) ;; toggle light/dark
        ;; ("s-d" . duplicate-line) ;; think this is a recent function, Emacs 29.1
-       ("C-;" . company-capf)
+       ("C-;" . completion-at-point) ;; works just fine? company is nicer..
        ("M-D" . ,(ifn (progn (end-of-line 1)
 			     (open-line 1)
 			     (next-line 1)
 			     (copy-from-above-command))))
-       ("s-s" . save-buffer)
-       ("s-o" . switch-to-buffer)
        ("s-x" . execute-extended-command)
        ("M-k" . paredit-forward-barf-sexp)
        ("M-l" . paredit-forward-slurp-sexp)
@@ -205,7 +210,6 @@
        ("M-H" . ,help-map)
        ("M-/" . comment-or-uncomment-region)
        ("s-s" . save-buffer)
-       ;; ("s-o" . switch-to-buffer)
        ("s-o" . other-window)
        ("s-k" . kill-buffer) ;; actually originally matched to kill-current-buffer, maybe try that out too.
        ("s-f" . find-file)
@@ -223,17 +227,18 @@
       org-agenda-start-on-weekday nil ;; show the next 7 days
       org-agenda-start-day "0d"
       org-todo-keywords
-      '((sequence "TODO(t)" "NEXT(n)" "DOING(d)" "|" "DONE(d!)" "COMPLETE(c)" "CANCELLED(x)") ;; no blocking state
-	;; (sequence "BACKLOG(b)" "PLAN(p)" "COMPLETED(c)" "|" "RELEASED(r)" "CANCELLED(k@)")
-	)
-      )
+      '((sequence "TODO(t)" "NEXT(n)" "DOING(d)" "|" "DONE(d!)" "COMPLETE(c)" "CANCELLED(x)")))
+
 (advice-add 'org-refile :after 'org-save-all-org-buffers)
+
 (add-hook 'org-mode-hook (lambda ()
 			   (variable-pitch-mode)
 			   (org-indent-mode)
 			   (set-face-attribute 'org-table nil :inherit 'fixed-pitch)))
 (add-hook 'org-agenda-mode-hook 'variable-pitch-mode)
 
+(setq package-quickstart t
+      package-native-compile t)
 (require 'package)
 (setq package-archives
       '(("gnu" . "https://elpa.gnu.org/packages/")
@@ -253,6 +258,7 @@
       '((project . '((setq project-vc-extra-root-markers '(".git"))))
 	(eglot . '((add-hook 'prog-mode-hook 'eglot-ensure)))
 	(flycheck-mode)
+	(company-mode)
 	(rust-mode)
 	(typescript-mode)
 	(markdown-mode)))
