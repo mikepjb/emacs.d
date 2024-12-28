@@ -3,8 +3,24 @@
 A repository for Emacs configuration and notes on how to use it effectively.
 
 - Consider having notes in private repo as a submodule so everything can be bound togerher.
-- How much do we care about working without an internet connection? Maybe only as a backup (e.g still have a minimal working config but no lsp)
+- How much do we care about working without an internet connection? Maybe only as a backup (e.g still have a minimal working config but no lsp).
 
+** Development Workflow
+- Flycheck should load for all programming modes, on the modeline it will be orange/green to show whether any linting mes
+- ~C-c l~ to list linting errors (with Flycheck)
+
+** vc.el & working with Git.
+- Use ~vc-dir~ to view the status of your repository (bound to ~C-c g~)
+- ~v~ will commit the file you are currently hovering, otherwise
+  mark/unmark with ~m~ and ~u~ to commit multiple files.
+- ~C-c C-c~ will complete the commit, ~C-c C-k~ will exit without making a commit.
+- ~x~ updates the ~vc-dir~ buffer.
+- ~=~ shows a diff of the hovered file in ~vc-dir~
+- ~i~ will register or 'include' a file that you've never commited
+  before. This is kinda cool as an extra step to prevent accidentally
+  adding files you want to avoid commiting.
+- View all commits with ~C-c L~
+  
 ** LSP Setup
 
 *** Ruby
