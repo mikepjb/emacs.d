@@ -108,7 +108,7 @@
 
 (add-to-list 'completion-ignored-extensions ".git") ;; will still match if there are no other candidates.
 
-(when (version<= "29.1" emacs-version)
+(when (fboundp 'pixel-scroll-precision-mode) ;; expect in Emacs 29.1
   (pixel-scroll-precision-mode 1))
 
 (defadvice kill-region (before unix-werase activate compile)
@@ -119,21 +119,18 @@
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 
-(defmacro set-mode (mode value)
-  `(funcall ,mode (if (eq ,value :enable) 1 -1)))
-
 (dolist (mode '(electric-pair-mode
 		fido-mode
 		show-paren-mode
 		save-place-mode
 		column-number-mode
 		savehist-mode))
-  (set-mode mode :enable))
+  (funcall mode 1))
 
 (dolist (mode '(menu-bar-mode
 		tool-bar-mode
 		electric-indent-mode)) ;; enabling this, disables indent for C-j
-  (set-mode mode :disable))
+  (funcall mode -1))
 
 (defun code-config ()
   "Default configuration for code editing buffers."
@@ -160,12 +157,14 @@
      (let ((default-directory ,from-dir)) (call-interactively ,fn))))
 
 (defun mx/toggle-frame-size ()
+  "Toggle current frame size between the default and a larger working space."
   (interactive) ;; width height
   (if (eq (frame-width) 140)
       (set-frame-size (selected-frame) 280 100)
       (set-frame-size (selected-frame) 140 80)))
 
 (defun mx/toggle-frame-translucency ()
+  "Toggle current frame translucency between fully opaque and slightly see-through."
   (interactive)
   (let ((level (if (eq (car (frame-parameter nil 'alpha)) 90) 100 90)))
     (set-frame-parameter nil 'alpha `(,level . ,level))))
@@ -198,7 +197,7 @@
        ("C-;" . completion-at-point) ;; works just fine? company is nicer..
        ("M-D" . ,(ifn (progn (end-of-line 1)
 			     (open-line 1)
-			     (next-line 1)
+			     (forward-line 1)
 			     (copy-from-above-command))))
        ("s-x" . execute-extended-command)
        ("M-k" . paredit-forward-barf-sexp)
@@ -214,6 +213,7 @@
        ("s-k" . kill-buffer) ;; actually originally matched to kill-current-buffer, maybe try that out too.
        ("s-f" . find-file)
        ("C-c P" . ,(ifn-from "~/src/" 'find-file))
+       ("M-J" . mx/toggle-frame-translucency)
        ("M-F" . toggle-frame-fullscreen)))
   (global-set-key (kbd (car binding)) (cdr binding)))
 
