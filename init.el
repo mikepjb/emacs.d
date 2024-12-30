@@ -99,10 +99,6 @@
 (setq-default recentf-max-menu-items 25
 	      recentf-max-saved-items 25)
 
-;; instead of company mode?
-;; TODO this doesn't exist?
-;; (add-hook 'after-init-hook #'global-completion-at-point-mode)
-
 (recentf-mode 1)
 (global-so-long-mode 1)
 (global-auto-revert-mode 1)
@@ -261,31 +257,54 @@
        (progn ,@body)
      (message "Package '%s' not available" ',package)))
 
-;; TODO not sure these configs are firing, the packages are loading but the @body is maybe not being executed.. e.g no eglot on-save in go-mode.
-;; TODO also consider ansi-color with compilation filter for compile.
-(defvar mx-packages
-  '((project . '((setq project-vc-extra-root-markers '(".git"))))
-    (eglot . '((add-hook 'prog-mode-hook 'eglot-ensure)))
-    (flycheck)
-    (paredit) ;; TODO is this enabled for all lisp langs?
-    (company-mode)
-    (rust-mode)
-    (yaml-mode)
-    (typescript-mode)
-    (cider)
-    (clojure-mode)
-    (go-mode . '((add-hook 'before-save-hook
-			   (lambda ()
-			     (gofmt-before-save)
-			     (eglot-code-action-organize-imports 1)))))
-    (flycheck-golangci-lint)
-    (markdown-mode)))
+(defun require-package (package)
+  "Require PACKAGE, installing it too if not available."
+  (when (not (package-installed-p package))
+    (package-refresh-contents)
+    (package-install package))
+  (package-installed-p package))
 
-(dolist (config mx-packages)
-  (let ((package (car config))
-	(setup-forms (cdr config)))
-    (when (maybe-require package)
-      (eval `(progn ,@setup-forms)))))
+
+(defun maybe-require-package (package)
+  "Try to install PACKAGE, and return non-nil if successful.
+In the event of failure, return nil and print a warning message."
+  (condition-case err
+      (require-package package)
+    (error
+     (message "Couldn't install optional package `%s': %S" package err)
+     nil)))
+
+(when (maybe-require-package 'project)
+  ;; TODO consider making it so all ~/src projects are project.el projects.
+  ;; This extra-root-markers setting just adds projects as they are manually visited.. which is still good but maybe we can do better.
+  (setq-default project-vc-extra-root-markers '(".git")))
+
+(when (maybe-require-package 'eglot)
+  (add-hook 'prog-mode-hook 'eglot-ensure))
+
+(maybe-require-package 'flycheck)
+
+(maybe-require-package 'paredit) ;; TODO do I need to add this for elisp/clojure & other lisps? probs derived lisp-mode?
+
+(maybe-require-package 'company)
+;; TODO tab auto complete?
+
+(maybe-require-package 'rust-mode)
+(maybe-require-package 'yaml-mode)
+(maybe-require-package 'markdown-mode)
+(maybe-require-package 'typescript-mode)
+
+(maybe-require-package 'clojure-mode)
+(maybe-require-package 'cider)
+
+(when (maybe-require-package 'go-mode)
+  (add-hook 'before-save-hook
+	    (gofmt-before-save)
+	    ;; no current JSON-RPC connection?
+	    ;; (eglot-code-action-organize-imports 1)
+	    ))
+
+(maybe-require-package 'flycheck-golangci-lint)
 
 (provide 'init)
 ;;; init.el ends here
