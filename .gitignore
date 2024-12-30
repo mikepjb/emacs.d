@@ -13,3 +13,4 @@ flycheck_init.el
 tramp
 places
 recentf
+package-quickstart*
