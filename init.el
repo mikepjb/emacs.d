@@ -27,10 +27,11 @@
       inhibit-compacting-font-caches t
       bidi-inhibit-bpa t
       frame-resize-pixelwise t
-      inhibit-redisplay nil
-      x-wait-for-event-timeout nil)
+      inhibit-redisplay nil)
 
-(setq-default bidi-paragraph-direction 'left-to-right)
+(setq-default
+ bidi-paragraph-direction 'left-to-right
+ x-wait-for-event-timeout nil) ;; TODO does this work as setq-default? What's the difference vs. setq?
 (run-with-idle-timer 5 t #'garbage-collect) ;; Only garbage collect when idle for 5 seconds
 
 (defun mx/check-large-file ()
