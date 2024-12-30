@@ -173,6 +173,9 @@
 
 ;; Keybindings ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(require 'vc)
+(require 'vc-git)
+
 (dolist
     (binding
      `(
@@ -222,14 +225,17 @@
 
 ;; Packages & Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq org-agenda-files `(,(concat user-emacs-directory "org"))
-      org-archive-location (concat user-emacs-directory "org/archive.org::")
-      org-agenda-start-on-weekday nil ;; show the next 7 days
-      org-agenda-start-day "0d"
-      org-todo-keywords
-      '((sequence "TODO(t)" "NEXT(n)" "DOING(d)" "|" "DONE(d!)" "COMPLETE(c)" "CANCELLED(x)")))
+(setq-default
+ org-agenda-files `(,(concat user-emacs-directory "org"))
+ org-archive-location (concat user-emacs-directory "org/archive.org::")
+ org-agenda-start-on-weekday nil ;; show the next 7 days
+ org-agenda-start-day "0d"
+ org-todo-keywords
+ '((sequence "TODO(t)" "NEXT(n)" "DOING(d)" "|" "DONE(d!)" "COMPLETE(c)" "CANCELLED(x)")))
 
 (advice-add 'org-refile :after 'org-save-all-org-buffers)
+
+(require 'org-indent)
 
 (add-hook 'org-mode-hook (lambda ()
 			   (variable-pitch-mode)
@@ -256,23 +262,23 @@
 
 ;; TODO not sure these configs are firing, the packages are loading but the @body is maybe not being executed.. e.g no eglot on-save in go-mode.
 ;; TODO also consider ansi-color with compilation filter for compile.
-(setq mx-packages
-      '((project . '((setq project-vc-extra-root-markers '(".git"))))
-	(eglot . '((add-hook 'prog-mode-hook 'eglot-ensure)))
-	(flycheck)
-	(paredit) ;; TODO is this enabled for all lisp langs?
-	(company-mode)
-	(rust-mode)
-	(yaml-mode)
-	(typescript-mode)
-	(cider)
-	(clojure-mode)
-	(go-mode . '((add-hook 'before-save-hook
-			       (lambda ()
-				 (gofmt-before-save)
-				 (eglot-code-action-organize-imports 1)))))
-	(flycheck-golangci-lint)
-	(markdown-mode)))
+(defvar mx-packages
+  '((project . '((setq project-vc-extra-root-markers '(".git"))))
+    (eglot . '((add-hook 'prog-mode-hook 'eglot-ensure)))
+    (flycheck)
+    (paredit) ;; TODO is this enabled for all lisp langs?
+    (company-mode)
+    (rust-mode)
+    (yaml-mode)
+    (typescript-mode)
+    (cider)
+    (clojure-mode)
+    (go-mode . '((add-hook 'before-save-hook
+			   (lambda ()
+			     (gofmt-before-save)
+			     (eglot-code-action-organize-imports 1)))))
+    (flycheck-golangci-lint)
+    (markdown-mode)))
 
 (dolist (config mx-packages)
   (let ((package (car config))
@@ -281,3 +287,4 @@
       (eval `(progn ,@setup-forms)))))
 
 (provide 'init)
+;;; init.el ends here
