@@ -254,13 +254,24 @@
        (progn ,@body)
      (message "Package '%s' not available" ',package)))
 
+;; TODO not sure these configs are firing, the packages are loading but the @body is maybe not being executed.. e.g no eglot on-save in go-mode.
+;; TODO also consider ansi-color with compilation filter for compile.
 (setq mx-packages
       '((project . '((setq project-vc-extra-root-markers '(".git"))))
 	(eglot . '((add-hook 'prog-mode-hook 'eglot-ensure)))
-	(flycheck-mode)
+	(flycheck)
+	(paredit) ;; TODO is this enabled for all lisp langs?
 	(company-mode)
 	(rust-mode)
+	(yaml-mode)
 	(typescript-mode)
+	(cider)
+	(clojure-mode)
+	(go-mode . '((add-hook 'before-save-hook
+			       (lambda ()
+				 (gofmt-before-save)
+				 (eglot-code-action-organize-imports 1)))))
+	(flycheck-golangci-lint)
 	(markdown-mode)))
 
 (dolist (config mx-packages)
