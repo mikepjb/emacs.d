@@ -49,6 +49,8 @@
 (defconst *is-a-mac* (eq system-type 'darwin))
 
 (when *is-a-mac* ;; for native compilation on mac os
+  (setq mac-command-modifier 'meta)
+
   (setenv
    "LIBRARY_PATH"
    (string-join
@@ -86,7 +88,7 @@
 
 (defconst *fixed-font* (seq-find #'x-list-fonts '("Rec Mono Linear" "Monaco" "Monospace")))
 (defconst *variable-font* (seq-find #'x-list-fonts '("Rec Mono Casual" "Novaletra Serif CF" "Sans Serif")))
-(defconst *font-size* 120)
+(defconst *font-size* 130)
 
 (set-face-attribute 'default nil :font *fixed-font* :height *font-size*)
 (set-face-attribute 'fixed-pitch nil :font *fixed-font* :height *font-size*)
@@ -184,6 +186,9 @@
 (require 'vc)
 (require 'vc-git)
 
+;; TODO highlight TODOs
+;; TODO update bindings so that we aren't using super as Mac OS will have opt+cmd both as super.
+;; this will require remapping M-s probably to make saving easier (or consider another binding?)
 (dolist
     (binding
      `(
@@ -268,6 +273,7 @@
        (progn ,@body)
      (message "Package '%s' not available" ',package)))
 
+;; TODO one of these functions isn't defined initially, this works if you list-packages first.. would be nice to fix it.
 (defun require-package (package)
   "Require PACKAGE, installing it too if not available."
   (when (not (package-installed-p package))
@@ -288,6 +294,7 @@ In the event of failure, return nil and print a warning message."
 (when (maybe-require-package 'project)
   ;; TODO consider making it so all ~/src projects are project.el projects.
   ;; This extra-root-markers setting just adds projects as they are manually visited.. which is still good but maybe we can do better.
+  (setq-default project-vc-ignores '("node_modules"))
   (setq-default project-vc-extra-root-markers '(".git")))
 
 (when (maybe-require-package 'eglot)
@@ -316,6 +323,8 @@ In the event of failure, return nil and print a warning message."
 	    ))
 
 (maybe-require-package 'flycheck-golangci-lint)
+
+(maybe-require-package 'restclient)
 
 (provide 'init)
 ;;; init.el ends here
