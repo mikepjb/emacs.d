@@ -116,6 +116,7 @@
 (global-so-long-mode 1)
 (global-auto-revert-mode 1)
 (winner-mode 1) ;; record and revert/replay window/split configurations
+(fido-vertical-mode 1)
 
 (add-to-list 'completion-ignored-extensions ".git") ;; will still match if there are no other candidates.
 
@@ -131,7 +132,6 @@
 (defalias 'yes-or-no-p 'y-or-n-p)
 
 (dolist (mode '(electric-pair-mode
-		fido-mode
 		show-paren-mode
 		save-place-mode
 		column-number-mode
