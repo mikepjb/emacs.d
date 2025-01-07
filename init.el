@@ -186,6 +186,8 @@
 
 (require 'vc)
 (require 'vc-git)
+(defvar vc-dir-hide-state)
+(setq vc-dir-hide-state '("up-to-date" "ignored"))
 
 ;; TODO highlight TODOs
 ;; TODO update bindings so that we aren't using super as Mac OS will have opt+cmd both as super.
