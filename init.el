@@ -223,11 +223,10 @@
        ("C-c r" . recentf-open-files)
        ("M-j" . ,(ifn (join-line -1)))
        ("M-H" . ,help-map)
+       ("M-s" . save-buffer) ;; C-x C-s is too awkward for a common keybind.
+       ("M-S" . ,search-map)
        ("M-/" . comment-or-uncomment-region)
-       ("s-s" . save-buffer)
-       ("s-o" . other-window)
        ("s-k" . kill-buffer) ;; actually originally matched to kill-current-buffer, maybe try that out too.
-       ("s-f" . find-file)
        ("C-c P" . ,(ifn-from "~/src/" 'find-file))
        ("M-J" . mx/toggle-frame-translucency)
        ("M-F" . toggle-frame-fullscreen)))
