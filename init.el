@@ -115,6 +115,7 @@
 (recentf-mode 1)
 (global-so-long-mode 1)
 (global-auto-revert-mode 1)
+(winner-mode 1) ;; record and revert/replay window/split configurations
 
 (add-to-list 'completion-ignored-extensions ".git") ;; will still match if there are no other candidates.
 
@@ -194,6 +195,9 @@
      `(
        ;; vc-dir (show current changes in repo)
        ("M-o" . other-window)
+       ("M-O" . delete-other-windows) ;; more ergonomic C-c 1
+       ("M-;" . winner-undo)
+       ("M-'" . winner-redo)
        ("C-c 0" . mx/toggle-frame-size)
        ("C-c a" . org-agenda-list)
        ("C-c A" . org-agenda)
