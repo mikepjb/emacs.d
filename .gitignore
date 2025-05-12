@@ -9,3 +9,7 @@ eshell
 history
 org
 places
+flycheck_init.el
+projects
+recentf
+transient/*

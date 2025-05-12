@@ -1,0 +1,10 @@
+** Mac OS Setup
+
+brew install cmake # for vterm
+brew install hunspell
+
+cd ~/Library
+mkdir -p Spelling
+cd Spelling
+curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.aff
+curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
