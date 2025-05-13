@@ -186,6 +186,7 @@
 (global-set-key (kbd "C-c f") 'format-buffer)
 
 ;; Behaviour:
+(setq create-lockfiles nil)
 (setq split-width-threshold 180)
 (setq split-height-threshold 160)
 (setq make-backup-files nil)
@@ -197,7 +198,7 @@
 (add-hook 'find-file-hook #'disable-modes-in-large-files)
 
 
-(dolist (mode '(electric-pair-mode
+(dolist (mode '(;; electric-pair-mode ;; conflicts in web-mode.. and others?
 		show-paren-mode
 		save-place-mode
 		column-number-mode
@@ -263,6 +264,45 @@
   (setq lsp-enable-indentation t)
   (setq lsp-enable-on-type-formatting t)
   (setq-default lsp-prefer-flymake nil))
+
+;; Clojure and CIDER configuration using use-package
+(use-package clojure-mode
+  :ensure t
+  :mode (("\\.clj\\'" . clojure-mode)
+         ("\\.cljs\\'" . clojurescript-mode)
+         ("\\.cljc\\'" . clojurec-mode))
+  :config
+  (add-hook 'clojure-mode-hook #'subword-mode)
+  (add-hook 'clojure-mode-hook #'paredit-mode)
+  (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode))
+
+(use-package cider
+  :ensure t
+  :defer t
+  :diminish cider-mode
+  :hook ((clojure-mode . cider-mode)
+         (cider-repl-mode . subword-mode)
+         (cider-repl-mode . paredit-mode)
+         (cider-repl-mode . rainbow-delimiters-mode))
+  :config
+  (setq cider-repl-display-help-banner nil)
+  (setq cider-repl-use-pretty-printing t)
+  (setq cider-repl-history-file "~/.emacs.d/cider-history")
+  (setq cider-repl-wrap-history t)
+  (setq cider-repl-history-size 3000)
+  (setq cider-show-error-buffer t)
+  (setq cider-font-lock-dynamically '(macro core function var))
+  (setq nrepl-log-messages t)
+  ;; Indentation for Clojure
+  (setq clojure-indent-style 'align-arguments))
+
+;; Optional - some useful supporting packages for Clojure development
+(use-package paredit
+  :ensure t
+  :diminish paredit-mode)
+
+(use-package rainbow-delimiters
+  :ensure t)
 
 ;; Flycheck for linting
 (use-package flycheck
@@ -409,6 +449,8 @@
                  '(and (lsp-feature? "textDocument/formatting")
                        (eq (symbol-function 'indent-region-function)
                            'lsp-format-region)))))
+
+(use-package templ-ts-mode)
 
 ;;requires cmake to build an external module
 (use-package vterm

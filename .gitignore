@@ -13,3 +13,5 @@ flycheck_init.el
 projects
 recentf
 transient/*
+.cache
+url/
