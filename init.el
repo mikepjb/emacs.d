@@ -43,10 +43,16 @@
 (cond
  ((eq system-type 'darwin)
   (setq mac-command-modifier 'meta
-        mac-option-modifier 'super
+        mac-option-modifier 'meta
         mac-control-modifier 'control))
  ((eq system-type 'gnu/linux)
   (setq x-super-keysym 'meta)))
+
+(when (executable-find "rg")
+  (setq grep-program "rg")
+  (setq grep-command "rg --color=never --no-heading --line-number --max-filesize=300K ")
+  (setq grep-use-null-device nil)
+  (setq grep-find-command "rg --color=never --no-heading --line-number --max-filesize=300K "))
 
 (global-set-key (kbd "M-H") help-map)
 (global-set-key (kbd "M-S") search-map)
@@ -64,12 +70,12 @@
 (global-set-key (kbd "M-F") 'toggle-frame-fullscreen)
 (global-set-key (kbd "C-c m") 'recompile)
 (global-set-key (kbd "C-c M") 'project-compile)
-;; (global-set-key (kbd "C-c M") (lambda () (interactive)))
 
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
 		   (display-line-numbers-mode 1)
 		   (display-fill-column-indicator-mode 1)
+		   (column-number-mode 1)
 		   (hl-line-mode 1))))
 
 ;;; Package setup
@@ -104,15 +110,19 @@
 		popper-display-control 'display-buffer-in-direction		)
   (popper-mode +1))
 
+(use-package flymake
+  :ensure nil  ; Built-in
+  :hook (prog-mode . flymake-mode)
+  :bind (("C-c l" . flymake-show-buffer-diagnostics)
+         ("M-n" . flymake-goto-next-error)
+         ("M-p" . flymake-goto-prev-error)))
+
 (use-package company
+  :diminish
   :hook (prog-mode . company-mode)
   :config
   (setq company-idle-delay 0.2
 	company-minimum-prefix-length 2))
-
-(use-package flycheck
-  :hook (prog-mode . flycheck-mode)
-  :bind ("C-c l" . flycheck-list-errors))
 
 ;; major-modes/filetype packages
 (use-package emacs-lisp-mode
@@ -120,6 +130,7 @@
   :bind (:map emacs-lisp-mode-map
 	      ("C-c b" . eval-buffer)))
 (use-package go-mode)
+(use-package gotest)
 (use-package clojure-mode
   :mode (("\\.clj\\'" . clojure-mode)
 	 ("\\.cljs\\'" . clojurescript-mode)))
@@ -168,11 +179,7 @@
                      (save-buffer)))
   :config
   (setq-default eglot-autoshutdown t
-                eglot-confirm-server-initiated-edits nil)
-  (add-hook 'eglot-managed-mode-hook
-            (lambda ()
-              (flymake-mode -1)
-              (flycheck-mode 1))))
+                eglot-confirm-server-initiated-edits nil))
 
 (use-package paredit
   :hook ((clojure-mode . paredit-mode)
