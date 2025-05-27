@@ -38,8 +38,7 @@
 (save-place-mode 1)
 (savehist-mode 1)
 (setq-default compilation-scroll-output 'first-error
-	      compilation-window-height 15
-	      compilation-scroll-output t)
+	      compilation-window-height 15)
 
 (global-set-key (kbd "M-H") help-map)
 (global-set-key (kbd "M-S") search-map)
@@ -53,6 +52,7 @@
 (global-set-key (kbd "C-c i") (lambda () (interactive) (find-file user-init-file)))
 (global-set-key (kbd "C-c P") (lambda () (interactive) (find-file "~/src")))
 (global-set-key (kbd "C-c p") 'project-find-file)
+(global-set-key (kbd "C-j") 'newline) ;; behave like <CR>
 (global-set-key (kbd "M-F") 'toggle-frame-fullscreen)
 (global-set-key (kbd "C-c m") 'recompile)
 (global-set-key (kbd "C-c M") 'project-compile)
@@ -149,7 +149,8 @@
   :hook (go-mode . eglot-ensure)
   :bind ("C-c f" . (lambda ()
                      (interactive)
-                     (eglot-code-action-organize-imports (point-min) (point-max))
+		     (ignore-errors
+                       (eglot-code-action-organize-imports (point-min) (point-max)))
                      (eglot-format-buffer)
                      (save-buffer)))
   :config
@@ -173,6 +174,7 @@
   (global-aggressive-indent-mode 1)
   (add-to-list 'aggressive-indent-excluded-modes 'org-mode)
   (add-to-list 'aggressive-indent-excluded-modes 'shell-mode)
+  (add-to-list 'aggressive-indent-excluded-modes 'go-mode)
   (with-eval-after-load 'lsp-mode
     (add-to-list 'aggressive-indent-dont-indent-if
 		 '(and (lsp-feature? "textDocument/formatting")
@@ -187,7 +189,7 @@
 		(fg-line-number-inactive fg-dim)
 		(fringe bg-main)
 		(red red-faint)
-		(err red-faint)))
+		(err blue)))
 
 (load-theme 'modus-vivendi-tinted t)
 
