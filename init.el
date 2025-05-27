@@ -1,6 +1,6 @@
 ;;; init.el -- Development Configuration -*- lexical-binding: t -*-
 
-(let ((minver "29.1"))
+(let ((minver "30.1"))
   (when (version< emacs-version minver)
     (error "Your Emacs is too old -- this config requires v%s or higher" minver)))
 
@@ -40,6 +40,14 @@
 (setq-default compilation-scroll-output 'first-error
 	      compilation-window-height 15)
 
+(cond
+ ((eq system-type 'darwin)
+  (setq mac-command-modifier 'meta
+        mac-option-modifier 'super
+        mac-control-modifier 'control))
+ ((eq system-type 'gnu/linux)
+  (setq x-super-keysym 'meta)))
+
 (global-set-key (kbd "M-H") help-map)
 (global-set-key (kbd "M-S") search-map)
 (global-set-key (kbd "M-o") 'other-window)
@@ -65,6 +73,11 @@
 		   (hl-line-mode 1))))
 
 ;;; Package setup
+(defun reset-packages ()
+  "When upgrading your Emacs, it's useful to kill 3rd party deps and start again."
+  (interactive)
+  (delete-directory package-user-dir t))
+
 (require 'package)
 (setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
 			 ("nongnu" . "https://elpa.nongnu.org/nongnu/")

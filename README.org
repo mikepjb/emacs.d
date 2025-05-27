@@ -1,9 +1,12 @@
 ** Mac OS Setup
 
+#+begin_src bash
+brew install --cask emacs
+
+# For spelling
 brew install cmake # for vterm
 brew install hunspell
 
-#+begin_src bash
 cd ~/Library
 mkdir -p Spelling
 cd Spelling
