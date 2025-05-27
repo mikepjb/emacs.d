@@ -64,6 +64,7 @@
 (global-set-key (kbd "M-s") 'save-buffer)
 (global-set-key (kbd "M-/") 'comment-or-uncomment-region)
 (global-set-key (kbd "C-c i") (lambda () (interactive) (find-file user-init-file)))
+(global-set-key (kbd "C-c n") (lambda () (interactive) (find-file (concat user-emacs-directory "/notes/index.org"))))
 (global-set-key (kbd "C-c P") (lambda () (interactive) (find-file "~/src")))
 (global-set-key (kbd "C-c p") 'project-find-file)
 (global-set-key (kbd "C-j") 'newline) ;; behave like <CR>
@@ -77,6 +78,18 @@
 		   (display-fill-column-indicator-mode 1)
 		   (column-number-mode 1)
 		   (hl-line-mode 1))))
+
+(setq-default modus-themes-common-palette-overrides
+	      '((comment fg-dim)
+		(doc-markup fg-alt)
+		(border-mode-line-inactive bg-inactive)
+		(bg-line-number-inactive bg-main)
+		(fg-line-number-inactive fg-dim)
+		(fringe bg-main)
+		(red red-faint)
+		(err blue)))
+
+(load-theme 'modus-vivendi-tinted t)
 
 ;;; Package setup
 (defun reset-packages ()
@@ -93,10 +106,15 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-(use-package which-key :config (which-key-mode 1))
+(use-package which-key :diminish :config (which-key-mode 1))
 (use-package magit :bind ("C-c g" . magit-status))
 (use-package olivetti)
-(use-package diminish)
+(use-package diminish
+  :config
+  (diminish 'eldoc-mode)
+  (diminish 'auto-revert-mode)
+  (diminish 'abbrev-mode))
+
 (use-package popper
   :bind (("C-z"   . popper-toggle)
 	 ("M-`"   . popper-cycle))
@@ -135,6 +153,9 @@
   :mode (("\\.clj\\'" . clojure-mode)
 	 ("\\.cljs\\'" . clojurescript-mode)))
 (use-package cider :hook (clojure-mode . cider-mode))
+(use-package groovy-mode :mode "\\.gradle\\'")
+(use-package gradle-mode :hook ((java-mode . gradle-mode)
+				(groovy-mode . gradle-mode)))
 (use-package json-mode)
 (use-package yaml-mode)
 (use-package markdown-mode :mode ("\\.md\\'" . markdown-mode))
@@ -169,8 +190,10 @@
 
 ;; major-mode dependent packages
 (use-package eglot
-  :ensure nil  ; Built into Emacs 29+
-  :hook (go-mode . eglot-ensure)
+  :ensure nil
+  :hook ((go-mode . eglot-ensure)
+	 (clojure-mode . eglot-ensure)
+	 (java-mode . eglot-ensure))
   :bind ("C-c f" . (lambda ()
                      (interactive)
 		     (ignore-errors
@@ -178,10 +201,12 @@
                      (eglot-format-buffer)
                      (save-buffer)))
   :config
+  (add-to-list 'eglot-server-programs '(java-mode . ("jdtls")))
   (setq-default eglot-autoshutdown t
                 eglot-confirm-server-initiated-edits nil))
 
 (use-package paredit
+  :diminish
   :hook ((clojure-mode . paredit-mode)
 	 (emacs-lisp-mode . paredit-mode))
   :bind (:map paredit-mode-map
@@ -190,27 +215,11 @@
 	      ("M-l" . paredit-forward-slurp-sexp)))
 
 (use-package aggressive-indent
+  :diminish
   :config
   (global-aggressive-indent-mode 1)
   (add-to-list 'aggressive-indent-excluded-modes 'org-mode)
   (add-to-list 'aggressive-indent-excluded-modes 'shell-mode)
-  (add-to-list 'aggressive-indent-excluded-modes 'go-mode)
-  (with-eval-after-load 'lsp-mode
-    (add-to-list 'aggressive-indent-dont-indent-if
-		 '(and (lsp-feature? "textDocument/formatting")
-		       (eq (symbol-function 'indent-region-function)
-			   'lsp-format-region)))))
-
-(setq-default modus-themes-common-palette-overrides
-	      '((comment fg-dim)
-		(doc-markup fg-alt)
-		(border-mode-line-inactive bg-inactive)
-		(bg-line-number-inactive bg-main)
-		(fg-line-number-inactive fg-dim)
-		(fringe bg-main)
-		(red red-faint)
-		(err blue)))
-
-(load-theme 'modus-vivendi-tinted t)
+  (add-to-list 'aggressive-indent-excluded-modes 'go-mode))
 
 (provide 'init)
