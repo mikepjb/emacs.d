@@ -1,5 +1,9 @@
 ;;; init.el -- Development Configuration -*- lexical-binding: t -*-
+;;; Commentary:
+;;;
+;;; Used to create a productive working environment.
 
+;;; Code:
 (let ((minver "30.1"))
   (when (version< emacs-version minver)
     (error "Your Emacs is too old -- this config requires v%s or higher" minver)))
@@ -58,8 +62,9 @@
 (global-set-key (kbd "M-S") search-map)
 (global-set-key (kbd "M-o") 'other-window)
 (global-set-key (kbd "M-O") 'delete-other-windows)
-(global-set-key (kbd "M-;") 'winner-undo)
+(global-set-key (kbd "M-;") 'winner-undo) ;; conflict with paredit
 (global-set-key (kbd "M-'") 'winner-redo)
+(global-set-key (kbd "M-j") (lambda () (interactive) (join-line -1)))
 (global-set-key (kbd "C-h") 'delete-backward-char)
 (global-set-key (kbd "M-s") 'save-buffer)
 (global-set-key (kbd "M-/") 'comment-or-uncomment-region)
@@ -141,11 +146,11 @@
 		  "\\*Warnings\\*")
 		popper-window-height 25
 		popper-group-function 'popper-group-by-project
-		popper-display-control 'display-buffer-in-direction		)
+		popper-display-control 'display-buffer-in-direction)
   (popper-mode +1))
 
 (use-package flymake
-  :ensure nil  ; Built-in
+  :ensure nil
   :hook (prog-mode . flymake-mode)
   :bind (("C-c l" . flymake-show-buffer-diagnostics)
          ("M-n" . flymake-goto-next-error)
@@ -207,12 +212,7 @@
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((dot . t))))
-(use-package treesit-auto :config
-  (let ((langs '(go gomod javascript html)))
-    (dolist (lang langs)
-      (unless (treesit-language-available-p lang)
-        (treesit-install-language-grammar lang))))
-  (global-treesit-auto-mode))
+(use-package treesit-auto :config (setq treesit-auto-mode t) (global-treesit-auto-mode))
 (use-package templ-ts-mode)
 (use-package web-mode
   :mode (("\\.html\\'" . web-mode)
@@ -230,7 +230,7 @@
   :ensure nil
   :hook ((go-mode . eglot-ensure)
 	 (clojure-mode . eglot-ensure)
-	 (java-mode . eglot-ensure)
+	 ;; (java-mode . eglot-ensure)
 	 (templ-ts-mode . eglot-ensure))
   :bind ("C-c f" . (lambda ()
                      (interactive)
@@ -239,7 +239,7 @@
                      (eglot-format-buffer)
                      (save-buffer)))
   :config
-  (add-to-list 'eglot-server-programs '(java-mode . ("jdtls")))
+  ;; (add-to-list 'eglot-server-programs '(java-mode . ("jdtls")))
   (setq-default eglot-autoshutdown t
                 eglot-confirm-server-initiated-edits nil))
 
