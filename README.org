@@ -1,3 +1,11 @@
+** Arch Linux setup
+
+#+begin_src bash
+# fyi paru is an AUR helper
+paru -S babashka-bin
+paru -S clojure-lsp-bin # if you use clojure
+#+end_src
+
 ** Mac OS Setup
 
 #+begin_src bash

@@ -147,12 +147,26 @@
   :ensure nil ;; included in emacs, not available externally
   :bind (:map emacs-lisp-mode-map
 	      ("C-c b" . eval-buffer)))
-(use-package go-mode)
-(use-package gotest)
+(use-package go-mode
+  :bind (("C-c t" . go-test-current-file)
+	 ("C-c T" . go-test-current-project)))
+(use-package ruby-mode)
+(use-package gotest
+  :config (with-eval-after-load 'compile ;; also applies to `make test` in compile mode.
+	    (add-to-list 'compilation-error-regexp-alist-alist
+			 '(go-test-trace
+			   "Error Trace:[[:space:]]*\\([^:[:space:]]+\\.go\\):\\([0-9]+\\)" 1 2))
+	    (add-to-list 'compilation-error-regexp-alist 'go-test-trace)))
 (use-package clojure-mode
+  :hook (clojure-mode . subword-mode)
   :mode (("\\.clj\\'" . clojure-mode)
 	 ("\\.cljs\\'" . clojurescript-mode)))
-(use-package cider :hook (clojure-mode . cider-mode))
+(use-package cider :hook ((clojure-mode . cider-mode)
+			  (cider-repl-mode . subword-mode))
+  :config (setq clojure-indent-style 'align-arguments
+		cider-repl-use-pretty-printing t
+		cider-repl-display-help-banner nil
+		nrepl-log-messages t))
 (use-package groovy-mode :mode "\\.gradle\\'")
 (use-package gradle-mode :hook ((java-mode . gradle-mode)
 				(groovy-mode . gradle-mode)))
@@ -177,6 +191,13 @@
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((dot . t))))
+(use-package treesit-auto :config
+  (let ((langs '(go gomod javascript html)))
+    (dolist (lang langs)
+      (unless (treesit-language-available-p lang)
+        (treesit-install-language-grammar lang))))
+  (global-treesit-auto-mode))
+(use-package templ-ts-mode)
 (use-package web-mode
   :mode (("\\.html\\'" . web-mode)
 	 ("\\.tmpl\\'" . web-mode)
@@ -193,7 +214,8 @@
   :ensure nil
   :hook ((go-mode . eglot-ensure)
 	 (clojure-mode . eglot-ensure)
-	 (java-mode . eglot-ensure))
+	 (java-mode . eglot-ensure)
+	 (templ-ts-mode . eglot-ensure))
   :bind ("C-c f" . (lambda ()
                      (interactive)
 		     (ignore-errors
@@ -208,7 +230,9 @@
 (use-package paredit
   :diminish
   :hook ((clojure-mode . paredit-mode)
-	 (emacs-lisp-mode . paredit-mode))
+	 (emacs-lisp-mode . paredit-mode)
+	 (cider-repl-mode . paredit-mode)
+	 (lisp-data-mode . paredit-mode))
   :bind (:map paredit-mode-map
 	      ("M-s" . nil)
 	      ("M-k" . paredit-forward-barf-sexp)
@@ -218,6 +242,7 @@
   :diminish
   :config
   (global-aggressive-indent-mode 1)
+  (add-to-list 'aggressive-indent-excluded-modes 'cider-repl-mode)
   (add-to-list 'aggressive-indent-excluded-modes 'org-mode)
   (add-to-list 'aggressive-indent-excluded-modes 'shell-mode)
   (add-to-list 'aggressive-indent-excluded-modes 'go-mode))
