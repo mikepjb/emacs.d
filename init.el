@@ -67,10 +67,25 @@
 (global-set-key (kbd "C-c n") (lambda () (interactive) (find-file (concat user-emacs-directory "/notes/index.org"))))
 (global-set-key (kbd "C-c P") (lambda () (interactive) (find-file "~/src")))
 (global-set-key (kbd "C-c p") 'project-find-file)
-(global-set-key (kbd "C-j") 'newline) ;; behave like <CR>
 (global-set-key (kbd "M-F") 'toggle-frame-fullscreen)
 (global-set-key (kbd "C-c m") 'recompile)
 (global-set-key (kbd "C-c M") 'project-compile)
+
+(defun kill-region-or-backward-word ()
+  "Kill region if active, otherwise kill backward word."
+  (interactive)
+  (if (region-active-p)
+      (call-interactively #'kill-region)
+    (cond
+     ((and (bound-and-true-p paredit-mode)
+           (fboundp 'paredit-backward-kill-word))
+      (paredit-backward-kill-word))
+     (t (backward-kill-word 1)))))
+
+(global-set-key (kbd "C-w") #'kill-region-or-backward-word)
+
+(with-eval-after-load 'icomplete
+  (define-key icomplete-minibuffer-map (kbd "C-w") 'icomplete-fido-backward-updir))
 
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
@@ -122,7 +137,8 @@
   (setq-default popper-reference-buffers
 		'("\\*eshell\\*"
 		  "\\*shell\\*"
-		  "\\*compilation\\*")
+		  "\\*compilation\\*"
+		  "\\*Warnings\\*")
 		popper-window-height 25
 		popper-group-function 'popper-group-by-project
 		popper-display-control 'display-buffer-in-direction		)
@@ -170,7 +186,7 @@
 (use-package groovy-mode :mode "\\.gradle\\'")
 (use-package gradle-mode :hook ((java-mode . gradle-mode)
 				(groovy-mode . gradle-mode)))
-(use-package json-mode)
+(use-package json-mode :mode ("\\.json\\'" . json-mode))
 (use-package yaml-mode)
 (use-package markdown-mode :mode ("\\.md\\'" . markdown-mode))
 (use-package org
@@ -246,5 +262,7 @@
   (add-to-list 'aggressive-indent-excluded-modes 'org-mode)
   (add-to-list 'aggressive-indent-excluded-modes 'shell-mode)
   (add-to-list 'aggressive-indent-excluded-modes 'go-mode))
+
+(use-package deadgrep)
 
 (provide 'init)
