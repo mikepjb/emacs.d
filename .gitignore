@@ -16,3 +16,4 @@ transient/*
 .cache
 url/
 tree-sitter/
+ielm-history.eld
