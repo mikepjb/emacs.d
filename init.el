@@ -68,6 +68,8 @@
     (interactive)
     (find-file ,path)))
 
+;; TODO new binding for vc-dir, R (vc-revert) can revert a file at point
+;; TODO quiet.vim setup for Emacs, can we modify modus-vivendi/operandi to do this?
 (dolist (binding `(("M-o" other-window)
 		   ("M-O" delete-other-window)
 		   ("C-w" kill-region-or-backward-word) ("M-K" kill-whole-line)

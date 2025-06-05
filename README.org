@@ -27,6 +27,7 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
 *** Version Control
 
 - This setup uses vc > magit in an effort to keep things stripped down and simple.
+- Common path is to mark OR register files (this adds them in ~git~)
 - Useful commands:
   - ~vc-dir-root~ bound to: ~C-c g~ opens up a status window about the current state of your branch.
     - In there you can mark/unmark files with ~m/u~ or mark all ~M~.
@@ -40,6 +41,9 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
     - ~v~ performs the next logical action, if you have added/registered updates then this will be a ~git commit~.
     - ~g~ refreshes the state from version control (git) like most Emacs modes do (e.g ~dired~).
     - ~d~ will delete or "clean" marked files or the file under the cursor.
+    - ~x~ will hide up to date files, if you commit but haven't pushed.
+    - ~RET~ enters the file under cursor (but not ~C-j~).
+    - ~vc-create-tag~ will. create a git tag.
 
 ** Elisp Documentation
 
