@@ -28,6 +28,8 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
 
 ** .dir-locals.el
 
+- Have directory local variables is awesome for project setup, here I'm configuring two postgres servers (one of them using env vars where I care about hiding the credentials).
+
 #+begin_src emacs-lisp
 ;;; Directory Local Variables
 ;;; For more information see (info "(emacs) Directory Variables")

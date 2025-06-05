@@ -51,12 +51,6 @@
       (call-interactively #'kill-region)
     (backward-kill-word 1)))
 
-(defun copy-current-line ()
-  (interactive)
-  (save-excursion
-    (back-to-indentation)
-    (kill-ring-save (point) (line-end-position))))
-
 (setq inferior-lisp-program "scheme")
 (setq inferior-lisp-prompt "^[0-9]* *\\]=> *")
 
@@ -77,13 +71,14 @@
 (dolist (binding `(("M-o" other-window)
 		   ("M-O" delete-other-window)
 		   ("C-w" kill-region-or-backward-word) ("M-K" kill-whole-line)
-		   ("M-D" copy-current-line)
+		   ("M-D" duplicate-line)
 		   ("C-;" hippie-expand)
 		   ("M-j" (lambda () (interactive) (join-line -1)))
 		   ("M-F" toggle-frame-fullscreen)
 		   ("M-R" repl)
 		   ("C-j" newline) ;; because electric-indent overrides this
 		   ("M-P" project-find-file)
+		   ("C-c d" sql-connect)
 		   ("C-c p" project-find-file)
 		   ("C-h" delete-backward-char)
 		   ("M-s" save-buffer)
@@ -105,6 +100,9 @@
 		   (column-number-mode 1)
 		   (hl-line-mode 1))))
 
+;; TODO think yaml is text-mode based LOL
+;; can we center the context of a buffer without olivetti?
+;; also writegood?
 (add-hook 'text-mode-hook (lambda ()
 			    (variable-pitch-mode 1)
 			    (visual-line-mode 1)))
@@ -130,3 +128,28 @@
 (load-theme 'modus-vivendi-tinted t)
   
 ;; 3rd party packages
+(require 'package)
+(setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
+                         ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+                         ("melpa" . "https://melpa.org/packages/")))
+(package-initialize)
+(unless package-archive-contents (package-refresh-contents))
+(require 'use-package)
+(setq use-package-always-ensure t)
+
+;; (use-package magit :bind ("C-c g" . magit-status))
+;; vc notes:
+;; vc-update -> pull
+;; vc-git-grep looks sweet (if inside project use this? or just rg?
+;; vc-revert -> checkout/reset files?)
+;; vc-register?
+
+;; does not quite work
+;; (dolist (language-mode '(ruby-mode
+;; 			 go-mode
+;; 			 json-mode
+;; 			 yaml-mode
+;; 			 markdown-mode
+;; 			 js2-mode
+;; 			 typescript-mode))
+;;   (use-package language-mode))
