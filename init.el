@@ -17,11 +17,18 @@
       make-backup-files nil
       create-lockfiles nil
       isearch-wrap-pause 'no-ding
+      use-short-answers t
+      truncate-lines t ;; no word wrap thanks
       split-height-threshold 80
       split-width-threshold 160)
 
 (setq-default compilation-scroll-output 'first-error
-	      compilation-window-height 15)
+	      compilation-window-height 15
+	      display-fill-column-indicator-column 80
+	      truncate-lines t)
+
+(when (file-exists-p custom-file)
+  (load custom-file))
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 
@@ -50,11 +57,15 @@
     (back-to-indentation)
     (kill-ring-save (point) (line-end-position))))
 
+(setq inferior-lisp-program "scheme")
+(setq inferior-lisp-prompt "^[0-9]* *\\]=> *")
+
 (defun repl ()
   (interactive)
   (other-window-prefix)
   (pcase major-mode
     ('emacs-lisp-mode (ielm))
+    ('scheme-mode (inferior-lisp "scheme"))
     ('sql-mode (sql-postgres))
     (_ (message "No REPL defined for %s" major-mode))))
 
@@ -65,26 +76,27 @@
 
 (dolist (binding `(("M-o" other-window)
 		   ("M-O" delete-other-window)
-		   ("C-w" kill-region-or-backward-word)
-		   ("M-K" kill-whole-line)
+		   ("C-w" kill-region-or-backward-word) ("M-K" kill-whole-line)
 		   ("M-D" copy-current-line)
 		   ("C-;" hippie-expand)
 		   ("M-j" (lambda () (interactive) (join-line -1)))
+		   ("M-F" toggle-frame-fullscreen)
 		   ("M-R" repl)
 		   ("C-j" newline) ;; because electric-indent overrides this
+		   ("M-P" project-find-file)
+		   ("C-c p" project-find-file)
 		   ("C-h" delete-backward-char)
 		   ("M-s" save-buffer)
 		   ("M-/" comment-line)
 		   ("C-c i" ,(ff user-init-file))
 		   ("C-c n" ,(ff (concat user-emacs-directory "notes.org")))
-		   ;; copy current line? M-D?
+		   ("C-c P" ,(ff "~/src"))
+		   ("C-c m" recompile) ("C-c M" project-compile)
 		   ))
   (global-set-key (kbd (car binding)) (cadr binding)))
 
-;; map help/search maps separately
 (global-set-key (kbd "M-H") help-map)
 (global-set-key (kbd "M-S") search-map)
-(global-set-key (kbd "C-w") #'kill-region-or-backward-word)
 
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
@@ -93,12 +105,17 @@
 		   (column-number-mode 1)
 		   (hl-line-mode 1))))
 
-(let ((font (seq-find #'x-list-fonts '("Rec Mono Linear" "Monaco" "Monospace")))
-      (writing-font (seq-find #'x-list-fonts '("Rec Mono Casual" "Sans Serif"))))
-  (when font  ; Only set if we found a font
-    (set-face-attribute 'default nil :font font :height 160))
-  (when writing-font
-    (set-face-attribute 'variable-pitch nil :font writing-font :height 160)))
+(add-hook 'text-mode-hook (lambda ()
+			    (variable-pitch-mode 1)
+			    (visual-line-mode 1)))
+
+(cl-flet ((find-font (names) (seq-find #'x-list-fonts names)))
+  (let ((font (find-font '("Rec Mono Linear" "Monaco" "Monospace")))
+        (writing-font (find-font '("Rec Mono Casual" "Sans Serif"))))
+    (when font
+      (set-face-attribute 'default nil :font font :height 160))
+    (when writing-font
+      (set-face-attribute 'variable-pitch nil :font writing-font :height 160))))
 
 (setq-default modus-themes-common-palette-overrides
 	      '((comment fg-dim)
@@ -111,3 +128,5 @@
 		(err blue)))
 
 (load-theme 'modus-vivendi-tinted t)
+  
+;; 3rd party packages

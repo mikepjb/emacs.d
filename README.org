@@ -25,3 +25,26 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
 ** Elisp Documentation
 
 - setq-default is needed to set buffer local variables e.g compilation-scroll-output
+
+** .dir-locals.el
+
+#+begin_src emacs-lisp
+;;; Directory Local Variables
+;;; For more information see (info "(emacs) Directory Variables")
+;;; The (sql-server "") definitions are necessary to avoid prompts when connecting.
+
+((nil . ((eval . (setq sql-connection-alist ;; Connection configurations
+                         `(("local-dev"
+                            (sql-product 'postgres)
+			    (sql-user "postgres")
+			    (sql-server "") 
+			    (sql-database "postgresql://postgres:<pass>@127.0.0.1/<database>?sslmode=disable"))
+                           ("staging-postgres"
+                            (sql-product 'postgres)
+			    (sql-user "postgres")
+			    (sql-server "") 
+                            (sql-database ,(format "postgresql://postgres:%s@%s/<database>?sslmode=disable"
+						  (getenv "PROJECT_DB_PASS")
+						  (getenv "PROJECT_DB_HOST"))))))))))
+
+#+end_src
