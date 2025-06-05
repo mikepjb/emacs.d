@@ -80,6 +80,7 @@
 		   ("M-P" project-find-file)
 		   ("C-c d" sql-connect)
 		   ("C-c p" project-find-file)
+		   ("C-c g" vc-dir-root)
 		   ("C-h" delete-backward-char)
 		   ("M-s" save-buffer)
 		   ("M-/" comment-line)

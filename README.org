@@ -22,6 +22,25 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.aff
 curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
 #+end_src
 
+** Usage
+
+*** Version Control
+
+- This setup uses vc > magit in an effort to keep things stripped down and simple.
+- Useful commands:
+  - ~vc-dir-root~ bound to: ~C-c g~ opens up a status window about the current state of your branch.
+    - In there you can mark/unmark files with ~m/u~ or mark all ~M~.
+    - ~+~ will run ~vc-pull~ to pull down new changes on the branch.
+    - ~=~ will perform ~vc-diff~ to show a diff for the current file which you can close with ~q~.
+    - ~D~ performs ~vc-root-diff~ to show ALL changes at once.
+    - ~P~ performsn ~vc-push~ to push your changes.
+    - ~i~ will register a file, which adds files that were previously unknown to git/vc to the commit.
+    - ~L~ shows the git log history summarised as one line per commit.
+    - ~b c~ creates a new branch, while ~b s~ switches to another branch. ~b l~ shows the commits for a given branch.
+    - ~v~ performs the next logical action, if you have added/registered updates then this will be a ~git commit~.
+    - ~g~ refreshes the state from version control (git) like most Emacs modes do (e.g ~dired~).
+    - ~d~ will delete or "clean" marked files or the file under the cursor.
+
 ** Elisp Documentation
 
 - setq-default is needed to set buffer local variables e.g compilation-scroll-output
