@@ -2,13 +2,14 @@
 (tool-bar-mode -1)
 (when window-system (scroll-bar-mode -1))
 
-(setq inhibit-startup-screen t
-      visible-bell t
-      ring-bell-function 'ignore)
+;; still want to open vc-dir in another (new) window if there is only one.
+;; considering citre for managing tags and setting up xref for M-./M-, jumping.
 
 (pcase system-type
   ('darwin (setq mac-command-modifier 'meta))
-  ('gnu/linux (setq x-super-keysym 'meta)))
+  ('gnu/linux
+   (setenv "SSH_ASKPASS" "/usr/lib/seahorse/ssh-askpass") ;; for vc
+   (setq x-super-keysym 'meta)))
 
 (setq inhibit-startup-screen t
       visible-bell t
@@ -23,9 +24,9 @@
       vc-follow-symlinks t
       find-file-visit-truename t
       split-height-threshold 80
-      split-width-threshold 160)
-
-;; TODO #file# files still being created, what are these?
+      split-width-threshold 160
+      log-edit-show-diff t
+      log-edit-show-files nil)
 
 (setq-default compilation-scroll-output 'first-error
 	      compilation-window-height 15
@@ -67,9 +68,10 @@
   (interactive)
   (other-window-prefix)
   (pcase major-mode
+    ('clojure-mode (inferior-lisp "clojure"))
     ('emacs-lisp-mode (ielm))
     ('scheme-mode (inferior-lisp "scheme"))
-    ('sql-mode (sql-postgres))
+    ('sql-mode (sql-connect))
     (_ (message "No REPL defined for %s" major-mode))))
 
 (defmacro ff (path)
@@ -111,12 +113,14 @@
 		   (column-number-mode 1)
 		   (hl-line-mode 1))))
 
-;; TODO think yaml is text-mode based LOL
-;; can we center the context of a buffer without olivetti?
-;; also writegood?
-(add-hook 'text-mode-hook (lambda ()
-			    (variable-pitch-mode 1)
-			    (visual-line-mode 1)))
+
+(defun prose-config ()
+  (variable-pitch-mode 1)
+  (visual-line-mode 1))
+
+(add-hook 'org-mode-hook (lambda ()
+			  (prose-config)
+			  (org-indent-mode)))
 
 (cl-flet ((find-font (names) (seq-find #'x-list-fonts names)))
   (let ((font (find-font '("Rec Mono Linear" "Monaco" "Monospace")))
@@ -133,10 +137,28 @@
           (lambda () 
             (vc-dir-hide-up-to-date)))
 
-;; window-toggle-side-windows? what is this?
+(defun my/format-buffer-on-save ()
+  "Format current buffer based on file type."
+  (when buffer-file-name
+    (cond
+     ;; Go files with goimports
+     ((and (string-suffix-p ".go" buffer-file-name)
+           (executable-find "goimports"))
+      (let ((original-point (point)))
+        (shell-command-on-region 
+         (point-min) (point-max) 
+         "goimports" 
+         nil t)  ; replace buffer contents
+        (goto-char original-point)))
+     
+     ;; Templ files with templ fmt
+     ((and (string-suffix-p ".templ" buffer-file-name)
+           (executable-find "templ"))
+      (save-buffer)  ; templ fmt works on files, not stdin
+      (shell-command (format "templ fmt %s" (shell-quote-argument buffer-file-name)))
+      (revert-buffer nil t nil)))))
 
-(setq log-edit-show-diff t)
-(setq log-edit-show-files nil)
+(add-hook 'before-save-hook #'my/format-buffer-on-save)
 
 (setq-default modus-themes-common-palette-overrides
               '((comment fg-dim)
@@ -147,7 +169,6 @@
                 (fringe bg-main)
                 (red red-faint)
                 (err blue)
-                ;; Make more things subtle/quiet
                 (string fg-alt)           ; Strings less prominent
                 (keyword fg-main)         ; Keywords same as normal text
                 (builtin fg-main)         ; Built-ins quiet
@@ -166,7 +187,6 @@
 
 (load-theme 'modus-vivendi-tinted t)
   
-;; 3rd party packages
 (require 'package)
 (setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
                          ("nongnu" . "https://elpa.nongnu.org/nongnu/")
@@ -176,26 +196,21 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-;; emacs can do jumping to it's own source code, can it do this for Java.. and clojure?
-
-(use-package magit :bind ("C-c g" . magit-status))
+(use-package clojure-mode)
 (use-package ruby-mode)
 (use-package go-mode)
 (use-package json-mode)
 (use-package yaml-mode)
 (use-package markdown-mode)
 (use-package js2-mode)
-(use-package typescript-mode)
-
-
-;; ssh-add --apple-use-keychain ~/.ssh/id_rsa
-
-;; # Add to ~/.ssh/config
-;; Host *
-;;   UseKeychain yes
-;;   AddKeysToAgent yes
-;;   IdentityFile ~/.ssh/id_rsa
-
-;; export SSH_ASKPASS=/usr/lib/seahorse/seahorse-ssh-askpass
-
-(setenv "SSH_ASKPASS" "/usr/lib/seahorse/ssh-askpass")
+(use-package paredit
+  :hook ((clojure-mode
+	  emacs-lisp-mode
+	  cider-repl-mode
+	  lisp-data-mode)
+	 . paredit-mode)
+  :config
+  (with-eval-after-load 'paredit
+    (define-key paredit-mode-map (kbd "M-s") nil)
+    (define-key paredit-mode-map (kbd "M-k") 'paredit-forward-barf-sexp)
+    (define-key paredit-mode-map (kbd "M-l") 'paredit-forward-slurp-sexp)))

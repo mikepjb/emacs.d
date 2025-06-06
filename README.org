@@ -23,9 +23,10 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
 #+end_src
 
 ** Usage
+*** File/Project Navigation
+- Stick with the basics, fuzzy search with ~project.el~ and ~ripgrep~.
 
 *** Version Control
-
 - This setup uses vc > magit in an effort to keep things stripped down and simple.
 - Common path is to mark OR register files (this adds them in ~git~)
 - Useful commands:
@@ -44,6 +45,7 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
     - ~x~ will hide up to date files, if you commit but haven't pushed.
     - ~RET~ enters the file under cursor (but not ~C-j~).
     - ~vc-create-tag~ will. create a git tag.
+- ~vc~'s commands are run in a non-interactive way, so you can't enter your SSH passphrase directly and either have to use ssh-askpass or have a key without a password.
 
 ** Elisp Documentation
 
@@ -54,22 +56,22 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
 - Have directory local variables is awesome for project setup, here I'm configuring two postgres servers (one of them using env vars where I care about hiding the credentials).
 
 #+begin_src emacs-lisp
-;;; Directory Local Variables
-;;; For more information see (info "(emacs) Directory Variables")
-;;; The (sql-server "") definitions are necessary to avoid prompts when connecting.
+  ;;; Directory Local Variables
+  ;;; For more information see (info "(emacs) Directory Variables")
+  ;;; The (sql-server "") definitions are necessary to avoid prompts when connecting.
 
-((nil . ((eval . (setq sql-connection-alist ;; Connection configurations
+  ((nil . ((eval . (setq sql-connection-alist ;; Connection configurations
                          `(("local-dev"
                             (sql-product 'postgres)
-			    (sql-user "postgres")
-			    (sql-server "") 
-			    (sql-database "postgresql://postgres:<pass>@127.0.0.1/<database>?sslmode=disable"))
+  			  (sql-user "postgres")
+  			  (sql-server "") 
+  			  (sql-database "postgresql://postgres:<pass>@127.0.0.1/<database>?sslmode=disable"))
                            ("staging-postgres"
                             (sql-product 'postgres)
-			    (sql-user "postgres")
-			    (sql-server "") 
+  			  (sql-user "postgres")
+  			  (sql-server "") 
                             (sql-database ,(format "postgresql://postgres:%s@%s/<database>?sslmode=disable"
-						  (getenv "PROJECT_DB_PASS")
-						  (getenv "PROJECT_DB_HOST"))))))))))
+  						 (getenv "PROJECT_DB_PASS")
+  						 (getenv "PROJECT_DB_HOST"))))))))))
 
 #+end_src
