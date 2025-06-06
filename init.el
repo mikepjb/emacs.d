@@ -42,8 +42,9 @@
 	      display-fill-column-indicator-column 80
 	      truncate-lines t)
 
-(when (file-exists-p custom-file)
-  (load custom-file))
+(when (file-exists-p custom-file) (load custom-file))
+(let ((local-config (concat user-emacs-directory "local.el")))
+  (when (file-exists-p local-config) (load local-config t)))
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 
@@ -111,6 +112,7 @@
 		   ("M-/" comment-line)
 		   ("C-c i" ,(ff user-init-file))
 		   ("C-c n" ,(ff (concat user-emacs-directory "notes/index.org")))
+		   ("C-c l" ,(ff (concat user-emacs-directory "local.el")))
 		   ("C-c P" ,(ff "~/src"))
 		   ("C-c m" recompile) ("C-c M" project-compile)))
   (global-set-key (kbd (car binding)) (cadr binding)))

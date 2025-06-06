@@ -18,3 +18,4 @@ url/
 tree-sitter/
 ielm-history.eld
 tramp
+local.el
