@@ -56,22 +56,29 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
 - Have directory local variables is awesome for project setup, here I'm configuring two postgres servers (one of them using env vars where I care about hiding the credentials).
 
 #+begin_src emacs-lisp
-  ;;; Directory Local Variables
-  ;;; For more information see (info "(emacs) Directory Variables")
-  ;;; The (sql-server "") definitions are necessary to avoid prompts when connecting.
+    ;;; Directory Local Variables
+    ;;; For more information see (info "(emacs) Directory Variables")
+    ;;; The (sql-server "") definitions are necessary to avoid prompts when connecting.
 
   ((nil . ((eval . (setq sql-connection-alist ;; Connection configurations
                          `(("local-dev"
                             (sql-product 'postgres)
-  			  (sql-user "postgres")
-  			  (sql-server "") 
-  			  (sql-database "postgresql://postgres:<pass>@127.0.0.1/<database>?sslmode=disable"))
+    			  (sql-user "postgres")
+    			  (sql-server "") 
+    			  (sql-database "postgresql://postgres:<pass>@127.0.0.1/<database>?sslmode=disable"))
                            ("staging-postgres"
                             (sql-product 'postgres)
-  			  (sql-user "postgres")
-  			  (sql-server "") 
+    			  (sql-user "postgres")
+    			  (sql-server "") 
                             (sql-database ,(format "postgresql://postgres:%s@%s/<database>?sslmode=disable"
-  						 (getenv "PROJECT_DB_PASS")
-  						 (getenv "PROJECT_DB_HOST"))))))))))
-
+    						 (getenv "PROJECT_DB_PASS")
+    						 (getenv "PROJECT_DB_HOST"))))
+  			 ("mysql-example"
+                            (sql-product 'mysql)
+  			  (sql-user "myuser")
+  			  (sql-password "") ;; using iam auth
+  			  (sql-port 3306)
+  			  (sql-server "127.0.0.1") 
+  			  (sql-database "mydatabase")
+  			  (sql-mysql-options '("--protocol=tcp")))))))))
 #+end_src
