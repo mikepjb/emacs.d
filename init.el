@@ -9,9 +9,7 @@
 
 (pcase system-type
   ('darwin (setq mac-command-modifier 'meta))
-  ('gnu/linux
-   (setenv "SSH_ASKPASS" "/usr/lib/seahorse/ssh-askpass") ;; for vc
-   (setq x-super-keysym 'meta)))
+  ('gnu/linux (setq x-super-keysym 'meta)))
 
 (setq inhibit-startup-screen t
       visible-bell t
@@ -49,6 +47,7 @@
 (defalias 'yes-or-no-p 'y-or-n-p)
 
 (dolist (base-mode '(fido-vertical-mode
+		     auto-revert-mode
 		     show-paren-mode
 		     save-place-mode
 		     electric-pair-mode
@@ -168,10 +167,11 @@
         (writing-font (find-font '("Rec Mono Casual" "Sans Serif"))))
     (when font
       (set-face-attribute 'default nil :font font :height 160)
-      (set-face-attribute 'org-block nil :font font)
-      (set-face-attribute 'org-code nil :font font)
-      (set-face-attribute 'org-verbatim nil :font font)
-      (set-face-attribute 'org-table nil :font font))
+      (with-eval-after-load 'org
+        (set-face-attribute 'org-block nil :font font)
+	(set-face-attribute 'org-code nil :font font)
+	(set-face-attribute 'org-verbatim nil :font font)
+	(set-face-attribute 'org-table nil :font font)))
     (when writing-font
       (set-face-attribute 'variable-pitch nil :font writing-font :height 160))))
 
@@ -263,5 +263,7 @@
   :config
   (with-eval-after-load 'paredit
     (define-key paredit-mode-map (kbd "M-s") nil)
+    (define-key paredit-mode-map (kbd "C-j") 'paredit-RET) ;; auto-indent
+    (define-key paredit-mode-map (kbd "RET") 'paredit-C-j) ;; just return
     (define-key paredit-mode-map (kbd "M-k") 'paredit-forward-barf-sexp)
     (define-key paredit-mode-map (kbd "M-l") 'paredit-forward-slurp-sexp)))
