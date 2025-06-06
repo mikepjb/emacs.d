@@ -43,6 +43,7 @@
 	grep-command
 	"rg --color=never --no-heading --line-number --max-filesize=300K "))
 
+;; Bindings --------------------------------------------------------------------
 (defun kill-region-or-backward-word ()
   "Kill region if active, otherwise kill backward word."
   (interactive)
@@ -74,7 +75,6 @@
     (interactive)
     (find-file (concat ,@path))))
 
-;; Bindings --------------------------------------------------------------------
 (pcase system-type
   ('darwin (setq mac-command-modifier 'meta))
   ('gnu/linux (setq x-super-keysym 'meta)))
