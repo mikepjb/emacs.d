@@ -34,7 +34,8 @@
       org-src-tab-acts-natively t
       org-src-fontify-natively t
       org-confirm-babel-evaluate nil
-      org-src-window-setup 'current-window)
+      org-src-window-setup 'current-window
+      org-export-with-section-numbers nil)
 
 (setq-default compilation-scroll-output 'first-error
 	      compilation-window-height 15
