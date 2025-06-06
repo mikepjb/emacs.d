@@ -198,7 +198,7 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-(use-package clojure-mode)
+(use-package clojure-mode :hook (clojure-mode . subword-mode))
 (use-package ruby-mode)
 (use-package go-mode)
 (use-package json-mode)
