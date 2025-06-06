@@ -101,6 +101,7 @@
 		   ("C-;" hippie-expand)
 		   ("M-j" (lambda () (interactive) (join-line -1)))
 		   ("M-F" toggle-frame-fullscreen)
+		   ("M-Q" sql-connect) ;; a.k.a query
 		   ("M-R" repl)
 		   ("C-j" newline) ;; because electric-indent overrides this
 		   ("M-C" org-agenda) ;; a.k.a checklist
