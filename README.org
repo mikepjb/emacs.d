@@ -34,7 +34,7 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
     - ~+~ will run ~vc-pull~ to pull down new changes on the branch.
     - ~=~ will perform ~vc-diff~ to show a diff for the current file which you can close with ~q~.
     - ~D~ performs ~vc-root-diff~ to show ALL changes at once.
-    - ~P~ performsn ~vc-push~ to push your changes.
+    - ~P~ performs ~vc-push~ to push your changes.
     - ~i~ will register a file, which adds files that were previously unknown to git/vc to the commit.
     - ~L~ shows the git log history summarised as one line per commit.
     - ~b c~ creates a new branch, while ~b s~ switches to another branch. ~b l~ shows the commits for a given branch.

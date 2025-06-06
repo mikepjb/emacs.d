@@ -14,13 +14,18 @@
       visible-bell t
       ring-bell-function 'ignore
       custom-file (concat user-emacs-directory "custom.el")
+      auto-save-default nil
       make-backup-files nil
       create-lockfiles nil
       isearch-wrap-pause 'no-ding
       use-short-answers t
       truncate-lines t ;; no word wrap thanks
+      vc-follow-symlinks t
+      find-file-visit-truename t
       split-height-threshold 80
       split-width-threshold 160)
+
+;; TODO #file# files still being created, what are these?
 
 (setq-default compilation-scroll-output 'first-error
 	      compilation-window-height 15
@@ -46,10 +51,14 @@
 	"rg --color=never --no-heading --line-number --max-filesize=300K "))
 
 (defun kill-region-or-backward-word ()
+  "Kill region if active, otherwise kill backward word."
   (interactive)
   (if (region-active-p)
       (call-interactively #'kill-region)
-    (backward-kill-word 1)))
+    (cond ((and (bound-and-true-p paredit-mode) (fboundp 'paredit-backward-kill-word))
+           (paredit-backward-kill-word))
+          (t (backward-kill-word 1)))))
+
 
 (setq inferior-lisp-program "scheme")
 (setq inferior-lisp-prompt "^[0-9]* *\\]=> *")
@@ -68,8 +77,6 @@
     (interactive)
     (find-file ,path)))
 
-;; TODO new binding for vc-dir, R (vc-revert) can revert a file at point
-;; TODO quiet.vim setup for Emacs, can we modify modus-vivendi/operandi to do this?
 (dolist (binding `(("M-o" other-window)
 		   ("M-O" delete-other-window)
 		   ("C-w" kill-region-or-backward-word) ("M-K" kill-whole-line)
@@ -83,14 +90,15 @@
 		   ("C-c d" sql-connect)
 		   ("C-c p" project-find-file)
 		   ("C-c g" vc-dir-root)
+		   ("C-c h" vc-region-history) ;; + file history without region
+		   ("C-c a" vc-annotate) ;; a.k.a git blame
 		   ("C-h" delete-backward-char)
 		   ("M-s" save-buffer)
 		   ("M-/" comment-line)
 		   ("C-c i" ,(ff user-init-file))
 		   ("C-c n" ,(ff (concat user-emacs-directory "notes.org")))
 		   ("C-c P" ,(ff "~/src"))
-		   ("C-c m" recompile) ("C-c M" project-compile)
-		   ))
+		   ("C-c m" recompile) ("C-c M" project-compile)))
   (global-set-key (kbd (car binding)) (cadr binding)))
 
 (global-set-key (kbd "M-H") help-map)
@@ -118,15 +126,43 @@
     (when writing-font
       (set-face-attribute 'variable-pitch nil :font writing-font :height 160))))
 
+(with-eval-after-load 'vc-dir
+  (define-key vc-dir-mode-map (kbd "R") 'vc-revert))
+
+(add-hook 'vc-dir-mode-hook 
+          (lambda () 
+            (vc-dir-hide-up-to-date)))
+
+;; window-toggle-side-windows? what is this?
+
+(setq log-edit-show-diff t)
+(setq log-edit-show-files nil)
+
 (setq-default modus-themes-common-palette-overrides
-	      '((comment fg-dim)
-		(doc-markup fg-alt)
-		(border-mode-line-inactive bg-inactive)
-		(bg-line-number-inactive bg-main)
-		(fg-line-number-inactive fg-dim)
-		(fringe bg-main)
-		(red red-faint)
-		(err blue)))
+              '((comment fg-dim)
+                (doc-markup fg-alt)
+                (border-mode-line-inactive bg-inactive)
+                (bg-line-number-inactive bg-main)
+                (fg-line-number-inactive fg-dim)
+                (fringe bg-main)
+                (red red-faint)
+                (err blue)
+                ;; Make more things subtle/quiet
+                (string fg-alt)           ; Strings less prominent
+                (keyword fg-main)         ; Keywords same as normal text
+                (builtin fg-main)         ; Built-ins quiet
+                (constant fg-main)        ; Constants quiet  
+                (type fg-main)            ; Types quiet
+                (variable fg-main)        ; Variables quiet
+                (function fg-main)        ; Functions quiet
+                (bg-mode-line-active bg-dim) ; Subtle mode line
+                (fg-mode-line-active fg-main)
+                (bg-region bg-dim)        ; Subtle selection
+                (fg-region unspecified)   ; No special selection color
+                (yellow yellow-faint)     ; Warnings less bright
+                (green green-faint)       ; Success less bright
+                (blue blue-faint)         ; Info less bright
+                (magenta magenta-faint))) ; Less bright overall
 
 (load-theme 'modus-vivendi-tinted t)
   
@@ -140,19 +176,26 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-;; (use-package magit :bind ("C-c g" . magit-status))
-;; vc notes:
-;; vc-update -> pull
-;; vc-git-grep looks sweet (if inside project use this? or just rg?
-;; vc-revert -> checkout/reset files?)
-;; vc-register?
+;; emacs can do jumping to it's own source code, can it do this for Java.. and clojure?
 
-;; does not quite work
-;; (dolist (language-mode '(ruby-mode
-;; 			 go-mode
-;; 			 json-mode
-;; 			 yaml-mode
-;; 			 markdown-mode
-;; 			 js2-mode
-;; 			 typescript-mode))
-;;   (use-package language-mode))
+(use-package magit :bind ("C-c g" . magit-status))
+(use-package ruby-mode)
+(use-package go-mode)
+(use-package json-mode)
+(use-package yaml-mode)
+(use-package markdown-mode)
+(use-package js2-mode)
+(use-package typescript-mode)
+
+
+;; ssh-add --apple-use-keychain ~/.ssh/id_rsa
+
+;; # Add to ~/.ssh/config
+;; Host *
+;;   UseKeychain yes
+;;   AddKeysToAgent yes
+;;   IdentityFile ~/.ssh/id_rsa
+
+;; export SSH_ASKPASS=/usr/lib/seahorse/seahorse-ssh-askpass
+
+(setenv "SSH_ASKPASS" "/usr/lib/seahorse/ssh-askpass")
