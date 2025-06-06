@@ -46,6 +46,10 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
     - ~RET~ enters the file under cursor (but not ~C-j~).
     - ~vc-create-tag~ will. create a git tag.
 - ~vc~'s commands are run in a non-interactive way, so you can't enter your SSH passphrase directly and either have to use ssh-askpass or have a key without a password.
+- ~C-c C-k~ (not ~C-x k~) will kill + cancel a commit, which will also clear up other temporary buffers.
+
+*** Org Mode
+- ~C-c '~ will open a code block in another buffer for you to edit in it's native major mode.
 
 ** Elisp Documentation
 
@@ -60,21 +64,21 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
     ;;; For more information see (info "(emacs) Directory Variables")
     ;;; The (sql-server "") definitions are necessary to avoid prompts when connecting.
 
-  ((nil . ((eval . (setq sql-connection-alist ;; Connection configurations
-                         `(("local-dev"
-                            (sql-product 'postgres)
+((nil . ((eval . (setq sql-connection-alist ;; Connection configurations
+                       `(("local-dev"
+                          (sql-product 'postgres)
     			  (sql-user "postgres")
     			  (sql-server "") 
     			  (sql-database "postgresql://postgres:<pass>@127.0.0.1/<database>?sslmode=disable"))
-                           ("staging-postgres"
-                            (sql-product 'postgres)
+                         ("staging-postgres"
+                          (sql-product 'postgres)
     			  (sql-user "postgres")
     			  (sql-server "") 
-                            (sql-database ,(format "postgresql://postgres:%s@%s/<database>?sslmode=disable"
+                          (sql-database ,(format "postgresql://postgres:%s@%s/<database>?sslmode=disable"
     						 (getenv "PROJECT_DB_PASS")
     						 (getenv "PROJECT_DB_HOST"))))
   			 ("mysql-example"
-                            (sql-product 'mysql)
+                          (sql-product 'mysql)
   			  (sql-user "myuser")
   			  (sql-password "") ;; using iam auth
   			  (sql-port 3306)

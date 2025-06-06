@@ -1,6 +1,8 @@
 (menu-bar-mode -1)
 (tool-bar-mode -1)
-(when window-system (scroll-bar-mode -1))
+(when window-system
+  (scroll-bar-mode -1)
+  (fringe-mode -1))
 
 ;; still want to open vc-dir in another (new) window if there is only one.
 ;; considering citre for managing tags and setting up xref for M-./M-, jumping.
@@ -26,7 +28,13 @@
       split-height-threshold 80
       split-width-threshold 160
       log-edit-show-diff t
-      log-edit-show-files nil)
+      log-edit-show-files nil
+      org-src-preserve-indentation t
+      org-edit-src-content-indentation 0
+      org-src-tab-acts-natively t
+      org-src-fontify-natively t
+      org-confirm-babel-evaluate nil
+      org-src-window-setup 'current-window)
 
 (setq-default compilation-scroll-output 'first-error
 	      compilation-window-height 15
@@ -91,6 +99,7 @@
 		   ("M-R" repl)
 		   ("C-j" newline) ;; because electric-indent overrides this
 		   ("M-P" project-find-file)
+		   ("M-C" org-agenda) ;; a.k.a checklist
 		   ("C-c d" sql-connect)
 		   ("C-c p" project-find-file)
 		   ("C-c g" vc-dir-root)
@@ -100,7 +109,7 @@
 		   ("M-s" save-buffer)
 		   ("M-/" comment-line)
 		   ("C-c i" ,(ff user-init-file))
-		   ("C-c n" ,(ff (concat user-emacs-directory "notes.org")))
+		   ("C-c n" ,(ff (concat user-emacs-directory "notes/index.org")))
 		   ("C-c P" ,(ff "~/src"))
 		   ("C-c m" recompile) ("C-c M" project-compile)))
   (global-set-key (kbd (car binding)) (cadr binding)))
@@ -115,20 +124,51 @@
 		   (column-number-mode 1)
 		   (hl-line-mode 1))))
 
+(defun should-center-buffer-p ()
+  (memq major-mode '(org-mode markdown-mode)))
+
+(defun center-prose-buffer-margins ()
+  "Apply smart margins based on window width and buffer type."
+  (set-window-margins nil 0 0)
+  
+  (when (should-center-buffer-p)
+    (let* ((char-width-pix (frame-char-width))
+           (window-width-pix (window-body-width nil t))  ; t = pixels!
+           (target-width-chars 80)
+           (target-width-pix (* target-width-chars char-width-pix))
+           (margin-total-pix (max 0 (- window-width-pix target-width-pix)))
+           (margin-each-pix (/ margin-total-pix 2.0))
+           (margin-chars (max 0 (round (/ margin-each-pix char-width-pix)))))
+      (set-window-margins nil margin-chars margin-chars))))
+
+(add-hook 'buffer-list-update-hook 'center-prose-buffer-margins)
 
 (defun prose-config ()
   (variable-pitch-mode 1)
-  (visual-line-mode 1))
+  (visual-line-mode 1)
+  (center-prose-buffer-margins)
+  (add-hook 'window-size-change-functions
+            (lambda (frame) (center-prose-buffer-margins)) nil t))
 
 (add-hook 'org-mode-hook (lambda ()
-			  (prose-config)
-			  (org-indent-mode)))
+			   (prose-config)
+			   (org-indent-mode)))
+
+(custom-set-faces
+ '(org-level-1 ((t (:height 1.3 :weight bold))))
+ '(org-level-2 ((t (:height 1.2 :weight bold))))
+ '(org-level-3 ((t (:height 1.1 :weight bold))))
+ '(org-level-4 ((t (:height 1.0 :weight bold)))))
 
 (cl-flet ((find-font (names) (seq-find #'x-list-fonts names)))
   (let ((font (find-font '("Rec Mono Linear" "Monaco" "Monospace")))
         (writing-font (find-font '("Rec Mono Casual" "Sans Serif"))))
     (when font
-      (set-face-attribute 'default nil :font font :height 160))
+      (set-face-attribute 'default nil :font font :height 160)
+      (set-face-attribute 'org-block nil :font font)
+      (set-face-attribute 'org-code nil :font font)
+      (set-face-attribute 'org-verbatim nil :font font)
+      (set-face-attribute 'org-table nil :font font))
     (when writing-font
       (set-face-attribute 'variable-pitch nil :font writing-font :height 160))))
 
@@ -203,7 +243,13 @@
 (use-package go-mode)
 (use-package json-mode)
 (use-package yaml-mode)
-(use-package markdown-mode)
+(use-package markdown-mode
+  :hook (markdown-mode . prose-config)
+  :custom-face
+  (markdown-header-face-1 ((t (:height 1.3 :weight bold))))
+  (markdown-header-face-2 ((t (:height 1.2 :weight bold))))
+  (markdown-header-face-3 ((t (:height 1.1 :weight bold))))
+  (markdown-header-face-4 ((t (:height 1.0 :weight bold)))))
 (use-package js2-mode)
 (use-package paredit
   :hook ((clojure-mode
