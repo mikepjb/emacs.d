@@ -60,6 +60,8 @@
            (paredit-backward-kill-word))
           (t (backward-kill-word 1)))))
 
+(with-eval-after-load 'icomplete
+  (define-key icomplete-minibuffer-map (kbd "C-w") 'icomplete-fido-backward-updir))
 
 (setq inferior-lisp-program "scheme")
 (setq inferior-lisp-prompt "^[0-9]* *\\]=> *")
