@@ -1,15 +1,4 @@
-(menu-bar-mode -1)
-(tool-bar-mode -1)
-(when window-system
-  (scroll-bar-mode -1)
-  (fringe-mode -1))
-
-;; still want to open vc-dir in another (new) window if there is only one.
-;; considering citre for managing tags and setting up xref for M-./M-, jumping.
-
-(pcase system-type
-  ('darwin (setq mac-command-modifier 'meta))
-  ('gnu/linux (setq x-super-keysym 'meta)))
+;; Emacs Configuration ---------------------------------------------------------
 
 (setq inhibit-startup-screen t
       visible-bell t
@@ -20,38 +9,32 @@
       create-lockfiles nil
       isearch-wrap-pause 'no-ding
       use-short-answers t
-      truncate-lines t ;; no word wrap thanks
       vc-follow-symlinks t
       find-file-visit-truename t
       split-height-threshold 80
       split-width-threshold 160
-      log-edit-show-diff t
-      log-edit-show-files nil
       org-src-preserve-indentation t
       org-edit-src-content-indentation 0
       org-src-tab-acts-natively t
       org-src-fontify-natively t
       org-confirm-babel-evaluate nil
       org-src-window-setup 'current-window
-      org-export-with-section-numbers nil)
+      org-export-with-section-numbers nil
+      display-buffer-alist
+      '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
 (setq-default compilation-scroll-output 'first-error
 	      compilation-window-height 15
 	      display-fill-column-indicator-column 80
-	      truncate-lines t)
+	      truncate-lines t) ;; no word wrap thanks
 
-(when (file-exists-p custom-file) (load custom-file))
-(let ((local-config (concat user-emacs-directory "local.el")))
-  (when (file-exists-p local-config) (load local-config t)))
-
-(defalias 'yes-or-no-p 'y-or-n-p)
-
-(dolist (base-mode '(fido-vertical-mode
-		     auto-revert-mode
-		     show-paren-mode
-		     save-place-mode
-		     electric-pair-mode
-		     savehist-mode))
+(dolist (base-mode
+	 '(fido-vertical-mode
+	   auto-revert-mode
+	   show-paren-mode
+	   save-place-mode
+	   electric-pair-mode
+	   savehist-mode))
   (funcall base-mode 1))
 
 (when (executable-find "rg")
@@ -65,15 +48,14 @@
   (interactive)
   (if (region-active-p)
       (call-interactively #'kill-region)
-    (cond ((and (bound-and-true-p paredit-mode) (fboundp 'paredit-backward-kill-word))
+    (cond ((and (bound-and-true-p paredit-mode)
+		(fboundp 'paredit-backward-kill-word))
            (paredit-backward-kill-word))
           (t (backward-kill-word 1)))))
 
 (with-eval-after-load 'icomplete
-  (define-key icomplete-minibuffer-map (kbd "C-w") 'icomplete-fido-backward-updir))
-
-(setq inferior-lisp-program "scheme")
-(setq inferior-lisp-prompt "^[0-9]* *\\]=> *")
+  (define-key
+   icomplete-minibuffer-map (kbd "C-w") 'icomplete-fido-backward-updir))
 
 (defun repl ()
   (interactive)
@@ -81,14 +63,21 @@
   (pcase major-mode
     ('clojure-mode (inferior-lisp "clojure"))
     ('emacs-lisp-mode (ielm))
-    ('scheme-mode (inferior-lisp "scheme"))
+    ('scheme-mode
+     (setq inferior-lisp-prompt "^[0-9]* *\\]=> *")
+     (inferior-lisp "scheme"))
     ('sql-mode (sql-connect))
     (_ (message "No REPL defined for %s" major-mode))))
 
-(defmacro ff (path)
+(defmacro ff (&rest path)
   `(lambda ()
     (interactive)
-    (find-file ,path)))
+    (find-file (concat ,@path))))
+
+;; Bindings --------------------------------------------------------------------
+(pcase system-type
+  ('darwin (setq mac-command-modifier 'meta))
+  ('gnu/linux (setq x-super-keysym 'meta)))
 
 (dolist (binding `(("M-o" other-window)
 		   ("M-O" delete-other-window)
@@ -99,19 +88,18 @@
 		   ("M-F" toggle-frame-fullscreen)
 		   ("M-R" repl)
 		   ("C-j" newline) ;; because electric-indent overrides this
-		   ("M-P" project-find-file)
 		   ("M-C" org-agenda) ;; a.k.a checklist
 		   ("C-c d" sql-connect)
-		   ("C-c p" project-find-file)
+		   ("M-p" project-find-file)
 		   ("C-c g" vc-dir-root)
 		   ("C-c h" vc-region-history) ;; + file history without region
-		   ("C-c a" vc-annotate) ;; a.k.a git blame
+		   ("C-c a" vc-annotate)       ;; a.k.a git blame
 		   ("C-h" delete-backward-char)
 		   ("M-s" save-buffer)
 		   ("M-/" comment-line)
 		   ("C-c i" ,(ff user-init-file))
-		   ("C-c n" ,(ff (concat user-emacs-directory "notes/index.org")))
-		   ("C-c l" ,(ff (concat user-emacs-directory "local.el")))
+		   ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
+		   ("C-c l" ,(ff user-emacs-directory "local.el"))
 		   ("C-c P" ,(ff "~/src"))
 		   ("C-c m" recompile) ("C-c M" project-compile)))
   (global-set-key (kbd (car binding)) (cadr binding)))
@@ -119,6 +107,10 @@
 (global-set-key (kbd "M-H") help-map)
 (global-set-key (kbd "M-S") search-map)
 
+(with-eval-after-load 'vc-dir
+  (define-key vc-dir-mode-map (kbd "R") 'vc-revert))
+
+;; Editing setup ---------------------------------------------------------------
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
 		   (display-line-numbers-mode 1)
@@ -130,9 +122,7 @@
   (memq major-mode '(org-mode markdown-mode)))
 
 (defun center-prose-buffer-margins ()
-  "Apply smart margins based on window width and buffer type."
   (set-window-margins nil 0 0)
-  
   (when (should-center-buffer-p)
     (let* ((char-width-pix (frame-char-width))
            (window-width-pix (window-body-width nil t))  ; t = pixels!
@@ -162,48 +152,26 @@
  '(org-level-3 ((t (:height 1.1 :weight bold))))
  '(org-level-4 ((t (:height 1.0 :weight bold)))))
 
-(cl-flet ((find-font (names) (seq-find #'x-list-fonts names)))
-  (let ((font (find-font '("Rec Mono Linear" "Monaco" "Monospace")))
-        (writing-font (find-font '("Rec Mono Casual" "Sans Serif"))))
-    (when font
-      (set-face-attribute 'default nil :font font :height 160)
-      (with-eval-after-load 'org
-        (set-face-attribute 'org-block nil :font font)
-	(set-face-attribute 'org-code nil :font font)
-	(set-face-attribute 'org-verbatim nil :font font)
-	(set-face-attribute 'org-table nil :font font)))
-    (when writing-font
-      (set-face-attribute 'variable-pitch nil :font writing-font :height 160))))
+(defun find-font (names) (seq-find #'x-list-fonts names))
+(defconst *default-font* (find-font '("Rec Mono Linear" "Monaco" "Monospace")))
+(defconst *writing-font* (find-font '("Rec Mono Casual" "Sans Serif")))
 
-(with-eval-after-load 'vc-dir
-  (define-key vc-dir-mode-map (kbd "R") 'vc-revert))
+(when *default-font*
+  (set-face-attribute 'default nil :font *default-font* :height 160)
+  (with-eval-after-load 'org
+    (set-face-attribute 'org-block nil :font *default-font*)
+    (set-face-attribute 'org-code nil :font *default-font*)
+    (set-face-attribute 'org-verbatim nil :font *default-font*)
+    (set-face-attribute 'org-table nil :font *default-font*)))
+(when *writing-font*
+  (set-face-attribute 'variable-pitch nil :font *writing-font* :height 160))
 
-(add-hook 'vc-dir-mode-hook 
-          (lambda () 
-            (vc-dir-hide-up-to-date)))
-
-(defun my/format-buffer-on-save ()
-  "Format current buffer based on file type."
-  (when buffer-file-name
-    (cond
-     ;; Go files with goimports
-     ((and (string-suffix-p ".go" buffer-file-name)
-           (executable-find "goimports"))
-      (let ((original-point (point)))
-        (shell-command-on-region 
-         (point-min) (point-max) 
-         "goimports" 
-         nil t)  ; replace buffer contents
-        (goto-char original-point)))
-     
-     ;; Templ files with templ fmt
-     ((and (string-suffix-p ".templ" buffer-file-name)
-           (executable-find "templ"))
-      (save-buffer)  ; templ fmt works on files, not stdin
-      (shell-command (format "templ fmt %s" (shell-quote-argument buffer-file-name)))
-      (revert-buffer nil t nil)))))
-
-(add-hook 'before-save-hook #'my/format-buffer-on-save)
+;; Appearance ------------------------------------------------------------------
+(menu-bar-mode -1)
+(tool-bar-mode -1)
+(when window-system
+  (scroll-bar-mode -1)
+  (fringe-mode -1))
 
 (setq-default modus-themes-common-palette-overrides
               '((comment fg-dim)
@@ -212,26 +180,27 @@
                 (bg-line-number-inactive bg-main)
                 (fg-line-number-inactive fg-dim)
                 (fringe bg-main)
-                (red red-faint)
-                (err blue)
-                (string fg-alt)           ; Strings less prominent
-                (keyword fg-main)         ; Keywords same as normal text
-                (builtin fg-main)         ; Built-ins quiet
-                (constant fg-main)        ; Constants quiet  
-                (type fg-main)            ; Types quiet
-                (variable fg-main)        ; Variables quiet
-                (function fg-main)        ; Functions quiet
-                (bg-mode-line-active bg-dim) ; Subtle mode line
+                (string fg-alt)		      ; Strings less prominent
+                (keyword fg-main)	      ; Keywords same as normal text
+                (builtin fg-main)	      ; Built-ins quiet
+                (constant fg-main)	      ; Constants quiet  
+                (type fg-main)		      ; Types quiet
+                (variable fg-main)	      ; Variables quiet
+                (function fg-main)	      ; Functions quiet
+                (bg-mode-line-active bg-dim)  ; Subtle mode line
                 (fg-mode-line-active fg-main)
-                (bg-region bg-dim)        ; Subtle selection
-                (fg-region unspecified)   ; No special selection color
-                (yellow yellow-faint)     ; Warnings less bright
-                (green green-faint)       ; Success less bright
-                (blue blue-faint)         ; Info less bright
-                (magenta magenta-faint))) ; Less bright overall
+                (bg-region bg-dim)            ; Subtle selection
+                (fg-region unspecified)       ; No special selection color
+                (yellow yellow-faint)         ; Warnings less bright
+                (green green-faint)           ; Success less bright
+                (blue blue-faint)             ; Info less bright
+                (magenta magenta-faint)       ; Less bright overall
+		(red red-faint)
+                (err blue)))
 
 (load-theme 'modus-vivendi-tinted t)
-  
+
+;; Packages (mostly just language major-modes) ---------------------------------
 (require 'package)
 (setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
                          ("nongnu" . "https://elpa.nongnu.org/nongnu/")
@@ -243,7 +212,9 @@
 
 (use-package clojure-mode :hook (clojure-mode . subword-mode))
 (use-package ruby-mode)
-(use-package go-mode)
+(use-package go-mode
+  :hook (before-save-hook . gofmt-before-save)
+  :config (setq-default gofmt-command "goimports"))
 (use-package json-mode)
 (use-package yaml-mode)
 (use-package markdown-mode
@@ -267,3 +238,7 @@
     (define-key paredit-mode-map (kbd "RET") 'paredit-C-j) ;; just return
     (define-key paredit-mode-map (kbd "M-k") 'paredit-forward-barf-sexp)
     (define-key paredit-mode-map (kbd "M-l") 'paredit-forward-slurp-sexp)))
+
+;; Local files -----------------------------------------------------------------
+(load custom-file t)
+(load (concat user-emacs-directory "local.el") t)
