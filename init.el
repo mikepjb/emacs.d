@@ -70,10 +70,25 @@
     ('sql-mode (sql-connect))
     (_ (message "No REPL defined for %s" major-mode))))
 
+(defun +compile ()
+  "Compile from directory with build file, before resorting to git root."
+  (interactive)
+  (let ((build-dir
+	 (locate-dominating-file
+	  default-directory
+          (lambda (dir)
+            (or (file-exists-p (expand-file-name "Makefile" dir))
+                (file-exists-p (expand-file-name "go.mod" dir))
+                (file-exists-p (expand-file-name "package.json" dir)))))))
+    (if build-dir
+        (let ((default-directory build-dir))
+          (call-interactively 'compile))
+      (call-interactively 'project-compile))))
+
 (defmacro ff (&rest path)
   `(lambda ()
-    (interactive)
-    (find-file (concat ,@path))))
+     (interactive)
+     (find-file (concat ,@path))))
 
 (pcase system-type
   ('darwin (setq mac-command-modifier 'meta))
@@ -101,7 +116,7 @@
 		   ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
 		   ("C-c l" ,(ff user-emacs-directory "local.el"))
 		   ("C-c P" ,(ff "~/src"))
-		   ("C-c m" recompile) ("C-c M" project-compile)))
+		   ("C-c m" recompile) ("C-c M" +compile)))
   (global-set-key (kbd (car binding)) (cadr binding)))
 
 (global-set-key (kbd "M-H") help-map)
