@@ -116,7 +116,12 @@
    `(org-level-6 ((t (:height 1.0 :weight bold :foreground ,black))))
    `(org-level-7 ((t (:height 1.0 :weight bold :foreground ,black))))
    `(org-level-8 ((t (:height 1.0 :weight bold :foreground ,black))))
+
+   ;; Language Specific
+   `(sh-quoted-exec ((t (:foreground ,fg))))
    
    ))
 
+;; N.B if you add a new font-lock definition, try: (font-lock-fontify-buffer)
+;; This happens because font-lock needs to refresh its rules, not just the face colors.
 (provide-theme 'flow)
