@@ -23,6 +23,11 @@ curl -O https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
 #+end_src
 
 ** Usage
+*** Introspection
+- ~C-h b~ is a lesser known help map to describe all bindings available in the active buffer.
+*** Editing
+- ~M-i~ will manually indent, sometimes useful for multiline SQL strings in code etc.
+- ~C-x TAB~ will interactively manually indent (incl. regions!)
 *** File/Project Navigation
 - Stick with the basics, fuzzy search with ~project.el~ and ~ripgrep~.
 

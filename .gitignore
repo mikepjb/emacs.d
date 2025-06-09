@@ -19,3 +19,6 @@ tree-sitter/
 ielm-history.eld
 tramp
 local.el
+external-modes/*
+multisession
+sql-history

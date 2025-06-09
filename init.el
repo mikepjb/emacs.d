@@ -13,6 +13,7 @@
       find-file-visit-truename t
       split-height-threshold 80
       split-width-threshold 160
+      sql-input-ring-file-name (concat user-emacs-directory "sql-history")
       org-src-preserve-indentation t
       org-edit-src-content-indentation 0
       org-src-tab-acts-natively t
@@ -20,17 +21,20 @@
       org-confirm-babel-evaluate nil
       org-src-window-setup 'current-window
       org-export-with-section-numbers nil
+      org-startup-with-inline-images t
       display-buffer-alist
       '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
 (setq-default compilation-scroll-output 'first-error
 	      compilation-window-height 15
 	      display-fill-column-indicator-column 80
+	      default-frame-width 160
+	      default-frame-height 60
 	      truncate-lines t) ;; no word wrap thanks
 
 (dolist (base-mode
 	 '(fido-vertical-mode
-	   auto-revert-mode
+	   global-auto-revert-mode
 	   show-paren-mode
 	   save-place-mode
 	   electric-pair-mode
@@ -44,7 +48,16 @@
 	"rg --color=never --no-heading --line-number --max-filesize=300K "))
 
 ;; Bindings --------------------------------------------------------------------
-(defun kill-region-or-backward-word ()
+(defun +rg (pattern)
+  (interactive "sSearch: ")
+  (let* ((git-root (or (vc-git-root default-directory)
+                       default-directory))
+         (default-directory git-root)
+         (command (format "rg --color=always --smart-case --no-heading --line-number --column %s ."
+                         (shell-quote-argument pattern))))
+    (grep command)))
+
+(defun +kill-region-or-backward-word ()
   "Kill region if active, otherwise kill backward word."
   (interactive)
   (if (region-active-p)
@@ -54,9 +67,29 @@
            (paredit-backward-kill-word))
           (t (backward-kill-word 1)))))
 
+(defun +minibuffer-kill-backward ()
+  "Kill backward word, or go up directory if in file completion."
+  (interactive)
+  (let* ((metadata (completion-metadata 
+                    (buffer-substring-no-properties 
+                     (minibuffer-prompt-end) (point))
+                    minibuffer-completion-table
+                    minibuffer-completion-predicate))
+         (category (completion-metadata-get metadata 'category)))
+    (if (eq category 'file)
+        (icomplete-fido-backward-updir)
+      (backward-kill-word 1))))
+
+(defun +scratch (mode) ;; TODO experimental
+  "Create a scratch buffer with specified major mode."
+  (interactive "aMode: ")
+  (let ((buffer (generate-new-buffer "*scratch*")))
+    (switch-to-buffer buffer)
+    (funcall mode)))
+
 (with-eval-after-load 'icomplete
   (define-key
-   icomplete-minibuffer-map (kbd "C-w") 'icomplete-fido-backward-updir))
+   icomplete-minibuffer-map (kbd "C-w") #'+minibuffer-kill-backward))
 
 (defun repl ()
   (interactive)
@@ -69,6 +102,25 @@
      (inferior-lisp "scheme"))
     ('sql-mode (sql-connect))
     (_ (message "No REPL defined for %s" major-mode))))
+
+(defun +find-git-tags ()
+  "Set tags table to include .git/tags/tags, .git/tags/tags-lib, and .git/tags/tags-std if they exist."
+  (let ((git-dir (locate-dominating-file default-directory ".git")))
+    (when git-dir
+      (let ((tag-files '(".git/tags/tags" ".git/tags/tags-lib" ".git/tags/tags-std"))
+            (existing-tags '()))
+        ;; Check which tag files actually exist
+        (dolist (tag-file tag-files)
+          (let ((full-path (expand-file-name tag-file git-dir)))
+            (when (file-exists-p full-path)
+              (push full-path existing-tags))))
+        ;; Set the tags table list if any tag files exist
+        (when existing-tags
+          (setq-local tags-table-list (reverse existing-tags))
+          ;; Set the primary tags file to the first one
+          (setq-local tags-file-name (car existing-tags)))))))
+
+(add-hook 'find-file-hook #'+find-git-tags)
 
 (defun +compile ()
   "Compile from directory with build file, before resorting to git root."
@@ -95,18 +147,24 @@
   ('gnu/linux (setq x-super-keysym 'meta)))
 
 (dolist (binding `(("M-o" other-window)
-		   ("M-O" delete-other-window)
-		   ("C-w" kill-region-or-backward-word) ("M-K" kill-whole-line)
+		   ("M-O" delete-other-windows)
+		   ("C-w" +kill-region-or-backward-word) ("M-K" kill-whole-line)
 		   ("M-D" duplicate-line)
 		   ("C-;" hippie-expand)
 		   ("M-j" (lambda () (interactive) (join-line -1)))
 		   ("M-F" toggle-frame-fullscreen)
+		   ("M-E" emoji-search) ;; express yourself!
 		   ("M-Q" sql-connect) ;; a.k.a query
-		   ("M-R" repl)
+		   ("M-I" repl)
+		   ("M-R" +rg)
 		   ("C-j" newline) ;; because electric-indent overrides this
+		   ("C-x F" find-file-other-window)
 		   ("M-C" org-agenda) ;; a.k.a checklist
 		   ("C-c d" sql-connect)
-		   ("M-p" project-find-file)
+		   ("C-c p" project-find-file)
+		   ("M-[" backward-paragraph)
+		   ("M-]" forward-paragraph)
+		   ("M-P" project-find-file)
 		   ("C-c g" vc-dir-root)
 		   ("C-c h" vc-region-history) ;; + file history without region
 		   ("C-c a" vc-annotate)       ;; a.k.a git blame
@@ -132,7 +190,20 @@
 		   (display-line-numbers-mode 1)
 		   (display-fill-column-indicator-mode 1)
 		   (column-number-mode 1)
-		   (hl-line-mode 1))))
+		   (hl-line-mode 1)
+		   (local-set-key (kbd "M-n") 'forward-paragraph)
+		   (local-set-key (kbd "M-p") 'backward-paragraph))))
+
+;; TODO regex to align SQL by keywords (uppercase but not DESC/ASC etc)
+;; TODO regex to align SQL entities e.g SELECT this, that, other onto new lines
+;; TODO combine these
+
+(define-key isearch-mode-map (kbd "C-j") #'+isearch-exit-other-end)
+(defun +isearch-exit-other-end ()
+  "Exit isearch, at the opposite end of the string."
+  (interactive)
+  (isearch-exit) (goto-char isearch-other-end))
+
 
 (defun should-center-buffer-p ()
   (memq major-mode '(org-mode markdown-mode)))
@@ -162,12 +233,7 @@
 			   (prose-config)
 			   (org-indent-mode)))
 
-(custom-set-faces
- '(org-level-1 ((t (:height 1.3 :weight bold))))
- '(org-level-2 ((t (:height 1.2 :weight bold))))
- '(org-level-3 ((t (:height 1.1 :weight bold))))
- '(org-level-4 ((t (:height 1.0 :weight bold)))))
-
+;; Appearance ------------------------------------------------------------------
 (defun find-font (names) (seq-find #'x-list-fonts names))
 (defconst *default-font* (find-font '("Rec Mono Linear" "Monaco" "Monospace")))
 (defconst *writing-font* (find-font '("Rec Mono Casual" "Sans Serif")))
@@ -182,78 +248,69 @@
 (when *writing-font*
   (set-face-attribute 'variable-pitch nil :font *writing-font* :height 160))
 
-;; Appearance ------------------------------------------------------------------
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (when window-system
   (scroll-bar-mode -1)
   (fringe-mode -1))
 
-(setq-default modus-themes-common-palette-overrides
-              '((comment fg-dim)
-                (doc-markup fg-alt)
-                (border-mode-line-inactive bg-inactive)
-                (bg-line-number-inactive bg-main)
-                (fg-line-number-inactive fg-dim)
-                (fringe bg-main)
-                (string fg-alt)		      ; Strings less prominent
-                (keyword fg-main)	      ; Keywords same as normal text
-                (builtin fg-main)	      ; Built-ins quiet
-                (constant fg-main)	      ; Constants quiet  
-                (type fg-main)		      ; Types quiet
-                (variable fg-main)	      ; Variables quiet
-                (function fg-main)	      ; Functions quiet
-                (bg-mode-line-active bg-dim)  ; Subtle mode line
-                (fg-mode-line-active fg-main)
-                (bg-region bg-dim)            ; Subtle selection
-                (fg-region unspecified)       ; No special selection color
-                (yellow yellow-faint)         ; Warnings less bright
-                (green green-faint)           ; Success less bright
-                (blue blue-faint)             ; Info less bright
-                (magenta magenta-faint)       ; Less bright overall
-		(red red-faint)
-                (err blue)))
+(dolist (attr `((alpha (95 . 95))
+		(width ,default-frame-width)
+		(height ,default-frame-height)))
+  (set-frame-parameter (selected-frame) (car attr) (cadr attr)))
 
-(load-theme 'modus-vivendi-tinted t)
+(add-to-list 'default-frame-alist '(alpha . (95 . 95)))
+
+(ignore-errors (load-theme 'flow t))
+
+;; Major mode (experiment to reduce 3rd party dependency)
+(add-to-list 'auto-mode-alist '("\\.json\\'" . js-mode))
+;; For YAML, use text-mode with whitespace visualization
+(add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . text-mode))
+(add-hook 'text-mode-hook 
+          (lambda () 
+            (when (string-match "\\.ya?ml\\'" (buffer-name))
+              (whitespace-mode 1))))
+(add-to-list 'auto-mode-alist '("\\.ts\\'" . js-mode))
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . js-mode))
 
 ;; Packages (mostly just language major-modes) ---------------------------------
-(require 'package)
-(setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
-                         ("nongnu" . "https://elpa.nongnu.org/nongnu/")
-                         ("melpa" . "https://melpa.org/packages/")))
-(package-initialize)
-(unless package-archive-contents (package-refresh-contents))
-(require 'use-package)
-(setq use-package-always-ensure t)
+(add-to-list 'load-path "~/.emacs.d/external-modes/")
 
-(use-package clojure-mode :hook (clojure-mode . subword-mode))
-(use-package ruby-mode)
-(use-package go-mode
-  :hook (before-save-hook . gofmt-before-save)
-  :config (setq-default gofmt-command "goimports"))
-(use-package json-mode)
-(use-package yaml-mode)
-(use-package markdown-mode
-  :hook (markdown-mode . prose-config)
-  :custom-face
-  (markdown-header-face-1 ((t (:height 1.3 :weight bold))))
-  (markdown-header-face-2 ((t (:height 1.2 :weight bold))))
-  (markdown-header-face-3 ((t (:height 1.1 :weight bold))))
-  (markdown-header-face-4 ((t (:height 1.0 :weight bold)))))
-(use-package js2-mode)
-(use-package paredit
-  :hook ((clojure-mode
-	  emacs-lisp-mode
-	  cider-repl-mode
-	  lisp-data-mode)
-	 . paredit-mode)
-  :config
-  (with-eval-after-load 'paredit
-    (define-key paredit-mode-map (kbd "M-s") nil)
-    (define-key paredit-mode-map (kbd "C-j") 'paredit-RET) ;; auto-indent
-    (define-key paredit-mode-map (kbd "RET") 'paredit-C-j) ;; just return
-    (define-key paredit-mode-map (kbd "M-k") 'paredit-forward-barf-sexp)
-    (define-key paredit-mode-map (kbd "M-l") 'paredit-forward-slurp-sexp)))
+;; Autoload the modes (only loads when actually used)
+(autoload 'clojure-mode "clojure-mode" "Major mode for Clojure" t)
+(autoload 'go-mode "go-mode" "Major mode for Go" t)
+(autoload 'markdown-mode "markdown-mode" "Major mode for Markdown" t)
+(autoload 'paredit-mode "paredit" "Minor mode for balanced parentheses" t)
+
+;; Auto-mode associations (triggers autoload when opening files)
+(add-to-list 'auto-mode-alist '("\\.clj\\'" . clojure-mode))
+(add-to-list 'auto-mode-alist '("\\.cljs\\'" . clojure-mode))
+(add-to-list 'auto-mode-alist '("\\.go\\'" . go-mode))
+(add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+
+;; Configure only when modes are actually loaded
+(with-eval-after-load 'clojure-mode
+  (add-hook 'clojure-mode-hook 'subword-mode))
+
+(with-eval-after-load 'go-mode
+  (add-hook 'before-save-hook 'gofmt-before-save)
+  (setq-default gofmt-command "goimports"
+                gofmt-show-errors 'echo))
+
+(with-eval-after-load 'markdown-mode
+  (add-hook 'markdown-mode-hook 'prose-config))
+
+(with-eval-after-load 'paredit
+  (add-hook 'clojure-mode-hook 'paredit-mode)
+  (add-hook 'emacs-lisp-mode-hook 'paredit-mode)
+  (add-hook 'cider-repl-mode-hook 'paredit-mode)
+  (add-hook 'lisp-data-mode-hook 'paredit-mode)
+  
+  (define-key paredit-mode-map (kbd "M-s") nil)
+  (define-key paredit-mode-map (kbd "C-j") 'paredit-RET)
+  (define-key paredit-mode-map (kbd "RET") 'paredit-C-j)
+  (define-key paredit-mode-map (kbd "M-k") 'paredit-forward-barf-sexp))
 
 ;; Local files -----------------------------------------------------------------
 (load custom-file t)
