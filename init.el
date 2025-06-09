@@ -198,6 +198,18 @@
 ;; TODO regex to align SQL entities e.g SELECT this, that, other onto new lines
 ;; TODO combine these
 
+(define-derived-mode templ-mode prog-mode "Templ"
+  "Major mode for editing templ files."
+  (add-hook 'after-save-hook 'format-buffer-templ nil t))
+
+(add-to-list 'auto-mode-alist '("\\.templ\\'" . templ-mode))
+
+(defun format-buffer-templ ()
+  (interactive)
+  (when (buffer-file-name)
+    (shell-command (concat "templ fmt " (shell-quote-argument (buffer-file-name))))
+    (revert-buffer t t t)))
+
 (define-key isearch-mode-map (kbd "C-j") #'+isearch-exit-other-end)
 (defun +isearch-exit-other-end ()
   "Exit isearch, at the opposite end of the string."
