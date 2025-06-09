@@ -93,7 +93,7 @@
   (define-key
    icomplete-minibuffer-map (kbd "C-w") #'+minibuffer-kill-backward))
 
-(defun repl ()
+(defun +repl ()
   (interactive)
   (other-window-prefix)
   (pcase major-mode
@@ -103,24 +103,22 @@
      (setq inferior-lisp-prompt "^[0-9]* *\\]=> *")
      (inferior-lisp "scheme"))
     ('sql-mode (sql-connect))
+    ('sh-mode (shell))
     (_ (message "No REPL defined for %s" major-mode))))
 
 (defun +find-git-tags ()
-  "Set tags table to include .git/tags/tags, .git/tags/tags-lib, and .git/tags/tags-std if they exist."
-  (let ((git-dir (locate-dominating-file default-directory ".git")))
-    (when git-dir
-      (let ((tag-files '(".git/tags/tags" ".git/tags/tags-lib" ".git/tags/tags-std"))
-            (existing-tags '()))
-        ;; Check which tag files actually exist
-        (dolist (tag-file tag-files)
-          (let ((full-path (expand-file-name tag-file git-dir)))
-            (when (file-exists-p full-path)
-              (push full-path existing-tags))))
-        ;; Set the tags table list if any tag files exist
-        (when existing-tags
-          (setq-local tags-table-list (reverse existing-tags))
-          ;; Set the primary tags file to the first one
-          (setq-local tags-file-name (car existing-tags)))))))
+  "Set tags table to include git tag files if they exist."
+  (when-let ((git-dir (locate-dominating-file default-directory ".git")))
+    (let ((tag-files '(".git/tags/project" ".git/tags/deps" ".git/tags/external"))
+          (existing-tags '()))
+      ;; Check which tag files actually exist
+      (dolist (tag-file tag-files)
+        (let ((full-path (expand-file-name tag-file git-dir)))
+          (when (file-exists-p full-path)
+            (push full-path existing-tags))))
+      ;; Set the tags table list if any tag files exist
+      (when existing-tags
+        (setq-local tags-table-list (reverse existing-tags))))))
 
 (add-hook 'find-file-hook #'+find-git-tags)
 
@@ -157,7 +155,7 @@
 		   ("M-F" toggle-frame-fullscreen)
 		   ("M-E" emoji-search) ;; express yourself!
 		   ("M-Q" sql-connect) ;; a.k.a query
-		   ("M-I" repl)
+		   ("M-I" +repl)
 		   ("M-R" +rg)
 		   ("C-j" newline) ;; because electric-indent overrides this
 		   ("C-x F" find-file-other-window)
@@ -254,7 +252,11 @@
 
 (add-hook 'org-mode-hook (lambda ()
 			   (prose-config)
-			   (org-indent-mode)))
+			   (org-indent-mode)
+			   ))
+
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "M-i") 'org-todo))
 
 ;; Appearance ------------------------------------------------------------------
 (defun find-font (names) (seq-find #'x-list-fonts names))
@@ -333,7 +335,8 @@
   (define-key paredit-mode-map (kbd "M-s") nil)
   (define-key paredit-mode-map (kbd "C-j") 'paredit-RET)
   (define-key paredit-mode-map (kbd "RET") 'paredit-C-j)
-  (define-key paredit-mode-map (kbd "M-k") 'paredit-forward-barf-sexp))
+  (define-key paredit-mode-map (kbd "M-k") 'paredit-forward-barf-sexp)
+  (define-key paredit-mode-map (kbd "M-l") 'paredit-forward-slurp-sexp))
 
 ;; Local files -----------------------------------------------------------------
 (load custom-file t)
