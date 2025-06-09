@@ -47,6 +47,8 @@
    ;; Additional modeline refinements
    `(mode-line-emphasis ((t (:foreground ,bright-red))))
    `(mode-line-highlight ((t (:foreground ,bright-blue))))
+
+   `(vertical-border ((t (:foreground ,black))))
    
    ;; Success, info, and search faces using full color palette
    `(success ((t (:foreground ,bright-green))))
