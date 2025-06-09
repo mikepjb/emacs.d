@@ -1,28 +1,29 @@
-;;; flow-theme.el --- Quiet monochrome theme with enhanced modelines
+;;; flow-theme.el --- Quiet monochrome theme with synthwave accents
 (deftheme flow "Designed to encourage quiet focus")
 (let (;; Primary colors
       (bg "#0c0c0c")			; background
       (fg "#e4e4e4")			; foreground
       
-					;; Normal colors
-      (black "#262626")			; normal black
-      (red "#d70000")			; normal red
-      (green "#5f8700")			; muted green
-      (yellow "#af8700")		; understated yellow/amber
-      (blue "#0087af")			; calm blue
-      (magenta "#af5faf")		; soft magenta
-      (cyan "#00afaf")			; gentle cyan
-      (white "#e4e4e4")			; light gray (same as fg)
+					;; Normal colors - darkened synthwave palette
+      (black "#262626")			; quiet black
+      (red "#8b0040")			; dark magenta-red
+      (green "#004d26")			; dark teal-green
+      (yellow "#664d00")		; dark amber
+      (blue "#003366")			; dark electric blue
+      (magenta "#4d0066")		; dark purple
+      (cyan "#004d4d")			; dark cyan
+      (white "#e0e6ff")			; cool white (same as fg)
       
-					;; Bright colors
-      (bright-black "#a8a8a8")		; invisible gray
-      (bright-red "#ff005f")		; error red
-      (bright-green "#87d787")		; bright green
-      (bright-yellow "#ffaf00")		; UI amber
-      (bright-blue "#00afff")		; UI blue
-      (bright-magenta "#ff5fff")	; UI cur search
-      (bright-cyan "#00ffaf")		; UI teal
+					;; Bright colors - full neon synthwave
+      (bright-black "#a8a8a8")		; quiet bright black
+      (bright-red "#ff0080")		; hot pink/neon magenta
+      (bright-green "#00ff80")		; electric green
+      (bright-yellow "#ffb300")		; neon amber
+      (bright-blue "#00ccff")		; electric cyan-blue
+      (bright-magenta "#ff00ff")	; pure neon magenta
+      (bright-cyan "#00ffff")		; pure cyan
       (bright-white "#ffffff"))		; pure white
+
   (custom-theme-set-faces
    'flow
    
