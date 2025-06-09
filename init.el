@@ -32,6 +32,8 @@
 	      default-frame-height 60
 	      truncate-lines t) ;; no word wrap thanks
 
+(add-hook 'compilation-filter-hook 'comint-truncate-buffer)
+
 (dolist (base-mode
 	 '(fido-vertical-mode
 	   global-auto-revert-mode
@@ -197,6 +199,15 @@
 ;; TODO regex to align SQL by keywords (uppercase but not DESC/ASC etc)
 ;; TODO regex to align SQL entities e.g SELECT this, that, other onto new lines
 ;; TODO combine these
+(defun +align-sql-keywords ()
+  "Align SQL keywords (SELECT, FROM, WHERE, etc.) with right alignment"
+  (interactive)
+  (save-excursion
+    (if (use-region-p)
+        (align-regexp (region-beginning) (region-end)
+                      "\\(^\\s-*\\)\\(SELECT\\|FROM\\|WHERE\\|ORDER BY\\|GROUP BY\\|HAVING\\|LIMIT\\|OFFSET\\)\\s-+" 2 1 t)
+      (align-regexp (point-min) (point-max)
+                    "\\(^\\s-*\\)\\(SELECT\\|FROM\\|WHERE\\|ORDER BY\\|GROUP BY\\|HAVING\\|LIMIT\\|OFFSET\\)\\s-+" 2 1 t))))
 
 (define-derived-mode templ-mode prog-mode "Templ"
   "Major mode for editing templ files."
