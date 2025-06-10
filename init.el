@@ -160,7 +160,7 @@
 		   ("C-j" newline) ;; because electric-indent overrides this
 		   ("C-x F" find-file-other-window)
 		   ("M-C" org-agenda) ;; a.k.a checklist
-		   ("C-c d" sql-connect)
+		   ("C-c d" vc-diff-mergebase) ;; diff two branches
 		   ("C-c p" project-find-file)
 		   ("M-[" backward-paragraph)
 		   ("M-]" forward-paragraph)
