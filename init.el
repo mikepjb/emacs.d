@@ -22,6 +22,22 @@
       org-src-window-setup 'current-window
       org-export-with-section-numbers nil
       org-startup-with-inline-images t
+      org-image-actual-width '(300)
+      org-agenda-start-on-weekday nil ;; show the next 7 days
+      org-agenda-start-day "0d"
+      org-agenda-span 14
+      org-tags-column 80
+      org-ellipsis " ▼"
+      org-hide-emphasis-markers t
+      org-deadline-warning-days 31
+      org-agenda-start-with-log-mode t
+      org-log-done 'time
+      org-log-into-drawer t
+      org-agenda-files `(,(concat user-emacs-directory "notes"))
+      org-refile-targets `((,(concat user-emacs-directory "notes/archive.org")
+			    :maxlevel . 1))
+      org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)"
+				    "|" "DONE(d!)" "AXED(x)"))
       display-buffer-alist
       '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
@@ -45,7 +61,6 @@
 
 (when (executable-find "rg")
   (setq grep-program "rg"
-	grep-use-null-device nil
 	grep-command
 	"rg --color=never --no-heading --line-number --max-filesize=300K "))
 
@@ -159,7 +174,7 @@
 		   ("M-I" +rg) ;; I for investigate
 		   ("C-j" newline) ;; because electric-indent overrides this
 		   ("C-x F" find-file-other-window)
-		   ("M-C" org-agenda) ;; a.k.a checklist
+		   ("M-C" org-agenda-list) ;; a.k.a checklist
 		   ("C-c d" vc-diff-mergebase) ;; diff two branches
 		   ("C-c p" project-find-file)
 		   ("M-[" backward-paragraph)
@@ -167,7 +182,7 @@
 		   ("M-P" project-find-file)
 		   ("C-c g" vc-dir-root)
 		   ("C-c h" vc-region-history) ;; + file history without region
-		   ("C-c a" vc-annotate)       ;; a.k.a git blame
+		   ("C-c b" vc-annotate)       ;; a.k.a git blame
 		   ("C-h" delete-backward-char)
 		   ("M-s" save-buffer)
 		   ("M-/" comment-line)
@@ -287,6 +302,7 @@
 			   (org-indent-mode)
 			   ))
 
+(advice-add 'org-refile :after 'org-save-all-org-buffers)
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "M-i") 'org-todo))
 
@@ -317,6 +333,9 @@
   (set-frame-parameter (selected-frame) (car attr) (cadr attr)))
 
 (add-to-list 'default-frame-alist '(alpha . (95 . 95)))
+
+(setq-default cursor-type 'box)
+(blink-cursor-mode 0)
 
 (ignore-errors (load-theme 'flow t))
 

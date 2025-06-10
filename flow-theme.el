@@ -13,7 +13,9 @@
       (magenta "#4d0066")		; dark purple
       (cyan "#004d4d")			; dark cyan
       (white "#e0e6ff")			; cool white (same as fg)
-      
+
+      (mid-black "#464646")             ; used for UI mainly
+
 					;; Bright colors - full neon synthwave
       (bright-black "#a8a8a8")		; quiet bright black
       (bright-red "#ff0080")		; hot pink/neon magenta
@@ -29,7 +31,7 @@
    
    ;; Basic faces
    `(default ((t (:background ,bg :foreground ,fg))))
-   `(cursor ((t (:background ,fg))))
+   `(cursor ((t (:background ,bright-magenta :foreground ,bg))))
    `(region ((t (:background ,black))))
    `(fringe ((t (:background ,bg))))
    `(minibuffer-prompt ((t (:foreground ,fg))))
@@ -98,8 +100,8 @@
    `(warning ((t (:foreground ,red))))
    
    ;; Line numbers
-   `(line-number ((t (:foreground ,black))))
-   `(line-number-current-line ((t (:foreground ,bright-black))))
+   `(line-number ((t (:foreground ,mid-black))))
+   `(line-number-current-line ((t (:foreground ,bright-black :background ,black))))
 
    `(fill-column-indicator ((t (:foreground ,black))))
    
@@ -109,13 +111,14 @@
    `(markdown-header-face-3 ((t (:height 1.1 :weight bold :foreground ,fg))))
    `(markdown-header-face-4 ((t (:height 1.0 :weight bold :foreground ,bright-black))))
    `(org-level-1 ((t (:height 1.3 :weight bold :foreground ,bright-blue))))
-   `(org-level-2 ((t (:height 1.2 :weight bold :foreground ,blue))))
+   `(org-level-2 ((t (:height 1.2 :weight bold :foreground ,bright-green))))
    `(org-level-3 ((t (:height 1.1 :weight bold :foreground ,fg))))
    `(org-level-4 ((t (:height 1.0 :weight bold :foreground ,bright-black))))
    `(org-level-5 ((t (:height 1.0 :weight bold :foreground ,black))))
    `(org-level-6 ((t (:height 1.0 :weight bold :foreground ,black))))
    `(org-level-7 ((t (:height 1.0 :weight bold :foreground ,black))))
    `(org-level-8 ((t (:height 1.0 :weight bold :foreground ,black))))
+   `(org-ellipsis ((t (:foreground ,mid-black :underline nil))))
 
    ;; Language Specific
    `(sh-quoted-exec ((t (:foreground ,fg))))
