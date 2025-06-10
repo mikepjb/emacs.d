@@ -155,8 +155,8 @@
 		   ("M-F" toggle-frame-fullscreen)
 		   ("M-E" emoji-search) ;; express yourself!
 		   ("M-Q" sql-connect) ;; a.k.a query
-		   ("M-I" +repl)
-		   ("M-R" +rg)
+		   ("M-R" +repl)
+		   ("M-I" +rg) ;; I for investigate
 		   ("C-j" newline) ;; because electric-indent overrides this
 		   ("C-x F" find-file-other-window)
 		   ("M-C" org-agenda) ;; a.k.a checklist
@@ -197,15 +197,47 @@
 ;; TODO regex to align SQL by keywords (uppercase but not DESC/ASC etc)
 ;; TODO regex to align SQL entities e.g SELECT this, that, other onto new lines
 ;; TODO combine these
-(defun +align-sql-keywords ()
-  "Align SQL keywords (SELECT, FROM, WHERE, etc.) with right alignment"
+(defun +break-select-lines ()
   (interactive)
   (save-excursion
-    (if (use-region-p)
-        (align-regexp (region-beginning) (region-end)
-                      "\\(^\\s-*\\)\\(SELECT\\|FROM\\|WHERE\\|ORDER BY\\|GROUP BY\\|HAVING\\|LIMIT\\|OFFSET\\)\\s-+" 2 1 t)
-      (align-regexp (point-min) (point-max)
-                    "\\(^\\s-*\\)\\(SELECT\\|FROM\\|WHERE\\|ORDER BY\\|GROUP BY\\|HAVING\\|LIMIT\\|OFFSET\\)\\s-+" 2 1 t))))
+    (goto-char (region-beginning))
+    (when (re-search-forward "SELECT " (region-end) t)
+      (let ((start (point)))
+        (end-of-line)
+        (let ((end (point)))
+          (goto-char start)
+          ;; Only match commas followed by non-whitespace (not already broken lines)
+          (while (re-search-forward ", *\\([^ \t\n]\\)" end t)
+            (replace-match ",\n\t \\1" nil nil)))))))
+
+(defun +sql-max-keyword-length ()
+  "Find the maximum length of uppercase groups that start lines in the region."
+  (save-excursion
+    (let ((max-length 0)
+          (case-fold-search nil))  ; Make regex case-sensitive!
+      (goto-char (region-beginning))
+      (while (re-search-forward "^[ \t]*\\([A-Z]+\\([ \t]+[A-Z]+\\)*\\)[ \t]+" (region-end) t)
+        (let ((keyword (match-string 1)))
+          (setq max-length (max max-length (length keyword)))))
+      max-length)))
+
+(defun +align-sql-keywords ()
+  "Align uppercase groups that start lines based on the longest one in the region."
+  (interactive)
+  (save-excursion
+    (let ((max-length (+sql-max-keyword-length))
+          (case-fold-search nil))  ; Make regex case-sensitive!
+      (goto-char (region-beginning))
+      (while (re-search-forward "^[ \t]*\\([A-Z]+\\([ \t]+[A-Z]+\\)*\\)[ \t]+" (region-end) t)
+        (let* ((keyword (match-string 1))
+               (spaces-needed (- max-length (length keyword))))
+          (replace-match (concat (make-string spaces-needed ? ) keyword " ")))))))
+
+(defun +format-sql ()
+  (interactive)
+  (save-excursion
+    (+break-select-lines)
+    (+align-sql-keywords)))
 
 (define-derived-mode templ-mode prog-mode "Templ"
   "Major mode for editing templ files."
