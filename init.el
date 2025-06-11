@@ -249,14 +249,8 @@
 (ignore-errors (load-theme 'flow t))
 
 ;; Built-in Language Assignment ------------------------------------------------
-(add-to-list 'auto-mode-alist '("\\.json\\'" . js-mode))
-(add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . text-mode))
-(add-hook 'text-mode-hook 
-          (lambda () 
-            (when (string-match "\\.ya?ml\\'" (buffer-name))
-              (whitespace-mode 1))))
-(add-to-list 'auto-mode-alist '("\\.ts\\'" . js-mode))
-(add-to-list 'auto-mode-alist '("\\.tsx\\'" . js-mode))
+(add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . conf-mode))
+(add-to-list 'auto-mode-alist '("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode))
 
 ;; Packages (mostly just language major-modes) ---------------------------------
 (add-to-list 'load-path "~/.emacs.d/external-modes/")
