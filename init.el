@@ -1,14 +1,11 @@
 ;; Spartan Emacs Configuration, never more than 150 lines, sometimes less. -----
-;; What I'd Cut to Get to 200 (a fair starting point from 400+)
 
-;; SQL formatting functions (~30 lines) - specialized, rarely used
 ;; Dynamic prose centering (~15 lines) - fixed margins would do
-;; Git tags detection (~10 lines) - nice-to-have
-;; Templ mode (~10 lines) - very specific
 ;; Half the key bindings (~20 lines) - keep only daily-use ones
 
-;; That gets you to ~315 lines. Cut more utility functions and you hit 200.
 ;; Your core insight about flow state vs. tooling assistance is sound - but your implementation has accumulated too much surface area to be truly minimal.
+
+;; still need a good way to go up/down paragraph on ZSA voyager, M-{ & M-} are not accessible
 
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore
@@ -92,22 +89,19 @@
        (setq-local inferior-lisp-prompt "^[^=> \n]*[=>] *")
        (inferior-lisp "clojure -A:dev"))
       ('emacs-lisp-mode (ielm))
-      ('go-mode (comint-run "gomacro"))
       ('scheme-mode
        (setq-local inferior-lisp-prompt "^[0-9]* *\\]=> *")
        (inferior-lisp "scheme"))
-      ('sql-mode (sql-connect))
       ('sh-mode (shell))
       (_ (message "No REPL defined for %s" major-mode)))))
 
-(setq default-tags-table-function
-      (lambda ()
-	(when-let ((git-dir (locate-dominating-file default-directory ".git")))
-	  (setq-local
-	   tags-table-list 
-	   (mapcar (lambda (f) (expand-file-name f git-dir))
-		   '(".git/tags/project" ".git/tags/deps" ".git/tags/external"))))))
-n
+(defun +link-tags ()
+  (when-let ((git-dir (locate-dominating-file default-directory ".git")))
+    (setq-local tags-table-list 
+                (mapcar (lambda (f) (expand-file-name f git-dir))
+                        '(".git/tags/project" ".git/tags/deps" ".git/tags/external")))))
+
+(add-hook 'find-file-hook #'+link-tags)
 
 (defun +compile ()
   "Compile from directory with build file."
@@ -130,13 +124,12 @@ n
   ('darwin (setq mac-command-modifier 'meta))
   ('gnu/linux (setq x-super-keysym 'meta)))
 
-(setq tags-table-list '(".git/tags/project" ".git/tags/deps" ".git/tags/external"))
-
 (dolist (binding `(("C-c d" vc-diff-mergebase) ;; diff two branches
 		   ("C-c g" vc-dir-root)
 		   ("C-c h" vc-region-history) ;; + file history without region
 		   ("C-c i" ,(ff user-init-file))
 		   ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
+		   ("C-c p" project-find-file)
 		   ("C-c P" ,(ff "~/src"))
 		   ("C-h" delete-backward-char)
 		   ("C-j" newline) ;; because electric-indent overrides this
@@ -146,7 +139,6 @@ n
 		   ("M-F" toggle-frame-fullscreen)
 		   ("M-I" +rg) ;; I for investigate
 		   ("M-K" kill-whole-line)
-		   ("M-P" project-find-file)
 		   ("M-Q" sql-connect) ;; a.k.a query
 		   ("M-R" +repl)
 		   ("M-j" (lambda () (interactive) (join-line -1)))
@@ -189,7 +181,6 @@ n
   (interactive)
   (isearch-exit) (goto-char isearch-other-end))
 
-
 (defun should-center-buffer-p ()
   (memq major-mode '(org-mode markdown-mode)))
 
@@ -214,35 +205,39 @@ n
   (add-hook 'window-size-change-functions
             (lambda (frame) (center-prose-buffer-margins)) nil t))
 
-(add-hook 'org-mode-hook (lambda ()
-			   (prose-config)
-			   (org-indent-mode)
-			   ))
+(add-hook 'org-mode-hook (lambda () (prose-config) (org-indent-mode)))
 
 (advice-add 'org-refile :after 'org-save-all-org-buffers)
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "M-i") 'org-todo))
 
+(with-eval-after-load 'sql
+  (define-key sql-mode-map (kbd "C-c f") 
+    (lambda () (interactive)
+      (shell-command-on-region (point-min) (point-max) "pg_format -" nil t))))
+
 ;; Appearance ------------------------------------------------------------------
-(defun find-font (names) (seq-find #'x-list-fonts names))
-(defconst *default-font* (find-font '("Rec Mono Linear" "Monaco" "Monospace")))
-(defconst *writing-font* (find-font '("Rec Mono Casual" "Sans Serif")))
+(dolist (ui-mode ;; disable these
+	 '(menu-bar-mode tool-bar-mode blink-cursor-mode))
+  (funcall ui-mode -1))
 
-(when *default-font*
-  (set-face-attribute 'default nil :font *default-font* :height 160)
-  (with-eval-after-load 'org
-    (set-face-attribute 'org-block nil :font *default-font*)
-    (set-face-attribute 'org-code nil :font *default-font*)
-    (set-face-attribute 'org-verbatim nil :font *default-font*)
-    (set-face-attribute 'org-table nil :font *default-font*)))
-(when *writing-font*
-  (set-face-attribute 'variable-pitch nil :font *writing-font* :height 160))
-
-(menu-bar-mode -1)
-(tool-bar-mode -1)
 (when window-system
   (scroll-bar-mode -1)
-  (fringe-mode -1))
+  (fringe-mode -1)
+  (defun +font (names) (seq-find #'x-list-fonts names))
+  (defconst *default-font* (+font '("Rec Mono Linear" "Monaco" "Monospace")))
+  (defconst *writing-font* (+font '("Rec Mono Casual" "Sans Serif")))
+
+  (set-face-attribute 'default nil :font *default-font* :height 160)
+  (set-face-attribute 'variable-pitch nil :font *writing-font* :height 160)
+
+  ;; breaks when loading org-mode.. find after loading
+  (with-eval-after-load 'org
+    (dolist (group '(org-block org-code org-verbatim org-table))
+      (set-face-attribute group nil :font *default-font*)))
+  )
+
+(setq-default cursor-type 'box)
 
 (dolist (attr `((alpha (95 . 95))
 		(width 160)
@@ -251,14 +246,10 @@ n
 
 (add-to-list 'default-frame-alist '(alpha . (95 . 95)))
 
-(setq-default cursor-type 'box)
-(blink-cursor-mode 0)
-
 (ignore-errors (load-theme 'flow t))
 
-;; Major mode (experiment to reduce 3rd party dependency)
+;; Built-in Language Assignment ------------------------------------------------
 (add-to-list 'auto-mode-alist '("\\.json\\'" . js-mode))
-;; For YAML, use text-mode with whitespace visualization
 (add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . text-mode))
 (add-hook 'text-mode-hook 
           (lambda () 

@@ -1,3 +1,16 @@
+* Development Environment
+
+This project configures Emacs and it's local environment to do great
+work. It focuses on *flow* as a key state for the user to be in, so we
+keep it minimal. This included removing things that are assumed to be
+necessary e.g LSPs, linting and syntax highlighting.
+
+You may argue that linting for example helps catch errors early but
+this is akin to correcting spelling mistakes while you are trying to
+write, it is distracting from the content you are trying to create.
+
+That's the theory anyway, enjoy!
+
 ** Common setup (extract to script?)
 
 #+begin_src bash
