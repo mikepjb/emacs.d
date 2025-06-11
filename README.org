@@ -1,3 +1,9 @@
+** Common setup (extract to script?)
+
+#+begin_src bash
+go install github.com/traefik/yaegi/cmd/yaegi@latest
+#+end_src
+
 ** Arch Linux setup
 
 #+begin_src bash
@@ -17,6 +23,10 @@ brew link --overwrite universal-ctags
 #+end_src
 
 ** Usage
+*** Clojure
+- Use ~clojure.repl/fn~ for ~doc~ ~source~ ~find-doc~ and ~apropos~ functions.
+*** Useful Default Keybindings
+- ~C-x C-;~ comment line/region (also uncomments)
 *** Introspection
 - ~C-h b~ is a lesser known help map to describe all bindings available in the active buffer.
 - ~C-u C-x =~ gives detailed information about the display of the text at your cursor position. This is useful to determine what font-lock/syntax highlighting is used.
@@ -85,3 +95,7 @@ brew link --overwrite universal-ctags
   			  (sql-database "mydatabase")
   			  (sql-mysql-options '("--protocol=tcp")))))))))
 #+end_src
+
+* Exclusions
+
+- No SQL formatting, I like this but it's too tailor-mode of something that is relatively rare for you.

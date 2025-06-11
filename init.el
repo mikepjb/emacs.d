@@ -1,54 +1,40 @@
-;; Emacs Configuration ---------------------------------------------------------
+;; Spartan Emacs Configuration, never more than 150 lines, sometimes less. -----
+;; What I'd Cut to Get to 200 (a fair starting point from 400+)
+
+;; SQL formatting functions (~30 lines) - specialized, rarely used
+;; Dynamic prose centering (~15 lines) - fixed margins would do
+;; Git tags detection (~10 lines) - nice-to-have
+;; Templ mode (~10 lines) - very specific
+;; Half the key bindings (~20 lines) - keep only daily-use ones
+
+;; That gets you to ~315 lines. Cut more utility functions and you hit 200.
+;; Your core insight about flow state vs. tooling assistance is sound - but your implementation has accumulated too much surface area to be truly minimal.
 
 (setq inhibit-startup-screen t
-      visible-bell t
       ring-bell-function 'ignore
       custom-file (concat user-emacs-directory "custom.el")
-      auto-save-default nil
-      make-backup-files nil
+      backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
       create-lockfiles nil
-      isearch-wrap-pause 'no-ding
       use-short-answers t
       vc-follow-symlinks t
       find-file-visit-truename t
       split-height-threshold 80
       split-width-threshold 160
       sql-input-ring-file-name (concat user-emacs-directory "sql-history")
-      org-src-preserve-indentation t
-      org-edit-src-content-indentation 0
-      org-src-tab-acts-natively t
-      org-src-fontify-natively t
-      org-confirm-babel-evaluate nil
-      org-src-window-setup 'current-window
-      org-export-with-section-numbers nil
-      org-startup-with-inline-images t
-      org-image-actual-width '(300)
-      org-agenda-start-on-weekday nil ;; show the next 7 days
-      org-agenda-start-day "0d"
-      org-agenda-span 14
-      org-tags-column 80
+      org-export-with-section-numbers nil ;; essential for exporting
       org-ellipsis " ▼"
       org-hide-emphasis-markers t
-      org-deadline-warning-days 31
-      org-agenda-start-with-log-mode t
-      org-log-done 'time
-      org-log-into-drawer t
       org-agenda-files `(,(concat user-emacs-directory "notes"))
-      org-refile-targets `((,(concat user-emacs-directory "notes/archive.org")
-			    :maxlevel . 1))
-      org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)"
-				    "|" "DONE(d!)" "AXED(x)"))
-      display-buffer-alist
-      '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
+      org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)"))
+      display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
-(setq-default compilation-scroll-output 'first-error
-	      compilation-window-height 15
-	      display-fill-column-indicator-column 80
+(setq-default display-fill-column-indicator-column 80
 	      default-frame-width 160
 	      default-frame-height 60
 	      truncate-lines t) ;; no word wrap thanks
 
 (add-hook 'compilation-filter-hook 'comint-truncate-buffer)
+(add-hook 'inferior-lisp-mode-hook (lambda () (font-lock-mode -1)))
 
 (dolist (base-mode
 	 '(fido-vertical-mode
@@ -85,24 +71,12 @@
           (t (backward-kill-word 1)))))
 
 (defun +minibuffer-kill-backward ()
-  "Kill backward word, or go up directory if in file completion."
+  "Kill backward word, or go up directory if looks like file path."
   (interactive)
-  (let* ((metadata (completion-metadata 
-                    (buffer-substring-no-properties 
-                     (minibuffer-prompt-end) (point))
-                    minibuffer-completion-table
-                    minibuffer-completion-predicate))
-         (category (completion-metadata-get metadata 'category)))
-    (if (eq category 'file)
-        (icomplete-fido-backward-updir)
-      (backward-kill-word 1))))
-
-(defun +scratch (mode) ;; TODO experimental
-  "Create a scratch buffer with specified major mode."
-  (interactive "aMode: ")
-  (let ((buffer (generate-new-buffer "*scratch*")))
-    (switch-to-buffer buffer)
-    (funcall mode)))
+  (if (and (fboundp 'icomplete-fido-backward-updir)
+           (string-match-p "/" (minibuffer-contents)))
+      (icomplete-fido-backward-updir)
+    (backward-kill-word 1)))
 
 (with-eval-after-load 'icomplete
   (define-key
@@ -111,46 +85,41 @@
 (defun +repl ()
   (interactive)
   (other-window-prefix)
-  (pcase major-mode
-    ('clojure-mode (inferior-lisp "clojure"))
-    ('emacs-lisp-mode (ielm))
-    ('scheme-mode
-     (setq inferior-lisp-prompt "^[0-9]* *\\]=> *")
-     (inferior-lisp "scheme"))
-    ('sql-mode (sql-connect))
-    ('sh-mode (shell))
-    (_ (message "No REPL defined for %s" major-mode))))
+  (let ((default-directory (or (vc-git-root default-directory)
+			       default-directory)))
+    (pcase major-mode
+      ('clojure-mode
+       (setq-local inferior-lisp-prompt "^[^=> \n]*[=>] *")
+       (inferior-lisp "clojure -A:dev"))
+      ('emacs-lisp-mode (ielm))
+      ('go-mode (comint-run "gomacro"))
+      ('scheme-mode
+       (setq-local inferior-lisp-prompt "^[0-9]* *\\]=> *")
+       (inferior-lisp "scheme"))
+      ('sql-mode (sql-connect))
+      ('sh-mode (shell))
+      (_ (message "No REPL defined for %s" major-mode)))))
 
-(defun +find-git-tags ()
-  "Set tags table to include git tag files if they exist."
-  (when-let ((git-dir (locate-dominating-file default-directory ".git")))
-    (let ((tag-files '(".git/tags/project" ".git/tags/deps" ".git/tags/external"))
-          (existing-tags '()))
-      ;; Check which tag files actually exist
-      (dolist (tag-file tag-files)
-        (let ((full-path (expand-file-name tag-file git-dir)))
-          (when (file-exists-p full-path)
-            (push full-path existing-tags))))
-      ;; Set the tags table list if any tag files exist
-      (when existing-tags
-        (setq-local tags-table-list (reverse existing-tags))))))
-
-(add-hook 'find-file-hook #'+find-git-tags)
+(setq default-tags-table-function
+      (lambda ()
+	(when-let ((git-dir (locate-dominating-file default-directory ".git")))
+	  (setq-local
+	   tags-table-list 
+	   (mapcar (lambda (f) (expand-file-name f git-dir))
+		   '(".git/tags/project" ".git/tags/deps" ".git/tags/external"))))))
+n
 
 (defun +compile ()
-  "Compile from directory with build file, before resorting to git root."
+  "Compile from directory with build file."
   (interactive)
   (let ((build-dir
 	 (locate-dominating-file
 	  default-directory
-          (lambda (dir)
-            (or (file-exists-p (expand-file-name "Makefile" dir))
-                (file-exists-p (expand-file-name "go.mod" dir))
-                (file-exists-p (expand-file-name "package.json" dir)))))))
-    (if build-dir
-        (let ((default-directory build-dir))
-          (call-interactively 'compile))
-      (call-interactively 'project-compile))))
+	  (lambda (dir)
+	    (seq-some (lambda (f) (file-exists-p (expand-file-name f dir)))
+		      '("Makefile" "go.mod" "package.json"))))))
+    (let ((default-directory (or build-dir default-directory)))
+      (call-interactively 'compile))))
 
 (defmacro ff (&rest path)
   `(lambda ()
@@ -161,36 +130,29 @@
   ('darwin (setq mac-command-modifier 'meta))
   ('gnu/linux (setq x-super-keysym 'meta)))
 
-(dolist (binding `(("M-o" other-window)
-		   ("M-O" delete-other-windows)
-		   ("C-w" +kill-region-or-backward-word) ("M-K" kill-whole-line)
-		   ("M-D" duplicate-line)
-		   ("C-;" hippie-expand)
-		   ("M-j" (lambda () (interactive) (join-line -1)))
-		   ("M-F" toggle-frame-fullscreen)
-		   ("M-E" emoji-search) ;; express yourself!
-		   ("M-Q" sql-connect) ;; a.k.a query
-		   ("M-R" +repl)
-		   ("M-I" +rg) ;; I for investigate
-		   ("C-j" newline) ;; because electric-indent overrides this
-		   ("C-x F" find-file-other-window)
-		   ("M-C" org-agenda-list) ;; a.k.a checklist
-		   ("C-c d" vc-diff-mergebase) ;; diff two branches
-		   ("C-c p" project-find-file)
-		   ("M-[" backward-paragraph)
-		   ("M-]" forward-paragraph)
-		   ("M-P" project-find-file)
+(setq tags-table-list '(".git/tags/project" ".git/tags/deps" ".git/tags/external"))
+
+(dolist (binding `(("C-c d" vc-diff-mergebase) ;; diff two branches
 		   ("C-c g" vc-dir-root)
 		   ("C-c h" vc-region-history) ;; + file history without region
-		   ("C-c b" vc-annotate)       ;; a.k.a git blame
-		   ("C-h" delete-backward-char)
-		   ("M-s" save-buffer)
-		   ("M-/" comment-line)
 		   ("C-c i" ,(ff user-init-file))
 		   ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
-		   ("C-c l" ,(ff user-emacs-directory "local.el"))
 		   ("C-c P" ,(ff "~/src"))
-		   ("C-c m" recompile) ("C-c M" +compile)))
+		   ("C-h" delete-backward-char)
+		   ("C-j" newline) ;; because electric-indent overrides this
+		   ("C-w" +kill-region-or-backward-word)
+		   ("M-C" org-agenda-list) ;; a.k.a checklist
+		   ("M-E" emoji-search)	   ;; express yourself!
+		   ("M-F" toggle-frame-fullscreen)
+		   ("M-I" +rg) ;; I for investigate
+		   ("M-K" kill-whole-line)
+		   ("M-P" project-find-file)
+		   ("M-Q" sql-connect) ;; a.k.a query
+		   ("M-R" +repl)
+		   ("M-j" (lambda () (interactive) (join-line -1)))
+		   ("M-s" save-buffer)
+		   ("M-o" other-window) ("M-O" delete-other-windows)
+		   ("C-c m" recompile)  ("C-c M" +compile)))
   (global-set-key (kbd (car binding)) (cadr binding)))
 
 (global-set-key (kbd "M-H") help-map)
@@ -208,51 +170,6 @@
 		   (hl-line-mode 1)
 		   (local-set-key (kbd "M-n") 'forward-paragraph)
 		   (local-set-key (kbd "M-p") 'backward-paragraph))))
-
-;; TODO regex to align SQL by keywords (uppercase but not DESC/ASC etc)
-;; TODO regex to align SQL entities e.g SELECT this, that, other onto new lines
-;; TODO combine these
-(defun +break-select-lines ()
-  (interactive)
-  (save-excursion
-    (goto-char (region-beginning))
-    (when (re-search-forward "SELECT " (region-end) t)
-      (let ((start (point)))
-        (end-of-line)
-        (let ((end (point)))
-          (goto-char start)
-          ;; Only match commas followed by non-whitespace (not already broken lines)
-          (while (re-search-forward ", *\\([^ \t\n]\\)" end t)
-            (replace-match ",\n\t \\1" nil nil)))))))
-
-(defun +sql-max-keyword-length ()
-  "Find the maximum length of uppercase groups that start lines in the region."
-  (save-excursion
-    (let ((max-length 0)
-          (case-fold-search nil))  ; Make regex case-sensitive!
-      (goto-char (region-beginning))
-      (while (re-search-forward "^[ \t]*\\([A-Z]+\\([ \t]+[A-Z]+\\)*\\)[ \t]+" (region-end) t)
-        (let ((keyword (match-string 1)))
-          (setq max-length (max max-length (length keyword)))))
-      max-length)))
-
-(defun +align-sql-keywords ()
-  "Align uppercase groups that start lines based on the longest one in the region."
-  (interactive)
-  (save-excursion
-    (let ((max-length (+sql-max-keyword-length))
-          (case-fold-search nil))  ; Make regex case-sensitive!
-      (goto-char (region-beginning))
-      (while (re-search-forward "^[ \t]*\\([A-Z]+\\([ \t]+[A-Z]+\\)*\\)[ \t]+" (region-end) t)
-        (let* ((keyword (match-string 1))
-               (spaces-needed (- max-length (length keyword))))
-          (replace-match (concat (make-string spaces-needed ? ) keyword " ")))))))
-
-(defun +format-sql ()
-  (interactive)
-  (save-excursion
-    (+break-select-lines)
-    (+align-sql-keywords)))
 
 (define-derived-mode templ-mode prog-mode "Templ"
   "Major mode for editing templ files."
@@ -328,8 +245,8 @@
   (fringe-mode -1))
 
 (dolist (attr `((alpha (95 . 95))
-		(width ,default-frame-width)
-		(height ,default-frame-height)))
+		(width 160)
+		(height 60)))
   (set-frame-parameter (selected-frame) (car attr) (cadr attr)))
 
 (add-to-list 'default-frame-alist '(alpha . (95 . 95)))
@@ -359,15 +276,55 @@
 (autoload 'markdown-mode "markdown-mode" "Major mode for Markdown" t)
 (autoload 'paredit-mode "paredit" "Minor mode for balanced parentheses" t)
 
+(when (require 'paredit nil)
+  (defun +newline-or-repl-eval ()
+    (interactive)
+    (call-interactively (if (eq major-mode 'inferior-lisp-mode)
+			    'comint-send-input
+			  'paredit-RET)))
+
+  (defun +raise-sexp-or-search-repl ()
+    (interactive)
+    (call-interactively (if (eq major-mode 'inferior-lisp-mode)
+			    'comint-history-isearch-backward-regexp
+			  'paredit-raise-sexp)))
+
+  (add-hook 'clojure-mode-hook 'paredit-mode)
+  (add-hook 'emacs-lisp-mode-hook 'paredit-mode)
+  (add-hook 'inferior-lisp-mode-hook 'paredit-mode)
+  (add-hook 'lisp-data-mode-hook 'paredit-mode)
+
+
+  (define-key paredit-mode-map (kbd "M-s") nil)
+  (define-key paredit-mode-map (kbd "C-j") #'+newline-or-repl-eval)
+  (define-key paredit-mode-map (kbd "RET") 'paredit-C-j)
+  (define-key paredit-mode-map (kbd "M-r") #'+raise-sexp-or-search-repl)
+  (define-key paredit-mode-map (kbd "M-k") 'paredit-forward-barf-sexp)
+  (define-key paredit-mode-map (kbd "M-l") 'paredit-forward-slurp-sexp))
+
 ;; Auto-mode associations (triggers autoload when opening files)
-(add-to-list 'auto-mode-alist '("\\.clj\\'" . clojure-mode))
-(add-to-list 'auto-mode-alist '("\\.cljs\\'" . clojure-mode))
+(add-to-list 'auto-mode-alist '("\\.\\(clj\\|cljs\\|cljc\\|edn\\)\\'"
+				. clojure-mode))
 (add-to-list 'auto-mode-alist '("\\.go\\'" . go-mode))
 (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
 
 ;; Configure only when modes are actually loaded
 (with-eval-after-load 'clojure-mode
-  (add-hook 'clojure-mode-hook 'subword-mode))
+  (add-hook 'clojure-mode-hook 'subword-mode)
+  (add-hook 'clojure-mode-hook
+	    '(lambda ()
+	      (define-key clojure-mode-map (kbd "C-x C-e")
+			  (lambda ()
+			    (interactive)
+			    (if (region-active-p)
+				(call-interactively #'lisp-eval-region)
+			      (lisp-eval-last-sexp))))
+	      (define-key clojure-mode-map (kbd "C-c C-k")
+			  (lambda ()
+			    (interactive)
+			    (save-excursion
+			      (mark-whole-buffer)
+			      (call-interactively #'lisp-eval-region)))))))
 
 (with-eval-after-load 'go-mode
   (add-hook 'before-save-hook 'gofmt-before-save)
@@ -376,18 +333,6 @@
 
 (with-eval-after-load 'markdown-mode
   (add-hook 'markdown-mode-hook 'prose-config))
-
-(with-eval-after-load 'paredit
-  (add-hook 'clojure-mode-hook 'paredit-mode)
-  (add-hook 'emacs-lisp-mode-hook 'paredit-mode)
-  (add-hook 'cider-repl-mode-hook 'paredit-mode)
-  (add-hook 'lisp-data-mode-hook 'paredit-mode)
-  
-  (define-key paredit-mode-map (kbd "M-s") nil)
-  (define-key paredit-mode-map (kbd "C-j") 'paredit-RET)
-  (define-key paredit-mode-map (kbd "RET") 'paredit-C-j)
-  (define-key paredit-mode-map (kbd "M-k") 'paredit-forward-barf-sexp)
-  (define-key paredit-mode-map (kbd "M-l") 'paredit-forward-slurp-sexp))
 
 ;; Local files -----------------------------------------------------------------
 (load custom-file t)
