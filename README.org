@@ -14,7 +14,10 @@ That's the theory anyway, enjoy!
 ** Common setup (extract to script?)
 
 #+begin_src bash
-go install github.com/traefik/yaegi/cmd/yaegi@latest
+  go install github.com/traefik/yaegi/cmd/yaegi@latest
+  ./setup.sh # installs major-modes etc + paredit
+  sudo pacman -S pg_format
+  brew install pg_format
 #+end_src
 
 ** Arch Linux setup
@@ -40,6 +43,7 @@ brew link --overwrite universal-ctags
 - Use ~clojure.repl/fn~ for ~doc~ ~source~ ~find-doc~ and ~apropos~ functions.
 *** Useful Default Keybindings
 - ~C-x C-;~ comment line/region (also uncomments)
+- ~C-c C-t~ for inserting TODO
 *** Introspection
 - ~C-h b~ is a lesser known help map to describe all bindings available in the active buffer.
 - ~C-u C-x =~ gives detailed information about the display of the text at your cursor position. This is useful to determine what font-lock/syntax highlighting is used.
