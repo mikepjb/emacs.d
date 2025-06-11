@@ -1,10 +1,5 @@
 ;; Spartan Emacs Configuration, never more than 150 lines, sometimes less. -----
-
 ;; Dynamic prose centering (~15 lines) - fixed margins would do
-;; Half the key bindings (~20 lines) - keep only daily-use ones
-
-;; Your core insight about flow state vs. tooling assistance is sound - but your implementation has accumulated too much surface area to be truly minimal.
-
 ;; still need a good way to go up/down paragraph on ZSA voyager, M-{ & M-} are not accessible
 
 (setq inhibit-startup-screen t
@@ -278,12 +273,11 @@
 			(_ 'paredit-raise-sexp))))
 
 (when (require 'paredit nil)
-  ;; (dolist (lisp-mode)) ;; TODO tidy up
-  (add-hook 'clojure-mode-hook #'enable-paredit-mode)
-  (add-hook 'emacs-lisp-mode-hook #'enable-paredit-mode)
-  (add-hook 'inferior-lisp-mode-hook #'enable-paredit-mode)
-  (add-hook 'lisp-data-mode-hook #'enable-paredit-mode)
-  (add-hook 'eval-expression-minibuffer-setup-hook #'enable-paredit-mode)
+  (dolist (lisp-mode-hook
+	   '(clojure-mode-hook emacs-lisp-mode-hook
+	     inferior-lisp-mode-hook lisp-data-mode-hook
+	     eval-expression-minibuffer-setup-hook))
+    (add-hook lisp-mode-hook #'enable-paredit-mode))
 
   (define-key paredit-mode-map (kbd "M-s") nil)
   (define-key paredit-mode-map (kbd "C-j") #'+paredit-RET)
