@@ -23,6 +23,8 @@
       org-hide-emphasis-markers t
       org-agenda-files `(,(concat user-emacs-directory "notes"))
       org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)"))
+      org-refile-targets `((,(concat user-emacs-directory "notes/archive.org")
+			    :maxlevel . 1))
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
 (setq-default display-fill-column-indicator-column 80
@@ -261,29 +263,31 @@
 (autoload 'markdown-mode "markdown-mode" "Major mode for Markdown" t)
 (autoload 'paredit-mode "paredit" "Minor mode for balanced parentheses" t)
 
+(defun +paredit-RET ()
+  (interactive)
+  (call-interactively (pcase major-mode
+			('inferior-lisp-mode 'comint-send-input)
+			('minibuffer-mode 'read--expression-try-read)
+			(_ 'paredit-RET))))
+
+(defun +paredit-M-r ()
+  (interactive)
+  (call-interactively (pcase major-mode
+			('inferior-lisp-mode 'comint-history-isearch-backward-regexp)
+			('minibuffer-mode 'previous-matching-history-element)
+			(_ 'paredit-raise-sexp))))
+
 (when (require 'paredit nil)
-  (defun +newline-or-repl-eval ()
-    (interactive)
-    (call-interactively (if (eq major-mode 'inferior-lisp-mode)
-			    'comint-send-input
-			  'paredit-RET)))
-
-  (defun +raise-sexp-or-search-repl ()
-    (interactive)
-    (call-interactively (if (eq major-mode 'inferior-lisp-mode)
-			    'comint-history-isearch-backward-regexp
-			  'paredit-raise-sexp)))
-
-  (add-hook 'clojure-mode-hook 'paredit-mode)
-  (add-hook 'emacs-lisp-mode-hook 'paredit-mode)
-  (add-hook 'inferior-lisp-mode-hook 'paredit-mode)
-  (add-hook 'lisp-data-mode-hook 'paredit-mode)
-
+  ;; (dolist (lisp-mode)) ;; TODO tidy up
+  (add-hook 'clojure-mode-hook #'enable-paredit-mode)
+  (add-hook 'emacs-lisp-mode-hook #'enable-paredit-mode)
+  (add-hook 'inferior-lisp-mode-hook #'enable-paredit-mode)
+  (add-hook 'lisp-data-mode-hook #'enable-paredit-mode)
+  (add-hook 'eval-expression-minibuffer-setup-hook #'enable-paredit-mode)
 
   (define-key paredit-mode-map (kbd "M-s") nil)
-  (define-key paredit-mode-map (kbd "C-j") #'+newline-or-repl-eval)
-  (define-key paredit-mode-map (kbd "RET") 'paredit-C-j)
-  (define-key paredit-mode-map (kbd "M-r") #'+raise-sexp-or-search-repl)
+  (define-key paredit-mode-map (kbd "C-j") #'+paredit-RET)
+  (define-key paredit-mode-map (kbd "M-r") #'+paredit-M-r)
   (define-key paredit-mode-map (kbd "M-k") 'paredit-forward-barf-sexp)
   (define-key paredit-mode-map (kbd "M-l") 'paredit-forward-slurp-sexp))
 
