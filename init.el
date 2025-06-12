@@ -14,41 +14,28 @@
       org-ellipsis " ▼"
       org-hide-emphasis-markers t
       org-agenda-files `(,(concat user-emacs-directory "notes"))
-      org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)"))
-      org-refile-targets `((,(concat user-emacs-directory "notes/archive.org")
-			    :maxlevel . 1))
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
 (setq-default display-fill-column-indicator-column 80
+	      cursor-in-non-selected-windows nil
 	      truncate-lines t) ;; no word wrap thanks
 
 (dolist (mode '(fido-vertical-mode global-auto-revert-mode show-paren-mode
-	   save-place-mode electric-pair-mode savehist-mode))
+				   save-place-mode electric-pair-mode savehist-mode))
   (funcall mode 1)) ;; enable these
 
 (load custom-file t)
 (load (concat user-emacs-directory "local.el") t)
 
 ;; -- Bindings -----------------------------------------------------------------
-(defun +rg (pattern)
-  (interactive "sSearch: ")
-  (let* ((default-directory (or (vc-git-root default-directory)
-				default-directory))
-         (command (format "rg --color=always --smart-case --no-heading --line-number --column %s ."
-                          (shell-quote-argument pattern))))
-    (grep command)))
 
 (defun +kill-region-or-backward-word ()
-  "Kill region if active, otherwise kill backward word."
   (interactive)
-  (if (region-active-p)
-      (call-interactively #'kill-region)
-    (cond ((and (bound-and-true-p paredit-mode)
-		(fboundp 'paredit-backward-kill-word))
-           (paredit-backward-kill-word))
-          (t (backward-kill-word 1)))))
+  (if (region-active-p) (call-interactively #'kill-region)
+    (if (bound-and-true-p paredit-mode) (paredit-backward-kill-word)
+      (backward-kill-word 1))))
 
-(defun +minibuffer-kill-backward ()
+(defun +minibuffer-C-w ()
   (interactive)
   (if (and (fboundp 'icomplete-fido-backward-updir)
            (string-match-p "/" (minibuffer-contents)))
@@ -56,53 +43,57 @@
     (backward-kill-word 1)))
 
 (with-eval-after-load 'icomplete
-  (define-key
-   icomplete-minibuffer-map (kbd "C-w") #'+minibuffer-kill-backward))
+  (define-key icomplete-minibuffer-map (kbd "C-w") #'+minibuffer-C-w))
 
-(defun +repl ()
-  (interactive)
-  (other-window-prefix)
-  (let ((default-directory (or (vc-git-root default-directory)
-			       default-directory)))
-    (pcase major-mode
-      ('clojure-mode
-       (setq-local inferior-lisp-prompt "^[^=> \n]*[=>] *")
-       (inferior-lisp "clojure -A:dev"))
-      ('emacs-lisp-mode (ielm))
-      ('scheme-mode
-       (setq-local inferior-lisp-prompt "^[0-9]* *\\]=> *")
-       (inferior-lisp "scheme"))
-      ('sh-mode (shell))
-      (_ (message "No REPL defined for %s" major-mode)))))
+(when (require 'vc-git nil)
+  (defmacro +maybe-git-root (&rest body)
+    `(let ((default-directory (or (vc-git-root default-directory) 
+                                  default-directory)))
+       ,@body))
 
-(defun +link-tags ()
-  (when-let ((git-dir (locate-dominating-file default-directory ".git")))
-    (setq-local
-     tags-table-list 
-     (mapcar (lambda (f) (expand-file-name f git-dir))
-             '(".git/tags/project" ".git/tags/deps" ".git/tags/external")))))
+  (defun +rgrep (pattern)
+    (interactive "sSearch: ")
+    (+maybe-git-root (rgrep pattern "*" ".")))
 
-(add-hook 'find-file-hook #'+link-tags)
+  (defun +repl ()
+    (interactive)
+    (other-window-prefix)
+    (+maybe-git-root (pcase major-mode
+		       ('clojure-mode
+			(setq-local inferior-lisp-prompt "^[^=> \n]*[=>] *")
+			(inferior-lisp "clojure -A:dev"))
+		       ('emacs-lisp-mode (ielm))
+		       ('scheme-mode
+			(setq-local inferior-lisp-prompt "^[0-9]* *\\]=> *")
+			(inferior-lisp "scheme"))
+		       ('sh-mode (shell))
+		       (_ (message "No REPL defined for %s" major-mode)))))
+
+  (add-hook ;; link tags
+   'find-file-hook 
+   (lambda ()
+     (+maybe-git-root
+      (setq-local
+       tags-table-list 
+       (mapcar (lambda (f) (expand-file-name f default-directory))
+	       '(".git/tags/project" ".git/tags/deps" ".git/tags/lang")))))))
 
 (defun +compile ()
   "Compile from directory with build file."
   (interactive)
-  (let ((default-directory
-	 (locate-dominating-file
-	  default-directory
-	  (lambda (dir)
+  (let* ((+proj (lambda (dir)
 	    (seq-some (lambda (f) (file-exists-p (expand-file-name f dir)))
-		      '("Makefile" "go.mod" "package.json"))))))
+		      '("Makefile" "go.mod" "package.json"))))
+	 (default-directory (locate-dominating-file default-directory +proj)))
     (call-interactively 'compile)))
-
-(defmacro ff (&rest path)
-  `(lambda ()
-     (interactive)
-     (find-file (concat ,@path))))
 
 (pcase system-type
   ('darwin (setq mac-command-modifier 'meta))
   ('gnu/linux (setq x-super-keysym 'meta)))
+
+(defmacro ff (&rest path)
+  `(lambda () (interactive)
+     (find-file (concat ,@path))))
 
 (dolist (binding `(("C-c d" vc-diff-mergebase) ;; diff two branches
 		   ("C-c g" vc-dir-root)
@@ -112,26 +103,22 @@
 		   ("C-c p" project-find-file)
 		   ("C-c P" ,(ff "~/src"))
 		   ("C-h" delete-backward-char)
-		   ("C-j" newline) ;; because electric-indent overrides this
+		   ("C-j" newline) ;; C-j indents like RET in non-lisp modes
 		   ("C-w" +kill-region-or-backward-word)
 		   ("C-;" completion-at-point)
-		   ("M-E" emoji-search)	   ;; express yourself!
+		   ("M-E" emoji-search)	;; express yourself!
 		   ("M-F" toggle-frame-fullscreen)
-		   ("M-I" +rg) ;; I for investigate
+		   ("M-I" +rgrep) ;; I for investigate
 		   ("M-K" kill-whole-line)
 		   ("M-Q" sql-connect) ;; a.k.a query
 		   ("M-R" +repl)
 		   ("M-j" (lambda () (interactive) (join-line -1)))
 		   ("M-s" save-buffer)
 		   ("M-o" other-window) ("M-O" delete-other-windows)
-		   ("C-c m" recompile)  ("C-c M" +compile)))
+		   ("C-c m" recompile)  ("C-c M" +compile)
+		   ("M-n" forward-paragraph) ("M-p" backward-paragraph)
+		   ("M-H" ,help-map) ("M-S" ,search-map)))
   (global-set-key (kbd (car binding)) (cadr binding)))
-
-(global-set-key (kbd "M-H") help-map)
-(global-set-key (kbd "M-S") search-map)
-
-(with-eval-after-load 'vc-dir ;; why isn't this a default?
-  (define-key vc-dir-mode-map (kbd "R") 'vc-revert))
 
 ;; -- Editing setup ------------------------------------------------------------
 (dolist (hook '(prog-mode-hook css-mode-hook))
@@ -139,24 +126,10 @@
 		   (display-line-numbers-mode 1)
 		   (display-fill-column-indicator-mode 1)
 		   (column-number-mode 1)
-		   (hl-line-mode 1)
-		   (local-set-key (kbd "M-n") 'forward-paragraph)
-		   (local-set-key (kbd "M-p") 'backward-paragraph))))
-
-(define-derived-mode templ-mode prog-mode "Templ"
-  (add-hook 'after-save-hook 'format-buffer-templ nil t))
-
-(add-to-list 'auto-mode-alist '("\\.templ\\'" . templ-mode))
-
-(defun format-buffer-templ ()
-  (interactive)
-  (when (buffer-file-name)
-    (shell-command (concat "templ fmt " (shell-quote-argument (buffer-file-name))))
-    (revert-buffer t t t)))
+		   (hl-line-mode 1))))
 
 (define-key isearch-mode-map (kbd "C-j")
-	    (lambda ()
-	      (interactive)
+	    (lambda (interactive)
 	      (isearch-exit) (goto-char isearch-other-end)))
 
 (defun center-prose-buffer-margins ()
@@ -209,6 +182,7 @@
       (set-face-attribute group nil :font *default-font*))))
 
 (setq-default cursor-type 'box)
+(setq cursor-in-non-selected-windows t)
 
 (dolist (attr `((alpha (95 . 95)) (width 100) (height 60)))
   (set-frame-parameter (selected-frame) (car attr) (cadr attr)))
@@ -218,12 +192,19 @@
 ;; -- Languages ----------------------------------------------------------------
 (add-to-list 'load-path "~/.emacs.d/external-modes/")
 
-;; Autoload the modes (only loads when actually used)
 (autoload 'clojure-mode "clojure-mode" "Major mode for Clojure" t)
 (autoload 'go-mode "go-mode" "Major mode for Go" t)
 (autoload 'markdown-mode "markdown-mode" "Major mode for Markdown" t)
 
-;; Configure only when modes are actually loaded
+(define-derived-mode templ-mode prog-mode "Templ"
+  (add-hook 'after-save-hook 'format-buffer-templ nil t))
+
+(defun format-buffer-templ ()
+  (interactive)
+  (when (buffer-file-name)
+    (shell-command (concat "templ fmt " (shell-quote-argument (buffer-file-name))))
+    (revert-buffer t t t)))
+
 (with-eval-after-load 'clojure-mode
   (add-hook 'clojure-mode-hook 'subword-mode)
   (add-hook 'clojure-mode-hook
@@ -249,28 +230,30 @@
 (with-eval-after-load 'markdown-mode
   (add-hook 'markdown-mode-hook 'prose-config))
 
-;; Auto-mode associations (triggers autoload when opening files)
-(add-to-list 'auto-mode-alist '("\\.\\(clj\\|cljs\\|cljc\\|edn\\)\\'"
-				. clojure-mode))
-(add-to-list 'auto-mode-alist '("\\.go\\'" . go-mode))
-(add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
-(add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . conf-mode))
-(add-to-list 'auto-mode-alist '("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode))
+(dolist (assoc '(("\\.\\(clj\\|cljs\\|cljc\\|edn\\)\\'" . clojure-mode)
+		 ("\\.go\\'" . go-mode)
+		 ("\\.md\\'" . markdown-mode)
+		 ("\\.ya?ml\\'" . conf-mode)
+		 ("\\.templ\\'" . templ-mode)
+		 ("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode)))
+  (add-to-list 'auto-mode-alist assoc))
 
 ;; -- Paredit ------------------------------------------------------------------
 (defun +paredit-RET ()
   (interactive)
-  (call-interactively (pcase major-mode
-			('inferior-lisp-mode 'comint-send-input)
-			('minibuffer-mode 'read--expression-try-read)
-			(_ 'paredit-RET))))
+  (call-interactively
+   (pcase major-mode
+     ('inferior-lisp-mode 'comint-send-input)
+     ('minibuffer-mode 'read--expression-try-read)
+     (_ 'paredit-RET))))
 
 (defun +paredit-M-r ()
   (interactive)
-  (call-interactively (pcase major-mode
-			('inferior-lisp-mode 'comint-history-isearch-backward-regexp)
-			('minibuffer-mode 'previous-matching-history-element)
-			(_ 'paredit-raise-sexp))))
+  (call-interactively
+   (pcase major-mode
+     ('inferior-lisp-mode 'comint-history-isearch-backward-regexp)
+     ('minibuffer-mode 'previous-matching-history-element)
+     (_ 'paredit-raise-sexp))))
 
 (when (require 'paredit nil)
   (dolist (lisp-mode-hook
@@ -279,8 +262,7 @@
 	     eval-expression-minibuffer-setup-hook))
     (add-hook lisp-mode-hook #'enable-paredit-mode))
 
-  (define-key paredit-mode-map (kbd "M-s") nil)
-  (define-key paredit-mode-map (kbd "C-j") #'+paredit-RET)
-  (define-key paredit-mode-map (kbd "M-r") #'+paredit-M-r)
-  (define-key paredit-mode-map (kbd "M-k") 'paredit-forward-barf-sexp)
-  (define-key paredit-mode-map (kbd "M-l") 'paredit-forward-slurp-sexp))
+  (dolist (binding '(("M-s" nil) ("C-j" +paredit-RET) ("M-r" +paredit-M-r)
+		     ("M-k" paredit-forward-barf-sexp)
+		     ("M-l" paredit-forward-slurp-sexp)))
+    (define-key paredit-mode-map (kbd (car binding)) (cadr binding))))

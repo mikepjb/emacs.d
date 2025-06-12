@@ -11,31 +11,17 @@ write, it is distracting from the content you are trying to create.
 
 That's the theory anyway, enjoy!
 
-** Common setup (extract to script?)
+** Getting Started
 
+- Make sure you have Emacs 30.1 or later. ~brew install --cask emacs~ or use your favoured linux package manager.
+- Git clone this repo to your .emacs.d (assuming it doesn't exist) ~git clone https://github.com/mikepjb/emacs.d.git ~~/.emacs.d~
 #+begin_src bash
-  go install github.com/traefik/yaegi/cmd/yaegi@latest
-  ./setup.sh # installs major-modes etc + paredit
-  sudo pacman -S pg_format
-  brew install pg_format
-#+end_src
-
-** Arch Linux setup
-
-#+begin_src bash
-# fyi paru is an AUR helper
-paru -S babashka-bin
-paru -S clojure-lsp-bin # if you use clojure
-#+end_src
-
-** Mac OS Setup
-
-#+begin_src bash
-brew install --cask emacs
-
-# we overwrite ctags because emacs has it's own ctags included
-brew install universal-ctags
-brew link --overwrite universal-ctags
+    go install github.com/traefik/yaegi/cmd/yaegi@latest
+    ./setup.sh # installs major-modes etc + paredit
+    sudo pacman -S pg_format
+    brew install pg_format
+    brew install universal-ctags
+    brew link --overwrite universal-ctags
 #+end_src
 
 ** Usage
@@ -71,6 +57,7 @@ brew link --overwrite universal-ctags
     - ~x~ will hide up to date files, if you commit but haven't pushed.
     - ~RET~ enters the file under cursor (but not ~C-j~).
     - ~vc-create-tag~ will. create a git tag.
+    - ~C-x v u~ will run ~vc-revert~ to clear changes.
 - ~vc~'s commands are run in a non-interactive way, so you can't enter your SSH passphrase directly and either have to use ssh-askpass or have a key without a password.
 - ~C-c C-k~ (not ~C-x k~) will kill + cancel a commit, which will also clear up other temporary buffers.
 

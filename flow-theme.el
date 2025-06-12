@@ -55,7 +55,7 @@
    ;; Success, info, and search faces using full color palette
    `(success ((t (:foreground ,bright-green))))
    `(info ((t (:foreground ,bright-cyan))))
-   `(match ((t (:background ,magenta :foreground ,bg))))
+   `(match ((t (:background ,bg :foreground ,bright-yellow))))
    `(isearch ((t (:background ,bright-magenta :foreground ,bg))))
    `(lazy-highlight ((t (:background ,magenta :foreground ,bg))))
    `(query-replace ((t (:background ,bright-yellow :foreground ,bg))))
@@ -122,7 +122,7 @@
 
    ;; Language Specific
    `(sh-quoted-exec ((t (:foreground ,fg))))
-   
+
    ))
 
 ;; N.B if you add a new font-lock definition, try: (font-lock-fontify-buffer)

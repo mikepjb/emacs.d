@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXTERNAL_TAGS=".git/tags/external"
+LANG_TAGS=".git/tags/lang"
 DEPS_TAGS=".git/tags/deps"
 PROJECT_TAGS=".git/tags/project"
 
@@ -8,18 +8,18 @@ echo "Generating project tags..."
 ctags -e -R -f "$PROJECT_TAGS" --exclude=.git .
 
 if [ ! -f "$EXTERNAL_TAGS" ]; then # only regenerate external if missing
-    mkdir -p `dirname $EXTERNAL_TAGS`
-    touch $EXTERNAL_TAGS
+    mkdir -p `dirname $LANG_TAGS`
+    touch $LANG_TAGS
     
     echo "Generating external language tags..."
     if [ -f "go.mod" ]; then
-        ctags -e -R -a -f "$EXTERNAL_TAGS" $(go env GOROOT)/src
+        ctags -e -R -a -f "$LANG_TAGS" $(go env GOROOT)/src
     fi
     
     if [ -f "pom.xml" ] || [ -f "gradlew" ] || [ -f "project.clj" ]; then
         JDK_SRC="/usr/lib/jvm/java-17-openjdk/lib/src.zip"
         if [ -f "$JDK_SRC" ]; then
-            ctags -e -R -a -f "$EXTERNAL_TAGS" "$JDK_SRC"  # -a to append
+            ctags -e -R -a -f "$LANG_TAGS" "$JDK_SRC"  # -a to append
         fi
     fi
 fi
