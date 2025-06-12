@@ -1,4 +1,4 @@
-;; -- Spartan Emacs Configuration, never more than 150 lines, sometimes less. --
+;; -- Spartan Emacs Configuration, never more than 300 lines, sometimes less. --
 
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore
@@ -20,8 +20,9 @@
 	      cursor-in-non-selected-windows nil
 	      truncate-lines t) ;; no word wrap thanks
 
-(dolist (mode '(fido-vertical-mode global-auto-revert-mode show-paren-mode
-				   save-place-mode electric-pair-mode savehist-mode))
+(dolist (mode '(fido-vertical-mode
+		global-auto-revert-mode show-paren-mode
+		save-place-mode electric-pair-mode savehist-mode))
   (funcall mode 1)) ;; enable these
 
 (load custom-file t)
@@ -129,14 +130,17 @@
 		   (hl-line-mode 1))))
 
 (define-key isearch-mode-map (kbd "C-j")
-	    (lambda (interactive)
+	    (lambda () (interactive)
 	      (isearch-exit) (goto-char isearch-other-end)))
+
+(defun should-center-buffer-p ()
+  (memq major-mode '(org-mode markdown-mode)))
 
 (defun center-prose-buffer-margins ()
   (set-window-margins nil 0 0)
   (when (memq major-mode '(org-mode markdown-mode))
     (let* ((char-width-pix (frame-char-width))
-           (window-width-pix (window-body-width nil t))  ; t = pixels!
+           (window-width-pix (window-body-width nil t))	; t = pixels!
            (target-width-chars 80)
            (target-width-pix (* target-width-chars char-width-pix))
            (margin-total-pix (max 0 (- window-width-pix target-width-pix)))
