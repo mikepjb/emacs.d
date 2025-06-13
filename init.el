@@ -28,6 +28,12 @@
 (load custom-file t)
 (load (concat user-emacs-directory "local.el") t)
 
+(with-eval-after-load 'grep
+  (add-to-list 'grep-find-ignored-directories "node_modules" t)
+  (add-to-list 'grep-find-ignored-directories ".git" t)
+  (add-to-list 'grep-find-ignored-files "*.min.js")
+  (add-to-list 'grep-find-ignored-files "*.bundle.js"))
+
 ;; -- Bindings -----------------------------------------------------------------
 
 (defun +kill-region-or-backward-word ()
