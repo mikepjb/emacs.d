@@ -94,11 +94,14 @@
 (defun +compile ()
   "Compile from directory with build file."
   (interactive)
-  (let* ((+proj (lambda (dir)
-	    (seq-some (lambda (f) (file-exists-p (expand-file-name f dir)))
-		      '("Makefile" "go.mod" "package.json"))))
-	 (default-directory (locate-dominating-file default-directory +proj)))
-    (call-interactively 'compile)))
+  (+with-context (call-interactively 'compile)))
+
+(defun +find-file () ;; super fast, search all subdirs
+  (interactive)
+  (+with-context
+   (let ((files (split-string (shell-command-to-string "find . -type f") "\n" t)))
+     (find-file (completing-read (format "Find file in %s: " default-directory) files nil t)))))
+
 
 (pcase system-type
   ('darwin (setq mac-command-modifier 'meta))
@@ -107,11 +110,6 @@
 (defmacro ff (&rest path)
   `(lambda () (interactive)
      (find-file (concat ,@path))))
-
-(defun +find-file () ;; super fast, search all subdirs
-  (interactive)
-  (let ((files (split-string (shell-command-to-string "find . -type f") "\n" t)))
-    (find-file (completing-read "Find file: " files nil t))))
 
 (defmacro user-cmd (path)
   `(lambda () 
@@ -123,7 +121,7 @@
 		   ("C-c h" vc-region-history) ;; + file history without region
 		   ("C-c i" ,(ff user-init-file))
 		   ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
-		   ("C-c p" project-find-file)
+		   ("C-c p" +find-file)
 		   ("C-c P" ,(ff "~/src"))
 		   ("C-h" delete-backward-char)
 		   ("C-j" newline) ;; C-j indents like RET in non-lisp modes
