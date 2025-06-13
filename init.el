@@ -16,8 +16,6 @@
       org-agenda-files `(,(concat user-emacs-directory "notes"))
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
-(defun display-startup-echo-area-message () (message ""))
-
 (setq-default display-fill-column-indicator-column 80
 	      cursor-in-non-selected-windows nil
 	      truncate-lines t) ;; no word wrap thanks
@@ -131,6 +129,7 @@
 		   ("C-j" newline) ;; C-j indents like RET in non-lisp modes
 		   ("C-w" +kill-region-or-backward-word)
 		   ("C-;" hippie-expand)
+		   ("M-c" mode-line-other-buffer)
 		   ("M-e" (lambda () (interactive) (select-window
 						    (or (split-window-sensibly)
 							(split-window)))))
