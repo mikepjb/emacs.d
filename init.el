@@ -146,6 +146,7 @@
   (global-set-key (kbd (car binding)) (cadr binding)))
 
 ;; -- Editing setup ------------------------------------------------------------
+
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
 		   (display-line-numbers-mode 1)
@@ -188,6 +189,7 @@
       (shell-command-on-region (point-min) (point-max) "pg_format -" nil t))))
 
 ;; -- Appearance ---------------------------------------------------------------
+
 (dolist (ui-mode
 	 '(menu-bar-mode tool-bar-mode blink-cursor-mode))
   (funcall ui-mode -1)) ;; disable these
@@ -214,6 +216,7 @@
 (ignore-errors (load-theme 'flow t))
 
 ;; -- Languages ----------------------------------------------------------------
+
 (add-to-list 'load-path "~/.emacs.d/external-modes/")
 
 (autoload 'clojure-mode "clojure-mode" "Major mode for Clojure" t)
@@ -263,6 +266,7 @@
   (add-to-list 'auto-mode-alist assoc))
 
 ;; -- Paredit ------------------------------------------------------------------
+
 (defun +paredit-RET ()
   (interactive)
   (call-interactively
