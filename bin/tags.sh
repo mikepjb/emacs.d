@@ -4,6 +4,8 @@ LANG_TAGS=".git/tags/lang"
 DEPS_TAGS=".git/tags/deps"
 PROJECT_TAGS=".git/tags/project"
 
+# move up until you find git-root
+
 echo "Generating project tags..."
 ctags -e -R -f "$PROJECT_TAGS" --exclude=.git .
 

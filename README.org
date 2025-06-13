@@ -30,6 +30,7 @@ That's the theory anyway, enjoy!
 *** Useful Default Keybindings
 - ~C-x C-;~ comment line/region (also uncomments)
 - ~C-c C-t~ for inserting TODO
+- ~C-x 8 RET~ for inserting symbols + emoji!
 *** Introspection
 - ~C-h b~ is a lesser known help map to describe all bindings available in the active buffer.
 - ~C-u C-x =~ gives detailed information about the display of the text at your cursor position. This is useful to determine what font-lock/syntax highlighting is used.

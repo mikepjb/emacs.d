@@ -1,4 +1,4 @@
-;; -- Spartan Emacs Configuration, never more than 300 lines, sometimes less. --
+;; -- Spartan Emacs, 300 lines or less -*- lexical-binding: t; -*-
 
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore
@@ -15,6 +15,8 @@
       org-hide-emphasis-markers t
       org-agenda-files `(,(concat user-emacs-directory "notes"))
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
+
+(defun display-startup-echo-area-message () (message ""))
 
 (setq-default display-fill-column-indicator-column 80
 	      cursor-in-non-selected-windows nil
@@ -46,38 +48,49 @@
 (with-eval-after-load 'icomplete
   (define-key icomplete-minibuffer-map (kbd "C-w") #'+minibuffer-C-w))
 
-(when (require 'vc-git nil)
-  (defmacro +maybe-git-root (&rest body)
-    `(let ((default-directory (or (vc-git-root default-directory) 
-                                  default-directory)))
-       ,@body))
+(defun +scratch () ;; recreate *scratch* with the current mode
+  (interactive)
+  (let ((current-mode major-mode))
+    (when (get-buffer "*scratch*") (kill-buffer "*scratch*"))
+    (switch-to-buffer (get-buffer-create "*scratch*"))
+    (funcall current-mode)))
 
-  (defun +rgrep (pattern)
-    (interactive "sSearch: ")
-    (+maybe-git-root (rgrep pattern "*" ".")))
+(defmacro +with-context (&rest body) ;; run body from project root if you can
+  `(let*
+       ((+proj
+	 (lambda (dir)
+	   (seq-some (lambda (f) (file-exists-p (expand-file-name f dir)))
+		     '("Makefile" "go.mod" "package.json" "deps.edn" ".git"))))
+	(default-directory (or (locate-dominating-file default-directory +proj)
+			       default-directory)))
+     ,@body))
 
-  (defun +repl ()
-    (interactive)
-    (other-window-prefix)
-    (+maybe-git-root (pcase major-mode
-		       ('clojure-mode
-			(setq-local inferior-lisp-prompt "^[^=> \n]*[=>] *")
-			(inferior-lisp "clojure -A:dev"))
-		       ('emacs-lisp-mode (ielm))
-		       ('scheme-mode
-			(setq-local inferior-lisp-prompt "^[0-9]* *\\]=> *")
-			(inferior-lisp "scheme"))
-		       ('sh-mode (shell))
-		       (_ (message "No REPL defined for %s" major-mode)))))
+(defun +rgrep (pattern)
+  (interactive "sSearch: ")
+  (+with-context (rgrep pattern "*" ".")))
 
-  (add-hook ;; link tags
-   'find-file-hook 
-   (lambda ()
-     (+maybe-git-root
-      (setq-local
-       tags-table-list 
-       (mapcar (lambda (f) (expand-file-name f default-directory))
-	       '(".git/tags/project" ".git/tags/deps" ".git/tags/lang")))))))
+(defun +repl ()
+  (interactive)
+  (other-window-prefix)
+  (+with-context (pcase major-mode
+		   ('clojure-mode
+		    (setq-local inferior-lisp-prompt "^[^=> \n]*[=>] *")
+		    (inferior-lisp "clojure -A:dev"))
+		   ('emacs-lisp-mode (ielm))
+		   ('scheme-mode
+		    (setq-local inferior-lisp-prompt "^[0-9]* *\\]=> *")
+		    (inferior-lisp "scheme"))
+		   ('sh-mode (shell))
+		   (_ (message "No REPL defined for %s" major-mode)))))
+
+(add-hook ;; link tags
+ 'find-file-hook 
+ (lambda ()
+   (+with-context
+    (setq-local
+     tags-table-list 
+     (mapcar (lambda (f) (expand-file-name f default-directory))
+	     '(".git/tags/project" ".git/tags/deps" ".git/tags/lang"))))))
 
 (defun +compile ()
   "Compile from directory with build file."
@@ -96,6 +109,16 @@
   `(lambda () (interactive)
      (find-file (concat ,@path))))
 
+(defun +find-file () ;; super fast, search all subdirs
+  (interactive)
+  (let ((files (split-string (shell-command-to-string "find . -type f") "\n" t)))
+    (find-file (completing-read "Find file: " files nil t))))
+
+(defmacro user-cmd (path)
+  `(lambda () 
+     (interactive)
+     (shell-command (concat user-emacs-directory "bin/" ,path))))
+
 (dolist (binding `(("C-c d" vc-diff-mergebase) ;; diff two branches
 		   ("C-c g" vc-dir-root)
 		   ("C-c h" vc-region-history) ;; + file history without region
@@ -107,7 +130,7 @@
 		   ("C-j" newline) ;; C-j indents like RET in non-lisp modes
 		   ("C-w" +kill-region-or-backward-word)
 		   ("C-;" completion-at-point)
-		   ("M-E" emoji-search)	;; express yourself!
+		   ("M-E" +scratch) ;; E for experiment!
 		   ("M-F" toggle-frame-fullscreen)
 		   ("M-I" +rgrep) ;; I for investigate
 		   ("M-K" kill-whole-line)
@@ -116,6 +139,7 @@
 		   ("M-j" (lambda () (interactive) (join-line -1)))
 		   ("M-s" save-buffer)
 		   ("M-o" other-window) ("M-O" delete-other-windows)
+		   ("C-c t" (user-cmd "test.sh"))
 		   ("C-c m" recompile)  ("C-c M" +compile)
 		   ("M-n" forward-paragraph) ("M-p" backward-paragraph)
 		   ("M-H" ,help-map) ("M-S" ,search-map)))
@@ -133,10 +157,7 @@
 	    (lambda () (interactive)
 	      (isearch-exit) (goto-char isearch-other-end)))
 
-(defun should-center-buffer-p ()
-  (memq major-mode '(org-mode markdown-mode)))
-
-(defun center-prose-buffer-margins ()
+(defun center-prose-buffer-margins () ;; extracted from olivetti-mode <3
   (set-window-margins nil 0 0)
   (when (memq major-mode '(org-mode markdown-mode))
     (let* ((char-width-pix (frame-char-width))
@@ -186,7 +207,6 @@
       (set-face-attribute group nil :font *default-font*))))
 
 (setq-default cursor-type 'box)
-(setq cursor-in-non-selected-windows t)
 
 (dolist (attr `((alpha (95 . 95)) (width 100) (height 60)))
   (set-frame-parameter (selected-frame) (car attr) (cadr attr)))

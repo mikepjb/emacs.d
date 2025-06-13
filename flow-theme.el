@@ -1,4 +1,4 @@
-;;; flow-theme.el --- Quiet monochrome theme with synthwave accents
+;;; flow-theme.el, Quiet theme + synthwave accents  -*- lexical-binding: t; -*-
 (deftheme flow "Designed to encourage quiet focus")
 (let (;; Primary colors
       (bg "#0c0c0c")			; background
@@ -40,7 +40,7 @@
    `(mode-line ((t (:background ,bg 
                     :foreground ,fg
                     :box (:line-width 1 :color ,black :style nil)))))
-   `(mode-line-inactive ((t (:background ,bg 
+   `(mode-line-inactive ((t (:background ,bg
                              :foreground ,bright-black
                              :box (:line-width 1 :color ,black :style nil)))))
    
@@ -81,6 +81,8 @@
    `(diff-file-header ((t (:foreground ,bright-cyan :weight bold))))
    
    ;; Completions and minibuffer
+   `(completions-highlight ((t (:background ,mid-black))))
+   `(icomplete-selected-match ((t (:background ,mid-black))))
    `(completions-annotations ((t (:foreground ,bright-black))))
    `(completions-common-part ((t (:foreground ,bright-blue))))
    `(completions-first-difference ((t (:foreground ,bright-yellow))))
@@ -123,8 +125,28 @@
    ;; Language Specific
    `(sh-quoted-exec ((t (:foreground ,fg))))
 
-   ))
+   )
 
-;; N.B if you add a new font-lock definition, try: (font-lock-fontify-buffer)
-;; This happens because font-lock needs to refresh its rules, not just the face colors.
+  (let ((flow/mode-line
+	 `(" "
+	   (:eval (propertize
+		   (if buffer-file-name "%f" "%b")
+		   'face
+		   '(:foreground ,bright-blue :weight bold)))
+	   " [%*]"
+	   mode-line-format-right-align
+	   (:eval (when (and (boundp 'vc-mode) vc-mode) ;; git branch + space
+		    (concat "⇅ "
+			    (replace-regexp-in-string "^ Git[-:]" "" vc-mode)
+			    (propertize " | " 'face '(:foreground ,mid-black)))))
+	   "%l:%c" ;; line/col count
+	   (:eval (propertize " | " 'face '(:foreground ,mid-black)))
+	   (:eval (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
+	   " ")))
+    (setq mode-line-format flow/mode-line)
+    (setq-default mode-line-format flow/mode-line)))
+
 (provide-theme 'flow)
+
+;; (progn (disable-theme 'flow) (load-theme 'flow t))
+
