@@ -22,7 +22,7 @@
 	      cursor-in-non-selected-windows nil
 	      truncate-lines t) ;; no word wrap thanks
 
-(dolist (mode '(fido-vertical-mode winner-mode
+(dolist (mode '(fido-vertical-mode
 		global-auto-revert-mode show-paren-mode
 		save-place-mode electric-pair-mode savehist-mode))
   (funcall mode 1)) ;; enable these
@@ -87,10 +87,11 @@
  'find-file-hook 
  (lambda ()
    (+with-context
-    (setq-local
-     tags-table-list 
-     (mapcar (lambda (f) (expand-file-name f default-directory))
-	     '(".git/tags/project" ".git/tags/deps" ".git/tags/lang"))))))
+    (when (file-directory-p ".git/tags")
+      (setq-local
+       tags-table-list 
+       (mapcar (lambda (f) (expand-file-name f default-directory))
+	       '(".git/tags/project" ".git/tags/deps" ".git/tags/lang")))))))
 
 (defun +compile ()
   "Compile from directory with build file."
@@ -129,7 +130,7 @@
 		   ("C-h" delete-backward-char)
 		   ("C-j" newline) ;; C-j indents like RET in non-lisp modes
 		   ("C-w" +kill-region-or-backward-word)
-		   ("C-;" completion-at-point)
+		   ("C-;" hippie-expand)
 		   ("M-e" (lambda () (interactive) (select-window
 						    (or (split-window-sensibly)
 							(split-window)))))
@@ -145,7 +146,6 @@
 		   ("C-c t" (user-cmd "test.sh"))
 		   ("C-c m" recompile)  ("C-c M" +compile)
 		   ("M-n" forward-paragraph) ("M-p" backward-paragraph)
-		   ("C-," winner-undo) ("C-." winner-redo)
 		   ("M-H" ,help-map) ("M-S" ,search-map)))
   (global-set-key (kbd (car binding)) (cadr binding)))
 
