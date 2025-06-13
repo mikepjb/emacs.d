@@ -186,11 +186,6 @@
 
 (advice-add 'org-refile :after 'org-save-all-org-buffers)
 
-(with-eval-after-load 'sql
-  (define-key sql-mode-map (kbd "C-c f") 
-    (lambda () (interactive)
-      (shell-command-on-region (point-min) (point-max) "pg_format -" nil t))))
-
 ;; -- Appearance ---------------------------------------------------------------
 
 (dolist (ui-mode

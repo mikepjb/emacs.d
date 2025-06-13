@@ -146,9 +146,9 @@
 	   " [%*]"
 	   mode-line-format-right-align
 	   (:eval (when (and (boundp 'vc-mode) vc-mode) ;; git branch + space
-		    (concat "⇅ "
-			    (replace-regexp-in-string "^ Git[-:]" "" vc-mode)
-			    (propertize " | " 'face '(:foreground ,mid-black)))))
+		    (concat (propertize " | " 'face '(:foreground ,mid-black))
+			    (replace-regexp-in-string "^ Git[-:]" "" vc-mode))))
+	   (:eval (propertize " | " 'face '(:foreground ,mid-black)))
 	   "%l:%c" ;; line/col count
 	   (:eval (propertize " | " 'face '(:foreground ,mid-black)))
 	   (:eval (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
