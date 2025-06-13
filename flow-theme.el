@@ -127,10 +127,20 @@
 
    )
 
+  (defun flow/truncate-buffer-name ()
+    (let* ((name (if buffer-file-name 
+                     (abbreviate-file-name buffer-file-name) 
+                   (buffer-name)))
+           (max-len (/ (window-width) 3)))
+      (if (<= (length name) max-len)
+          name
+	(concat "<" (substring name (- (length name) (- max-len 1)))))))
+
   (let ((flow/mode-line
 	 `(" "
 	   (:eval (propertize
-		   (if buffer-file-name "%f" "%b")
+		   (if buffer-file-name
+		       (flow/truncate-buffer-name))
 		   'face
 		   '(:foreground ,bright-blue :weight bold)))
 	   " [%*]"
