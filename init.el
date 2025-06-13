@@ -22,7 +22,7 @@
 	      cursor-in-non-selected-windows nil
 	      truncate-lines t) ;; no word wrap thanks
 
-(dolist (mode '(fido-vertical-mode
+(dolist (mode '(fido-vertical-mode winner-mode
 		global-auto-revert-mode show-paren-mode
 		save-place-mode electric-pair-mode savehist-mode))
   (funcall mode 1)) ;; enable these
@@ -130,6 +130,8 @@
 		   ("C-j" newline) ;; C-j indents like RET in non-lisp modes
 		   ("C-w" +kill-region-or-backward-word)
 		   ("C-;" completion-at-point)
+		   ("M-e" (lambda () (interactive) (or (split-window-sensibly)
+						       (split-window))))
 		   ("M-E" +scratch) ;; E for experiment!
 		   ("M-F" toggle-frame-fullscreen)
 		   ("M-I" +rgrep) ;; I for investigate
@@ -142,6 +144,7 @@
 		   ("C-c t" (user-cmd "test.sh"))
 		   ("C-c m" recompile)  ("C-c M" +compile)
 		   ("M-n" forward-paragraph) ("M-p" backward-paragraph)
+		   ("C-," winner-undo) ("C-." winner-redo)
 		   ("M-H" ,help-map) ("M-S" ,search-map)))
   (global-set-key (kbd (car binding)) (cadr binding)))
 
