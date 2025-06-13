@@ -130,8 +130,9 @@
 		   ("C-j" newline) ;; C-j indents like RET in non-lisp modes
 		   ("C-w" +kill-region-or-backward-word)
 		   ("C-;" completion-at-point)
-		   ("M-e" (lambda () (interactive) (or (split-window-sensibly)
-						       (split-window))))
+		   ("M-e" (lambda () (interactive) (select-window
+						    (or (split-window-sensibly)
+							(split-window)))))
 		   ("M-E" +scratch) ;; E for experiment!
 		   ("M-F" toggle-frame-fullscreen)
 		   ("M-I" +rgrep) ;; I for investigate
