@@ -157,10 +157,8 @@
 
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
-		   (display-line-numbers-mode 1)
-		   (display-fill-column-indicator-mode 1)
-		   (column-number-mode 1)
-		   (hl-line-mode 1))))
+		   (display-line-numbers-mode 1) (column-number-mode 1)
+		   (display-fill-column-indicator-mode 1) (hl-line-mode 1))))
 
 (define-key isearch-mode-map (kbd "C-j")
 	    (lambda () (interactive)
@@ -215,8 +213,8 @@
 
 (ignore-errors (load-theme 'flow t))
 
-(require 'ansi-color)
-(add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
+(when (require 'ansi-color nil)
+  (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter))
 
 ;; -- Languages ----------------------------------------------------------------
 
