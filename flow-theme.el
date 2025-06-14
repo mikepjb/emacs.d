@@ -151,6 +151,9 @@
 	   (:eval (propertize " | " 'face '(:foreground ,mid-black)))
 	   "%l:%c" ;; line/col count
 	   (:eval (propertize " | " 'face '(:foreground ,mid-black)))
+	   (:eval (when-let ((proc (get-buffer-process (current-buffer))))
+		    (propertize (format "[%s] " (process-name proc))
+				'face '(:foreground ,bright-magenta :weight bold))))
 	   (:eval (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
 	   " ")))
     (setq mode-line-format flow/mode-line)
