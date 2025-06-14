@@ -139,8 +139,7 @@
   (let ((flow/mode-line
 	 `(" "
 	   (:eval (propertize
-		   (if buffer-file-name
-		       (flow/truncate-buffer-name))
+		   (flow/truncate-buffer-name)
 		   'face
 		   '(:foreground ,bright-blue :weight bold)))
 	   " [%*]"
