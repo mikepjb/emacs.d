@@ -2,8 +2,10 @@
 
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore
+      frame-resize-pixelwise t ;; do not maximise after leaving fullscreen
       custom-file (concat user-emacs-directory "custom.el")
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
+      auto-save-default nil
       create-lockfiles nil
       use-short-answers t
       vc-follow-symlinks t
@@ -20,8 +22,7 @@
 	      cursor-in-non-selected-windows nil
 	      truncate-lines t) ;; no word wrap thanks
 
-(dolist (mode '(fido-vertical-mode
-		global-auto-revert-mode show-paren-mode
+(dolist (mode '(fido-vertical-mode global-auto-revert-mode show-paren-mode
 		save-place-mode electric-pair-mode savehist-mode))
   (funcall mode 1)) ;; enable these
 
@@ -52,13 +53,6 @@
 (with-eval-after-load 'icomplete
   (define-key icomplete-minibuffer-map (kbd "C-w") #'+minibuffer-C-w))
 
-(defun +scratch () ;; recreate *scratch* with the current mode
-  (interactive)
-  (let ((current-mode major-mode))
-    (when (get-buffer "*scratch*") (kill-buffer "*scratch*"))
-    (switch-to-buffer (get-buffer-create "*scratch*"))
-    (funcall current-mode)))
-
 (defmacro +with-context (&rest body) ;; run body from project root if you can
   `(let*
        ((+proj
@@ -73,13 +67,24 @@
   (interactive "sSearch: ")
   (+with-context (rgrep pattern "*" ".")))
 
+(defun +is-babashka-buffer-p ()
+  "Check if current buffer is a babashka script."
+  (or 
+   (and (buffer-file-name)
+	(string= (file-name-nondirectory (buffer-file-name)) "bb.edn"))
+   (save-excursion (goto-char (point-min))
+		   (and (looking-at "#!")
+			(string-match-p "bb" (buffer-substring-no-properties 
+					      (point) (line-end-position)))))))
+
 (defun +repl ()
   (interactive)
   (other-window-prefix)
   (+with-context (pcase major-mode
 		   ('clojure-mode
 		    (setq-local inferior-lisp-prompt "^[^=> \n]*[=>] *")
-		    (inferior-lisp "clojure -A:dev"))
+		    (inferior-lisp (if (+is-babashka-buffer-p)
+				       "bb" "clojure -A:dev")))
 		   ('emacs-lisp-mode (ielm))
 		   ('scheme-mode
 		    (setq-local inferior-lisp-prompt "^[0-9]* *\\]=> *")
@@ -106,51 +111,44 @@
   (+with-context
    (let ((files
 	  (split-string (shell-command-to-string "find . -type f") "\n" t)))
-     (find-file
-      (completing-read
-       (format "Find file in %s: " default-directory) files nil t)))))
+     (find-file (completing-read
+		 (format "Find file in %s: " default-directory) files nil t)))))
+
+(defun user-cmd () 
+  (interactive)
+  (+with-context
+   (let* ((bin-dir (concat user-emacs-directory "bin/"))
+          (files (directory-files bin-dir nil "^[^.]"))
+          (choice (completing-read "Run script: " files)))
+     (async-shell-command (concat bin-dir choice)))))
 
 (pcase system-type
   ('darwin (setq mac-command-modifier 'meta))
   ('gnu/linux (setq x-super-keysym 'meta)))
 
 (defmacro ff (&rest path)
-  `(lambda () (interactive)
-     (find-file (concat ,@path))))
-  
-(defun user-cmd () 
-  (interactive)
-  (let* ((bin-dir (concat user-emacs-directory "bin/"))
-         (files (directory-files bin-dir nil "^[^.]"))
-         (choice (completing-read "Run script: " files)))
-    (async-shell-command (concat bin-dir choice))))
+  `(lambda () (interactive) (find-file (concat ,@path))))
 
-(dolist (binding `(("C-c d" vc-diff-mergebase) ;; diff two branches
-		   ("C-c g" vc-dir-root)
+(dolist (binding `(("C-c d" vc-diff-mergebase) ("C-c g" vc-dir-root)
 		   ("C-c h" vc-region-history) ;; + file history without region
 		   ("C-c i" ,(ff user-init-file))
 		   ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
-		   ("C-c p" +find-file)
-		   ("C-c P" ,(ff "~/src"))
-		   ("C-h" delete-backward-char)
-		   ("C-j" newline) ;; C-j indents like RET in non-lisp modes
+		   ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
+		   ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
 		   ("C-w" +kill-region-or-backward-word)
 		   ("C-;" hippie-expand)
 		   ("M-c" mode-line-other-buffer)
 		   ("M-e" (lambda () (interactive) (select-window
-						    (or (split-window-sensibly)
-							(split-window)))))
-		   ("M-E" +scratch) ;; E for experiment!
+						   (or (split-window-sensibly)
+						       (split-window)))))
 		   ("M-F" toggle-frame-fullscreen)
 		   ("M-I" +rgrep) ;; I for investigate
 		   ("M-K" kill-whole-line)
-		   ("M-Q" sql-connect) ;; a.k.a query
-		   ("M-R" +repl)
+		   ("M-Q" sql-connect) ("M-R" +repl)
 		   ("M-j" (lambda () (interactive) (join-line -1)))
 		   ("M-s" save-buffer)
 		   ("M-o" other-window) ("M-O" delete-other-windows)
-		   ("C-c t" user-cmd)
-		   ("C-c m" recompile)  ("C-c M" +compile)
+		   ("C-c t" user-cmd) ("C-c m" recompile)  ("C-c M" +compile)
 		   ("M-n" forward-paragraph) ("M-p" backward-paragraph)
 		   ("M-H" ,help-map) ("M-S" ,search-map)))
   (global-set-key (kbd (car binding)) (cadr binding)))
@@ -200,8 +198,7 @@
   (funcall ui-mode -1)) ;; disable these
 
 (when window-system
-  (scroll-bar-mode -1)
-  (fringe-mode -1)
+  (scroll-bar-mode -1) (fringe-mode -1)
   (defun +font (names) (seq-find #'x-list-fonts names))
   (defconst *default-font* (+font '("Rec Mono Linear" "Monaco" "Monospace")))
   (defconst *writing-font* (+font '("Rec Mono Casual" "Sans Serif")))
@@ -213,12 +210,13 @@
     (dolist (group '(org-block org-code org-verbatim org-table))
       (set-face-attribute group nil :font *default-font*))))
 
-(setq-default cursor-type 'box)
-
 (dolist (attr `((alpha (95 . 95)) (width 100) (height 60)))
   (set-frame-parameter (selected-frame) (car attr) (cadr attr)))
 
 (ignore-errors (load-theme 'flow t))
+
+(require 'ansi-color)
+(add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
 
 ;; -- Languages ----------------------------------------------------------------
 
@@ -262,11 +260,14 @@
 (with-eval-after-load 'markdown-mode
   (add-hook 'markdown-mode-hook 'prose-config))
 
-(dolist (assoc '(("\\.\\(clj\\|cljs\\|cljc\\|edn\\)\\'" . clojure-mode)
-		 ("\\.go\\'" . go-mode) ("\\.md\\'" . markdown-mode)
-		 ("\\.ya?ml\\'" . conf-mode) ("\\.templ\\'" . templ-mode)
-		 ("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode)))
+(dolist (assoc
+	 '(("\\.\\(clj[sc]?\\|bb\\(?:\\.edn\\)?\\|edn\\)\\'" . clojure-mode)
+	   ("\\.go\\'" . go-mode) ("\\.md\\'" . markdown-mode)
+	   ("\\.ya?ml\\'" . conf-mode) ("\\.templ\\'" . templ-mode)
+	   ("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode)))
   (add-to-list 'auto-mode-alist assoc))
+
+(add-to-list 'interpreter-mode-alist '("bb" . clojure-mode))
 
 ;; -- Paredit ------------------------------------------------------------------
 
