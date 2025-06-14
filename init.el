@@ -91,11 +91,10 @@
  'find-file-hook 
  (lambda ()
    (+with-context
-    (when (file-directory-p ".git/tags")
-      (setq-local
-       tags-table-list 
-       (mapcar (lambda (f) (expand-file-name f default-directory))
-	       '(".git/tags/project" ".git/tags/deps" ".git/tags/lang")))))))
+    (when (file-directory-p ".tags")
+      (setq-local tags-table-list 
+		  (mapcar (lambda (f) (expand-file-name f default-directory))
+			  '(".tags/proj" ".tags/deps" ".tags/lang")))))))
 
 (defun +compile ()
   "Compile from directory with build file."
@@ -105,9 +104,11 @@
 (defun +find-file () ;; super fast, search all subdirs
   (interactive)
   (+with-context
-   (let ((files (split-string (shell-command-to-string "find . -type f") "\n" t)))
-     (find-file (completing-read (format "Find file in %s: " default-directory) files nil t)))))
-
+   (let ((files
+	  (split-string (shell-command-to-string "find . -type f") "\n" t)))
+     (find-file
+      (completing-read
+       (format "Find file in %s: " default-directory) files nil t)))))
 
 (pcase system-type
   ('darwin (setq mac-command-modifier 'meta))
@@ -116,11 +117,13 @@
 (defmacro ff (&rest path)
   `(lambda () (interactive)
      (find-file (concat ,@path))))
-
-(defmacro user-cmd (path)
-  `(lambda () 
-     (interactive)
-     (shell-command (concat user-emacs-directory "bin/" ,path))))
+  
+(defun user-cmd () 
+  (interactive)
+  (let* ((bin-dir (concat user-emacs-directory "bin/"))
+         (files (directory-files bin-dir nil "^[^.]"))
+         (choice (completing-read "Run script: " files)))
+    (async-shell-command (concat bin-dir choice))))
 
 (dolist (binding `(("C-c d" vc-diff-mergebase) ;; diff two branches
 		   ("C-c g" vc-dir-root)
@@ -146,7 +149,7 @@
 		   ("M-j" (lambda () (interactive) (join-line -1)))
 		   ("M-s" save-buffer)
 		   ("M-o" other-window) ("M-O" delete-other-windows)
-		   ("C-c t" (user-cmd "test.sh"))
+		   ("C-c t" user-cmd)
 		   ("C-c m" recompile)  ("C-c M" +compile)
 		   ("M-n" forward-paragraph) ("M-p" backward-paragraph)
 		   ("M-H" ,help-map) ("M-S" ,search-map)))
@@ -260,10 +263,8 @@
   (add-hook 'markdown-mode-hook 'prose-config))
 
 (dolist (assoc '(("\\.\\(clj\\|cljs\\|cljc\\|edn\\)\\'" . clojure-mode)
-		 ("\\.go\\'" . go-mode)
-		 ("\\.md\\'" . markdown-mode)
-		 ("\\.ya?ml\\'" . conf-mode)
-		 ("\\.templ\\'" . templ-mode)
+		 ("\\.go\\'" . go-mode) ("\\.md\\'" . markdown-mode)
+		 ("\\.ya?ml\\'" . conf-mode) ("\\.templ\\'" . templ-mode)
 		 ("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode)))
   (add-to-list 'auto-mode-alist assoc))
 

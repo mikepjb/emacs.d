@@ -56,7 +56,10 @@ That's the theory anyway, enjoy!
     - ~RET~ enters the file under cursor (but not ~C-j~).
     - ~vc-create-tag~ will. create a git tag.
     - ~C-x v u~ will run ~vc-revert~ to clear changes.
-- ~vc~'s commands are run in a non-interactive way, so you can't enter your SSH passphrase directly and either have to use ssh-askpass or have a key without a password.
+- ~vc~'s commands are run in a non-interactive way, so you can't enter
+  your SSH passphrase directly and either have to use
+  ssh-agent/ssh-askpass or have a key without a password. I use the
+  systemd ssh-agent service on Linux.
 - ~C-c C-k~ (not ~C-x k~) will kill + cancel a commit, which will also clear up other temporary buffers.
 
 *** Org Mode
