@@ -1,3 +1,9 @@
+3 things
+
+1. tidy up this readme
+2. under 200 LOC?
+3. ??? tags.sh in this project (taggen)
+
 * :trident: Emacs
 
 /An environment for writing software./

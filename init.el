@@ -1,9 +1,9 @@
-;; -- Spartan Emacs, 300 lines or less -*- lexical-binding: t; -*-
+;; -- Emacs configuration -*- lexical-binding: t; -*-
 
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore
       frame-resize-pixelwise t ;; do not maximise after leaving fullscreen
-      custom-file (concat user-emacs-directory "custom.el")
+      customer-file (make-temp-file "emacs-custom")
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
       auto-save-default nil
       create-lockfiles nil
@@ -25,7 +25,6 @@
 		save-place-mode electric-pair-mode savehist-mode))
   (funcall mode 1)) ;; enable these
 
-(load custom-file t)
 (load (concat user-emacs-directory "local.el") t)
 
 (defun +add-to-list (dst src)
@@ -39,28 +38,23 @@
 
 (defun +kill-region-or-backward-word ()
   (interactive)
-  (if (region-active-p) (call-interactively #'kill-region)
-    (if (bound-and-true-p paredit-mode) (paredit-backward-kill-word)
-      (backward-kill-word 1))))
+  (cond ((region-active-p) (call-interactively #'kill-region))
+        ((bound-and-true-p paredit-mode) (paredit-backward-kill-word))
+        (t (backward-kill-word 1))))
 
 (defun +minibuffer-C-w ()
   (interactive)
-  (if (and (fboundp 'icomplete-fido-backward-updir)
-           (string-match-p "/" (minibuffer-contents)))
-      (icomplete-fido-backward-updir)
-    (backward-kill-word 1)))
+  (if (string-match-p "/" (minibuffer-contents))
+      (icomplete-fido-backward-updir) (backward-kill-word 1)))
 
 (with-eval-after-load 'icomplete
   (define-key icomplete-minibuffer-map (kbd "C-w") #'+minibuffer-C-w))
 
-(defmacro +with-context (&rest body) ;; run body from project root if you can
-  `(let*
-       ((+proj
-	 (lambda (dir)
-	   (seq-some (lambda (f) (file-exists-p (expand-file-name f dir)))
-		     '("Makefile" "go.mod" "package.json" "deps.edn" ".git"))))
-	(default-directory (or (locate-dominating-file default-directory +proj)
-			       default-directory)))
+(defmacro +with-context (&rest body)
+  `(let ((default-directory 
+          (or (cl-some (lambda (f) (locate-dominating-file default-directory f))
+                       '("Makefile" "go.mod" "package.json" "deps.edn" ".git"))
+              default-directory)))
      ,@body))
 
 (defun +rgrep (pattern)
@@ -81,6 +75,7 @@
  'find-file-hook 
  (lambda ()
    (+with-context
+    ;; 
     (when (file-directory-p ".tags")
       (setq-local tags-table-list 
 		  (mapcar (lambda (f) (expand-file-name f default-directory))
