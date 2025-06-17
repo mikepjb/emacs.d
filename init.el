@@ -15,10 +15,10 @@
       org-export-with-section-numbers nil ;; essential for exporting
       org-ellipsis " ▼"
       org-hide-emphasis-markers t
-      display-fill-column-indicator-column 80
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
 (setq-default cursor-in-non-selected-windows nil
+	      display-fill-column-indicator-column 80
 	      truncate-lines t) ;; no word wrap thanks
 
 (dolist (mode '(fido-vertical-mode global-auto-revert-mode show-paren-mode
