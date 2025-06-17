@@ -15,11 +15,10 @@
       org-export-with-section-numbers nil ;; essential for exporting
       org-ellipsis " ▼"
       org-hide-emphasis-markers t
-      org-agenda-files `(,(concat user-emacs-directory "notes"))
+      display-fill-column-indicator-column 80
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
-(setq-default display-fill-column-indicator-column 80
-	      cursor-in-non-selected-windows nil
+(setq-default cursor-in-non-selected-windows nil
 	      truncate-lines t) ;; no word wrap thanks
 
 (dolist (mode '(fido-vertical-mode global-auto-revert-mode show-paren-mode
@@ -29,11 +28,12 @@
 (load custom-file t)
 (load (concat user-emacs-directory "local.el") t)
 
+(defun +add-to-list (dst src)
+  (set dst (cl-union (eval dst) src :test 'equal)))
+
 (with-eval-after-load 'grep
-  (add-to-list 'grep-find-ignored-directories "node_modules" t)
-  (add-to-list 'grep-find-ignored-directories ".git" t)
-  (add-to-list 'grep-find-ignored-files "*.min.js")
-  (add-to-list 'grep-find-ignored-files "*.bundle.js"))
+  (+add-to-list 'grep-find-ignored-directories '("node_modules" ".git"))
+  (+add-to-list 'grep-find-ignored-files '("*.min.js" "*.bundle.js")))
 
 ;; -- Bindings -----------------------------------------------------------------
 
@@ -67,28 +67,13 @@
   (interactive "sSearch: ")
   (+with-context (rgrep pattern "*" ".")))
 
-(defun +is-babashka-buffer-p ()
-  "Check if current buffer is a babashka script."
-  (or 
-   (and (buffer-file-name)
-	(string= (file-name-nondirectory (buffer-file-name)) "bb.edn"))
-   (save-excursion (goto-char (point-min))
-		   (and (looking-at "#!")
-			(string-match-p "bb" (buffer-substring-no-properties 
-					      (point) (line-end-position)))))))
-
 (defun +repl ()
   (interactive)
   (other-window-prefix)
   (+with-context (pcase major-mode
-		   ('clojure-mode
-		    (setq-local inferior-lisp-prompt "^[^=> \n]*[=>] *")
-		    (inferior-lisp (if (+is-babashka-buffer-p)
-				       "bb" "clojure -A:dev")))
+		   ('clojure-mode (inferior-lisp "clojure -A:dev"))
 		   ('emacs-lisp-mode (ielm))
-		   ('scheme-mode
-		    (setq-local inferior-lisp-prompt "^[0-9]* *\\]=> *")
-		    (inferior-lisp "scheme"))
+		   ('scheme-mode (inferior-lisp "scheme"))
 		   ('sh-mode (shell))
 		   (_ (message "No REPL defined for %s" major-mode)))))
 
@@ -114,14 +99,6 @@
      (find-file (completing-read
 		 (format "Find file in %s: " default-directory) files nil t)))))
 
-(defun user-cmd () 
-  (interactive)
-  (+with-context
-   (let* ((bin-dir (concat user-emacs-directory "bin/"))
-          (files (directory-files bin-dir nil "^[^.]"))
-          (choice (completing-read "Run script: " files)))
-     (async-shell-command (concat bin-dir choice)))))
-
 (pcase system-type
   ('darwin (setq mac-command-modifier 'meta))
   ('gnu/linux (setq x-super-keysym 'meta)))
@@ -139,8 +116,8 @@
 		   ("C-;" hippie-expand)
 		   ("M-c" mode-line-other-buffer)
 		   ("M-e" (lambda () (interactive) (select-window
-						   (or (split-window-sensibly)
-						       (split-window)))))
+						    (or (split-window-sensibly)
+							(split-window)))))
 		   ("M-F" toggle-frame-fullscreen)
 		   ("M-I" +rgrep) ;; I for investigate
 		   ("M-K" kill-whole-line)
@@ -148,7 +125,8 @@
 		   ("M-j" (lambda () (interactive) (join-line -1)))
 		   ("M-s" save-buffer)
 		   ("M-o" other-window) ("M-O" delete-other-windows)
-		   ("C-c t" user-cmd) ("C-c m" recompile)  ("C-c M" +compile)
+		   ("C-c t" async-shell-command)
+		   ("C-c m" recompile)  ("C-c M" +compile)
 		   ("M-n" forward-paragraph) ("M-p" backward-paragraph)
 		   ("M-H" ,help-map) ("M-S" ,search-map)))
   (global-set-key (kbd (car binding)) (cadr binding)))
@@ -164,7 +142,7 @@
 	    (lambda () (interactive)
 	      (isearch-exit) (goto-char isearch-other-end)))
 
-(defun center-prose-buffer-margins () ;; extracted from olivetti-mode <3
+(defun center-prose ()
   (set-window-margins nil 0 0)
   (when (memq major-mode '(org-mode markdown-mode))
     (let* ((char-width-pix (frame-char-width))
@@ -176,14 +154,11 @@
            (margin-chars (max 0 (round (/ margin-each-pix char-width-pix)))))
       (set-window-margins nil margin-chars margin-chars))))
 
-(add-hook 'buffer-list-update-hook 'center-prose-buffer-margins)
+(add-hook 'buffer-list-update-hook 'center-prose)
 
 (defun prose-config ()
-  (variable-pitch-mode 1)
-  (visual-line-mode 1)
-  (center-prose-buffer-margins)
-  (add-hook 'window-size-change-functions
-            (lambda (frame) (center-prose-buffer-margins)) nil t))
+  (variable-pitch-mode 1) (visual-line-mode 1)
+  (add-hook 'window-size-change-functions 'center-prose)) ;; TODO doesn't trigger when window changes size
 
 (add-hook 'org-mode-hook (lambda () (prose-config) (org-indent-mode)))
 
@@ -235,35 +210,30 @@
 
 (with-eval-after-load 'clojure-mode
   (add-hook 'clojure-mode-hook 'subword-mode)
-  (add-hook 'clojure-mode-hook
-	    '(lambda ()
-	       (define-key clojure-mode-map (kbd "C-x C-e")
-			   (lambda ()
-			     (interactive)
-			     (if (region-active-p)
-				 (call-interactively #'lisp-eval-region)
-			       (lisp-eval-last-sexp))))
-	       (define-key clojure-mode-map (kbd "C-c C-k")
-			   (lambda ()
-			     (interactive)
-			     (save-excursion
-			       (mark-whole-buffer)
-			       (call-interactively #'lisp-eval-region)))))))
+  (define-key clojure-mode-map (kbd "C-x C-e")
+	      (lambda () (interactive)
+		(if (region-active-p)
+		    (call-interactively #'lisp-eval-region)
+		  (lisp-eval-last-sexp))))
+  (define-key clojure-mode-map (kbd "C-c C-k")
+	      (lambda () (interactive)
+		(save-excursion
+		  (mark-whole-buffer)
+		  (call-interactively #'lisp-eval-region)))))
 
 (with-eval-after-load 'go-mode
   (add-hook 'before-save-hook 'gofmt-before-save)
-  (setq-default gofmt-command "goimports"
-                gofmt-show-errors 'echo))
+  (setq-default gofmt-command "goimports" gofmt-show-errors 'echo))
 
 (with-eval-after-load 'markdown-mode
   (add-hook 'markdown-mode-hook 'prose-config))
 
-(dolist (assoc
-	 '(("\\.\\(clj[sc]?\\|bb\\(?:\\.edn\\)?\\|edn\\)\\'" . clojure-mode)
-	   ("\\.go\\'" . go-mode) ("\\.md\\'" . markdown-mode)
-	   ("\\.ya?ml\\'" . conf-mode) ("\\.templ\\'" . templ-mode)
-	   ("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode)))
-  (add-to-list 'auto-mode-alist assoc))
+(+add-to-list
+ 'auto-mode-alist
+ '(("\\.\\(clj[sc]?\\|bb\\(?:\\.edn\\)?\\|edn\\)\\'" . clojure-mode)
+   ("\\.go\\'" . go-mode) ("\\.md\\'" . markdown-mode)
+   ("\\.ya?ml\\'" . conf-mode) ("\\.templ\\'" . templ-mode)
+   ("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode)))
 
 (add-to-list 'interpreter-mode-alist '("bb" . clojure-mode))
 
@@ -286,13 +256,13 @@
      (_ 'paredit-raise-sexp))))
 
 (when (require 'paredit nil)
-  (dolist (lisp-mode-hook
-	   '(clojure-mode-hook emacs-lisp-mode-hook
-	     inferior-lisp-mode-hook lisp-data-mode-hook
-	     eval-expression-minibuffer-setup-hook))
-    (add-hook lisp-mode-hook #'enable-paredit-mode))
+  (dolist (hook '(clojure-mode-hook
+		  emacs-lisp-mode-hook
+		  inferior-lisp-mode-hook lisp-data-mode-hook
+		  eval-expression-minibuffer-setup-hook))
+    (add-hook hook #'enable-paredit-mode))
 
-  (dolist (binding '(("M-s" nil) ("C-j" +paredit-RET) ("M-r" +paredit-M-r)
-		     ("M-k" paredit-forward-barf-sexp)
+  (dolist (binding '(("C-j" +paredit-RET) ("M-r" +paredit-M-r)
+		     ("M-k" paredit-forward-barf-sexp) ("M-s" nil)
 		     ("M-l" paredit-forward-slurp-sexp)))
     (define-key paredit-mode-map (kbd (car binding)) (cadr binding))))

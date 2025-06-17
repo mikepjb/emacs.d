@@ -1,4 +1,37 @@
-* Development Environment
+* :trident: Emacs
+
+/An environment for writing software./
+
+- Lightweight by design, to assist and not get in the way of developing software.
+- This setup was created with a spartan mindset driving it. Contraints enforce deeper engagement.
+- To get started, make sure you have Emacs 30.1 or later installed and clone the repository to ~~/.emacs.d~
+
+** Development Discipline
+
+- For complex projects, you can't win that fight (small/surgical changes).
+- For projects you own (like this one), make it extremely simple.
+- Greenfield and replace systems that are important to you (complex -> simple).
+- 10k LOC for a service, 20k as an upper bound (limit service complexity).
+
+** Avoid
+
+- Light mode (you never use it)
+- Exceeding 80 character width (becomes harder to read)
+- Exceeding 300 lines for source code (small enough to reason about).
+- Exceeding 100 lines for config (these have a larger effect).
+~
+
+** On Immediate Feedback vs. Flow
+
+This setup intentionally separates writing from validation. No syntax highlighting, no real-time error checking, no LSP interruptions.
+
+The goal is to write down exactly what's in your mind without tool interference, then get feedback from the actual compiler/interpreter.
+
+Like drawing with pen and paper vs. a diagram tool that forces you to select pre-defined shapes—sometimes the tool constraints interrupt the creative process.
+
+Code clarity emerges from clear thinking, not colorful text.
+
+* In Detail
 
 This project configures Emacs and it's local environment to do great
 work. It focuses on *flow* as a key state for the user to be in, so we
