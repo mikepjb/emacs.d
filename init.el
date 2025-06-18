@@ -124,7 +124,7 @@
     (set-window-margins nil margin margin)))
 
 (defun prose-config ()
-  (variable-pitch-mode 1) (visual-line-mode 1)
+  (visual-line-mode 1)
   (add-hook 'window-size-change-functions #'center-prose nil t)
   (add-hook 'buffer-list-update-hook #'center-prose nil t))
 
@@ -137,16 +137,12 @@
 
 (when window-system
   (scroll-bar-mode -1) (fringe-mode -1)
-  (defun +font (names) (seq-find #'x-list-fonts names))
-  (defconst *default-font* (+font '("Rec Mono Linear" "Monaco" "Monospace")))
-  (defconst *writing-font* (+font '("Rec Mono Casual" "Sans Serif")))
-
-  (set-face-attribute 'default nil :font *default-font* :height 160)
-  (set-face-attribute 'variable-pitch nil :font *writing-font* :height 160)
+  (defconst *font* (seq-find #'x-list-fonts '("Rec Mono Casual" "Monospace")))
+  (set-face-attribute 'default nil :font *font* :height 160)
 
   (with-eval-after-load 'org
     (dolist (group '(org-block org-code org-verbatim org-table))
-      (set-face-attribute group nil :font *default-font*))))
+      (set-face-attribute group nil :font *font*))))
 
 (dolist (attr `((alpha (95 . 95)) (width 100) (height 60)))
   (set-frame-parameter (selected-frame) (car attr) (cadr attr)))
