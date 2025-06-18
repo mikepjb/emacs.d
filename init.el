@@ -102,7 +102,7 @@
 		  ("M-I" (lambda (pattern) (interactive "sSearch: ")
 			   (+with-context (rgrep pattern "*" "."))))
 		  ("M-K" kill-whole-line) ("M-Q" sql-connect) ("M-R" +repl)
-		  ("M-j" delete-indentation)
+		  ("M-j" (lambda () (interactive) (join-line -1)))
 		  ("M-s" save-buffer)
 		  ("M-o" other-window) ("M-O" delete-other-windows)
 		  ("C-c m" recompile)  ("C-c M" +compile)
@@ -138,19 +138,12 @@
 (when window-system
   (scroll-bar-mode -1) (fringe-mode -1)
   (defconst *font* (seq-find #'x-list-fonts '("Rec Mono Casual" "Monospace")))
-  (set-face-attribute 'default nil :font *font* :height 160)
-
-  (with-eval-after-load 'org
-    (dolist (group '(org-block org-code org-verbatim org-table))
-      (set-face-attribute group nil :font *font*))))
+  (set-face-attribute 'default nil :font *font* :height 160))
 
 (dolist (attr `((alpha (95 . 95)) (width 100) (height 60)))
   (set-frame-parameter (selected-frame) (car attr) (cadr attr)))
 
 (ignore-errors (load-theme 'flow t))
-
-(when (require 'ansi-color nil)
-  (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter))
 
 ;; -- Languages ----------------------------------------------------------------
 (add-to-list 'load-path "~/.emacs.d/external-modes/")
