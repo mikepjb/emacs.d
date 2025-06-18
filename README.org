@@ -81,6 +81,7 @@ brew link --overwrite universal-ctags
 - ~C-c M/m~ - Compile in project/Recompile
 
 **** vc-dir Commands
+- N.B you will need to ssh-add or similar if your ssh key uses a password.
 - ~m/u~ - Mark/unmark files
 - ~M~ - Mark all  
 - ~+~ - Pull changes
