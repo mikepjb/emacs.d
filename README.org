@@ -1,145 +1,102 @@
-3 things
-
-1. tidy up this readme
-2. under 200 LOC?
-3. ??? tags.sh in this project (taggen)
-
-* :trident: Emacs
+* 🔱 Emacs
 
 /An environment for writing software./
 
-- Lightweight by design, to assist and not get in the way of developing software.
-- This setup was created with a spartan mindset driving it. Contraints enforce deeper engagement.
-- To get started, make sure you have Emacs 30.1 or later installed and clone the repository to ~~/.emacs.d~
+Lightweight by design, to assist and not get in the way of developing software. This setup was created with a spartan mindset - constraints enforce deeper engagement.
 
-** Development Discipline
+** Philosophy
 
-- For complex projects, you can't win that fight (small/surgical changes).
-- For projects you own (like this one), make it extremely simple.
-- Greenfield and replace systems that are important to you (complex -> simple).
-- 10k LOC for a service, 20k as an upper bound (limit service complexity).
+*Flow over interruption.* This setup intentionally separates writing from validation. No syntax highlighting, no real-time error checking, no LSP interruptions. The goal is to write down exactly what's in your mind without tool interference, then get feedback from the actual compiler/interpreter.
 
-** Avoid
+Like drawing with pen and paper vs. a diagram tool that forces you to select pre-defined shapes—sometimes the tool constraints interrupt the creative process. Code clarity emerges from clear thinking, not colorful text.
 
-- Light mode (you never use it)
-- Exceeding 80 character width (becomes harder to read)
-- Exceeding 300 lines for source code (small enough to reason about).
-- Exceeding 100 lines for config (these have a larger effect).
-~
-
-** On Immediate Feedback vs. Flow
-
-This setup intentionally separates writing from validation. No syntax highlighting, no real-time error checking, no LSP interruptions.
-
-The goal is to write down exactly what's in your mind without tool interference, then get feedback from the actual compiler/interpreter.
-
-Like drawing with pen and paper vs. a diagram tool that forces you to select pre-defined shapes—sometimes the tool constraints interrupt the creative process.
-
-Code clarity emerges from clear thinking, not colorful text.
-
-* In Detail
-
-This project configures Emacs and it's local environment to do great
-work. It focuses on *flow* as a key state for the user to be in, so we
-keep it minimal. This included removing things that are assumed to be
-necessary e.g LSPs, linting and syntax highlighting.
-
-You may argue that linting for example helps catch errors early but
-this is akin to correcting spelling mistakes while you are trying to
-write, it is distracting from the content you are trying to create.
-
-That's the theory anyway, enjoy!
+*Simplicity constraints:*
+- 300 lines max for source code (small enough to reason about)
+- 100 lines max for config files  
+- 80 character width limit (readability)
+- Complex projects: small/surgical changes only
+- Projects you own: make them extremely simple
 
 ** Getting Started
 
-- Make sure you have Emacs 30.1 or later. ~brew install --cask emacs~ or use your favoured linux package manager.
-- Git clone this repo to your .emacs.d (assuming it doesn't exist) ~git clone https://github.com/mikepjb/emacs.d.git ~~/.emacs.d~
+*Requirements:* Emacs 30.1 or later
+
 #+begin_src bash
-    ./setup.sh # installs major-modes etc + paredit
-    brew install universal-ctags
-    brew link --overwrite universal-ctags
+# Install Emacs
+brew install --cask emacs  # or use your package manager
+
+# Clone this config
+git clone https://github.com/mikepjb/emacs.d.git ~/.emacs.d
+
+# Setup dependencies
+./setup.sh  # installs major-modes + paredit
+brew install universal-ctags # or use your package manager
+brew link --overwrite universal-ctags
 #+end_src
 
-** Usage
-*** Clojure
-- Use ~clojure.repl/fn~ for ~doc~ ~source~ ~find-doc~ and ~apropos~ functions.
-*** Useful Default Keybindings
-- ~C-x C-;~ comment line/region (also uncomments)
-- ~C-c C-t~ for inserting TODO
-- ~C-x 8 RET~ for inserting symbols + emoji!
-*** Introspection
-- ~C-h b~ is a lesser known help map to describe all bindings available in the active buffer.
-- ~C-u C-x =~ gives detailed information about the display of the text at your cursor position. This is useful to determine what font-lock/syntax highlighting is used.
-*** Editing
-- ~M-i~ will manually indent, sometimes useful for multiline SQL strings in code etc.
-- ~C-x TAB~ will interactively manually indent (incl. regions!)
-*** File/Project Navigation
-- Stick with the basics, fuzzy search with ~project.el~ and ~ripgrep~.
-*** Version Control
-- This setup uses vc > magit in an effort to keep things stripped down and simple.
-- Common path is to mark OR register files (this adds them in ~git~)
-- Useful commands:
-  - ~vc-dir-root~ bound to: ~C-c g~ opens up a status window about the current state of your branch.
-    - In there you can mark/unmark files with ~m/u~ or mark all ~M~.
-    - ~+~ will run ~vc-pull~ to pull down new changes on the branch.
-    - ~=~ will perform ~vc-diff~ to show a diff for the current file which you can close with ~q~.
-    - ~D~ performs ~vc-root-diff~ to show ALL changes at once.
-    - ~P~ performs ~vc-push~ to push your changes.
-    - ~i~ will register a file, which adds files that were previously unknown to git/vc to the commit.
-    - ~L~ shows the git log history summarised as one line per commit.
-    - ~b c~ creates a new branch, while ~b s~ switches to another branch. ~b l~ shows the commits for a given branch.
-    - ~v~ performs the next logical action, if you have added/registered updates then this will be a ~git commit~.
-    - ~g~ refreshes the state from version control (git) like most Emacs modes do (e.g ~dired~).
-    - ~d~ will delete or "clean" marked files or the file under the cursor.
-    - ~x~ will hide up to date files, if you commit but haven't pushed.
-    - ~RET~ enters the file under cursor (but not ~C-j~).
-    - ~vc-create-tag~ will. create a git tag.
-    - ~C-x v u~ will run ~vc-revert~ to clear changes.
-- ~vc~'s commands are run in a non-interactive way, so you can't enter
-  your SSH passphrase directly and either have to use
-  ssh-agent/ssh-askpass or have a key without a password. I use the
-  systemd ssh-agent service on Linux.
-- ~C-c C-k~ (not ~C-x k~) will kill + cancel a commit, which will also clear up other temporary buffers.
+** Key Features
 
-*** Org Mode
-- ~C-c '~ will open a code block in another buffer for you to edit in it's native major mode.
+*** Project Navigation
+- ~C-c p~ - Fast file finder (searches all subdirs)
+- ~M-I~ - Project-wide search (rgrep)
+- ~C-c M~ - Compile from project root
 
-** Elisp Documentation
+*** REPL Integration  
+- ~M-R~ - Smart REPL launcher (Clojure, Elisp, Scheme, Shell)
+- ~C-x C-e~ - Eval expression/region (Clojure)
+- ~C-c C-k~ - Eval entire buffer (Clojure)
 
-- setq-default is needed to set buffer local variables e.g compilation-scroll-output
+*** Version Control (vc > magit)
+- ~C-c g~ - vc-dir status window
+- ~C-c d~ - Show diff  
+- ~C-c h~ - File/region history
 
-** .dir-locals.el
+*** Window Management
+- ~M-o~ - Switch windows
+- ~M-O~ - Delete other windows  
+- ~M-e~ - Smart window split
 
-- Have directory local variables is awesome for project setup, here I'm configuring two postgres servers (one of them using env vars where I care about hiding the credentials).
+** Reference
+
+*** Complete Keybinding Reference
+
+**** Editing
+- ~C-h~ - Delete backward char
+- ~C-j~ - Newline with auto-indent
+- ~C-w~ - Kill region or backward word
+- ~C-;~ - Hippie expand
+- ~M-K~ - Kill whole line
+- ~M-j~ - Join line above
+- ~M-s~ - Save buffer
+
+**** Navigation  
+- ~M-n/M-p~ - Forward/backward paragraph
+- ~C-c i~ - Open init file
+- ~C-c n~ - Open notes
+- ~C-c P~ - Open ~/src
+
+**** Utilities
+- ~M-F~ - Toggle fullscreen
+- ~M-Q~ - SQL connect
+- ~C-c t~ - Async shell command
+- ~C-c m~ - Recompile
+
+**** vc-dir Commands
+- ~m/u~ - Mark/unmark files
+- ~M~ - Mark all  
+- ~+~ - Pull changes
+- ~=~ - Show diff
+- ~D~ - Show all diffs
+- ~P~ - Push changes
+- ~i~ - Register new files
+- ~v~ - Commit
+- ~g~ - Refresh status
+
+*** .dir-locals.el Example
 
 #+begin_src emacs-lisp
-    ;;; Directory Local Variables
-    ;;; For more information see (info "(emacs) Directory Variables")
-    ;;; The (sql-server "") definitions are necessary to avoid prompts when connecting.
-
-((nil . ((eval . (setq sql-connection-alist ;; Connection configurations
+;;; Directory Local Variables
+((nil . ((eval . (setq sql-connection-alist
                        `(("local-dev"
                           (sql-product 'postgres)
-    			  (sql-user "postgres")
-    			  (sql-server "") 
-    			  (sql-database "postgresql://postgres:<pass>@127.0.0.1/<database>?sslmode=disable"))
-                         ("staging-postgres"
-                          (sql-product 'postgres)
-    			  (sql-user "postgres")
-    			  (sql-server "") 
-                          (sql-database ,(format "postgresql://postgres:%s@%s/<database>?sslmode=disable"
-    						 (getenv "PROJECT_DB_PASS")
-    						 (getenv "PROJECT_DB_HOST"))))
-  			 ("mysql-example"
-                          (sql-product 'mysql)
-  			  (sql-user "myuser")
-  			  (sql-password "") ;; using iam auth
-  			  (sql-port 3306)
-  			  (sql-server "127.0.0.1") 
-  			  (sql-database "mydatabase")
-  			  (sql-mysql-options '("--protocol=tcp")))))))))
-#+end_src
-
-* Exclusions
-
-- No SQL formatting, I like this but it's too tailor-mode of something that is relatively rare for you.
+                          (sql-user "postgres")
