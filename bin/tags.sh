@@ -1,71 +1,119 @@
-#!/bin/bash
+#!/bin/sh
 
-mkdir -p .tags
-LANG_TAGS=".tags/lang"
-DEPS_TAGS=".tags/deps"
-PROJECT_TAGS=".tags/proj"
-SOURCES_DIR="$HOME/.local/src"
+set +e
 
-echo "Generating project tags..."
-ctags -e -R -f "$PROJECT_TAGS" --exclude=.git --exclude=node_modules .
+user_tags_dir="$HOME/.tags"
+user_src_dir="$HOME/src"
+update="false" # update source code before generating tags
 
-if [ ! -f "$LANG_TAGS" ]; then
-    touch "$LANG_TAGS"
-    echo "Generating external language tags..."
-    
-    # Go
-    if [ -f "go.mod" ] && [ -d "$SOURCES_DIR/go" ]; then
-        ctags -e -R -a -f "$LANG_TAGS" \
-            --exclude="*_test.go" --exclude="testdata" \
-            "$SOURCES_DIR/go/src"
-    fi
-    
-    # Java
-    if ([ -f "pom.xml" ] || [ -f "gradlew" ] || [ -f "project.clj" ]) && [ -d "$SOURCES_DIR/java" ]; then
-        ctags -e -R -a -f "$LANG_TAGS" "$SOURCES_DIR/java/src"
-    fi
-    
-    # Clojure
-    if [ -f "project.clj" ] && [ -d "$SOURCES_DIR/clojure" ]; then
-        ctags -e -R -a -f "$LANG_TAGS" "$SOURCES_DIR/clojure/src"
-    fi
-    
-    # Node.js
-    if [ -f "package.json" ] && [ -d "$SOURCES_DIR/node" ]; then
-        ctags -e -R -a -f "$LANG_TAGS" \
-            --exclude="test" --exclude="deps" \
-            "$SOURCES_DIR/node/lib"
-    fi
-fi
+mkdir -p $user_tags_dir $user_src_dir
 
-if [ ! -f "$DEPS_TAGS" ]; then
-    echo "Regenerating dependency tags..."
-    touch "$DEPS_TAGS"
+main() {
+    project_root=$(find_project_root)
+    echo "Generating tags in context: $project_root"
     
-    if [ -f "go.mod" ]; then
-        ctags -e -R -a -f "$DEPS_TAGS" --exclude="*_test.go" $(go env GOMODCACHE)
-    fi
-    
-    if [ -f "package.json" ]; then
-        ctags -e -R -a -f "$DEPS_TAGS" \
-            --exclude="*.min.js" --exclude="dist" --exclude="build" \
-            node_modules
-    fi
-    
-    if [ -f "pom.xml" ] || [ -f "project.clj" ]; then
-        ctags -e -R -a -f "$DEPS_TAGS" ~/.m2/repository
-    fi
-    
-    if [ -f "build.gradle" ]; then
-        ctags -e -R -a -f "$DEPS_TAGS" ~/.gradle/caches/modules-2/files-2.1/
-    fi
-fi
+    case "${1:-all}" in
+        "go")
+            setup_go
+            ;;
+        "java")
+            setup_java
+            ;;
+        "clojure")
+            setup_clojure
+            setup_java
+            ;;
+        "pull")
+            update="true"
+            setup_go
+            setup_java
+            setup_clojure
+            ;;
+        "all"|"")
+            setup_go
+            setup_java
+            setup_clojure
+            ;;
+        *)
+            echo "Usage: $0 [go|java|clojure|all]"
+            exit 1
+            ;;
+    esac
 
-echo "Done! Use M-. to jump to definitions. Add '.tags/' to your .gitignore"
-echo ""
-echo "TAGS file sizes:"
-for f in .tags/*; do
-    if [ -f "$f" ]; then
-        echo "  $(basename "$f"): $(du -h "$f" | cut -f1)"
+    # generate local project file
+    ctags -e -f $project_root/tags --exclude=node_modules -R .
+}
+
+find_project_root() {
+    local dir="$PWD"
+    local project_files=("Makefile" "go.mod" "package.json" "deps.edn" ".git")
+    
+    while [[ "$dir" != "/" ]]; do
+        for file in "${project_files[@]}"; do
+            if [[ -e "$dir/$file" ]]; then
+                echo "$dir"
+                return 0
+            fi
+        done
+        dir="$(dirname "$dir")"
+    done
+    
+    # Fallback to current directory
+    echo "$PWD"
+}
+
+setup_go() {
+    setup_language_tags "go" \
+        "https://github.com/golang/go.git" "Go" "go.tags"
+}
+
+setup_java() {
+    setup_language_tags "java" \
+        "https://github.com/corretto/corretto-17.git" "Java" "java.tags"
+}
+
+setup_clojure() {
+    setup_language_tags "clojure" \
+        "https://github.com/clojure/clojure.git" "Clojure,Java" "clojure.tags"
+}
+
+setup_language_tags() {
+    local name="$1"
+    local git_url="$2"
+    local ctags_languages="$3"
+    local tag_file="$4"
+    
+    if command -v "$name" >/dev/null 2>&1; then
+        local src_dir="$user_src_dir/$name"
+        
+        if [[ ! -d "$src_dir" ]]; then
+            git clone --depth 1 "$git_url" "$src_dir"
+        else
+            if [[ "$update" = "true" ]]; then
+                (cd "$src_dir" && git pull origin master)
+            fi
+        fi
+
+	if [[ ! -f "$user_tags_dir/$tag_file" || "$update" = "true" ]]; then
+	    echo "generating tags for $name"
+            ctags -e --languages="$ctags_languages" \
+		  -f "$user_tags_dir/$tag_file" -R "$src_dir"
+	else
+	    echo "language tags already generated for $name"
+	fi
     fi
-done
+}
+
+# -- Generate 3rd party/dep sources ----
+
+# from places like.. .m2 for clojure, go has it's GOROOT I think?, node has
+# node_modules locally and java has gradle area?
+
+# we end up with tags per language again but for the user-level caches e.g .m2
+# folder has ALL deps we use across all projects that I have downloaded
+
+# -- Finally generate tags based on your code
+
+# -- Result.. tags that can be applied for any of the languages I work with.
+
+main "$@"

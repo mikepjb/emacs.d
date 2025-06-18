@@ -1,0 +1,16 @@
+
+bin/stats.sh,0
+
+bin/sources.sh,0
+
+bin/tags.sh,224
+main() {main11,171
+find_project_root() {find_project_root46,896
+setup_go() {setup_go64,1328
+setup_java() {setup_java69,1433
+setup_clojure() {setup_clojure74,1557
+setup_language_tags() {setup_language_tags79,1693
+
+bin/stats.bb,0
+
+bin/test.sh,0

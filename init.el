@@ -5,7 +5,7 @@
       create-lockfiles nil
       use-short-answers t
       frame-resize-pixelwise t ;; do not maximise after leaving fullscreen
-      custom-file (make-temp-file "emacs-custom")
+      custom-file (concat user-emacs-directory "custom.el")
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
       org-export-with-section-numbers nil ;; essential for exporting
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
@@ -18,6 +18,7 @@
 		save-place-mode electric-pair-mode savehist-mode))
   (funcall mode 1)) ;; enable these
 
+(load custom-file t)
 (load (concat user-emacs-directory "local.el") t)
 
 (defun +add-to-list (dst src)
@@ -59,16 +60,16 @@
 		   ('sh-mode (shell))
 		   (_ (message "No REPL defined for %s" major-mode)))))
 
-(add-hook ;; link tags
- 'find-file-hook 
- (lambda ()
-   (+with-context
-    ;; 
-    (when (file-directory-p ".tags")
+(add-hook 'find-file-hook ;; link tags
+  (lambda ()
+    (let ((tag-files 
+           `(,(+with-context (concat default-directory "tags"))
+	     ,(format "~/.tags/%s.tags"
+                      (replace-regexp-in-string "-mode$" ""
+						(symbol-name major-mode))))))
       (setq-local tags-table-list 
-		  (mapcar (lambda (f) (expand-file-name f default-directory))
-			  '(".tags/proj" ".tags/deps" ".tags/lang")))))))
-
+                  (cl-remove-if-not #'file-exists-p tag-files)))))
+	
 (defun +compile ()
   "Compile from directory with build file."
   (interactive)
