@@ -1,11 +1,11 @@
 ;; -- Emacs configuration -------------------------- -*- lexical-binding: t; -*-
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore
-      auto-save-default      nil
+      auto-save-default nil
       create-lockfiles nil
-      use-short-answers      t
+      use-short-answers t
       frame-resize-pixelwise t ;; do not maximise after leaving fullscreen
-      customer-file (make-temp-file "emacs-custom")
+      custom-file (make-temp-file "emacs-custom")
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
       org-export-with-section-numbers nil ;; essential for exporting
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
@@ -99,10 +99,10 @@
 						   (or (split-window-sensibly)
 						       (split-window)))))
 		  ("M-F" toggle-frame-fullscreen)
-		  ("M-I" (lambda  (interactive "sSearch: ")
+		  ("M-I" (lambda (pattern) (interactive "sSearch: ")
 			   (+with-context (rgrep pattern "*" "."))))
 		  ("M-K" kill-whole-line) ("M-Q" sql-connect) ("M-R" +repl)
-		  ("M-j" delete-intentation)
+		  ("M-j" delete-indentation)
 		  ("M-s" save-buffer)
 		  ("M-o" other-window) ("M-O" delete-other-windows)
 		  ("C-c m" recompile)  ("C-c M" +compile)
