@@ -78,8 +78,7 @@ brew link --overwrite universal-ctags
 **** Utilities
 - ~M-F~ - Toggle fullscreen
 - ~M-Q~ - SQL connect
-- ~C-c t~ - Async shell command
-- ~C-c m~ - Recompile
+- ~C-c M/m~ - Compile in project/Recompile
 
 **** vc-dir Commands
 - ~m/u~ - Mark/unmark files

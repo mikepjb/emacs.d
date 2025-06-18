@@ -1,12 +1,12 @@
 ;; -- Emacs configuration -------------------------- -*- lexical-binding: t; -*-
-(setq inhibit-startup-screen t		ring-bell-function 'ignore
-      auto-save-default      nil	create-lockfiles nil
-      use-short-answers      t		vc-follow-symlinks t
-      split-height-threshold 80		split-width-threshold 160
+(setq inhibit-startup-screen t
+      ring-bell-function 'ignore
+      auto-save-default      nil
+      create-lockfiles nil
+      use-short-answers      t
       frame-resize-pixelwise t ;; do not maximise after leaving fullscreen
       customer-file (make-temp-file "emacs-custom")
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
-      sql-input-ring-file-name (concat user-emacs-directory "sql-history")
       org-export-with-section-numbers nil ;; essential for exporting
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
@@ -49,10 +49,6 @@
               default-directory)))
      ,@body))
 
-(defun +rgrep (pattern)
-  (interactive "sSearch: ")
-  (+with-context (rgrep pattern "*" ".")))
-
 (defun +repl ()
   (interactive)
   (other-window-prefix)
@@ -93,25 +89,25 @@
 (defmacro ff (&rest path)
   `(lambda () (interactive) (find-file (concat ,@path))))
 
-(dolist (binding`(("C-c d" vc-diff-mergebase) ("C-c g" vc-dir-root)
-		   ("C-c h" vc-region-history) ;; + file history without region
-		   ("C-c i" ,(ff user-init-file))
-		   ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
-		   ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
-		   ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
-		   ("C-w" +kill-region-or-backward-word) ("C-;" hippie-expand)
-		   ("M-e" (lambda () (interactive) (select-window
-						    (or (split-window-sensibly)
-							(split-window)))))
-		   ("M-F" toggle-frame-fullscreen)
-		   ("M-I" +rgrep)
-		   ("M-K" kill-whole-line) ("M-Q" sql-connect) ("M-R" +repl)
-		   ("M-j" (lambda () (interactive) (join-line -1)))
-		   ("M-s" save-buffer)
-		   ("M-o" other-window) ("M-O" delete-other-windows)
-		   ("C-c m" recompile)  ("C-c M" +compile)
-		   ("M-n" forward-paragraph) ("M-p" backward-paragraph)
-		   ("M-H" ,help-map) ("M-S" ,search-map)))
+(dolist (binding`(("C-c g" vc-dir-root)
+		  ("C-c i" ,(ff user-init-file))
+		  ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
+		  ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
+		  ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
+		  ("C-w" +kill-region-or-backward-word) ("C-;" hippie-expand)
+		  ("M-e" (lambda () (interactive) (select-window
+						   (or (split-window-sensibly)
+						       (split-window)))))
+		  ("M-F" toggle-frame-fullscreen)
+		  ("M-I" (lambda  (interactive "sSearch: ")
+			   (+with-context (rgrep pattern "*" "."))))
+		  ("M-K" kill-whole-line) ("M-Q" sql-connect) ("M-R" +repl)
+		  ("M-j" delete-intentation)
+		  ("M-s" save-buffer)
+		  ("M-o" other-window) ("M-O" delete-other-windows)
+		  ("C-c m" recompile)  ("C-c M" +compile)
+		  ("M-n" forward-paragraph) ("M-p" backward-paragraph)
+		  ("M-H" ,help-map) ("M-S" ,search-map)))
   (global-set-key (kbd (car binding)) (cadr binding)))
 
 ;; -- Editing setup ------------------------------------------------------------
@@ -119,10 +115,6 @@
   (add-hook hook (lambda ()
 		   (display-line-numbers-mode 1) (column-number-mode 1)
 		   (display-fill-column-indicator-mode 1) (hl-line-mode 1))))
-
-(define-key isearch-mode-map (kbd "C-j")
-	    (lambda () (interactive)
-	      (isearch-exit) (goto-char isearch-other-end)))
 
 (defun center-prose ()
   (set-window-margins nil 0 0)
