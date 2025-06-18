@@ -1,20 +1,13 @@
-;; -- Emacs configuration -*- lexical-binding: t; -*-
-
-(setq inhibit-startup-screen t
-      ring-bell-function 'ignore
+;; -- Emacs configuration -------------------------- -*- lexical-binding: t; -*-
+(setq inhibit-startup-screen t		ring-bell-function 'ignore
+      auto-save-default      nil	create-lockfiles nil
+      use-short-answers      t		vc-follow-symlinks t
+      split-height-threshold 80		split-width-threshold 160
       frame-resize-pixelwise t ;; do not maximise after leaving fullscreen
       customer-file (make-temp-file "emacs-custom")
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
-      auto-save-default nil
-      create-lockfiles nil
-      use-short-answers t
-      vc-follow-symlinks t
-      split-height-threshold 80
-      split-width-threshold 160
       sql-input-ring-file-name (concat user-emacs-directory "sql-history")
       org-export-with-section-numbers nil ;; essential for exporting
-      org-ellipsis " ▼"
-      org-hide-emphasis-markers t
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
 (setq-default cursor-in-non-selected-windows nil
@@ -35,7 +28,6 @@
   (+add-to-list 'grep-find-ignored-files '("*.min.js" "*.bundle.js")))
 
 ;; -- Bindings -----------------------------------------------------------------
-
 (defun +kill-region-or-backward-word ()
   (interactive)
   (cond ((region-active-p) (call-interactively #'kill-region))
@@ -101,33 +93,28 @@
 (defmacro ff (&rest path)
   `(lambda () (interactive) (find-file (concat ,@path))))
 
-(dolist (binding `(("C-c d" vc-diff-mergebase) ("C-c g" vc-dir-root)
+(dolist (binding`(("C-c d" vc-diff-mergebase) ("C-c g" vc-dir-root)
 		   ("C-c h" vc-region-history) ;; + file history without region
 		   ("C-c i" ,(ff user-init-file))
 		   ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
 		   ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
 		   ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
-		   ("C-w" +kill-region-or-backward-word)
-		   ("C-;" hippie-expand)
-		   ("M-c" mode-line-other-buffer)
+		   ("C-w" +kill-region-or-backward-word) ("C-;" hippie-expand)
 		   ("M-e" (lambda () (interactive) (select-window
 						    (or (split-window-sensibly)
 							(split-window)))))
 		   ("M-F" toggle-frame-fullscreen)
 		   ("M-I" +rgrep) ;; I for investigate
-		   ("M-K" kill-whole-line)
-		   ("M-Q" sql-connect) ("M-R" +repl)
+		   ("M-K" kill-whole-line) ("M-Q" sql-connect) ("M-R" +repl)
 		   ("M-j" (lambda () (interactive) (join-line -1)))
 		   ("M-s" save-buffer)
 		   ("M-o" other-window) ("M-O" delete-other-windows)
-		   ("C-c t" async-shell-command)
 		   ("C-c m" recompile)  ("C-c M" +compile)
 		   ("M-n" forward-paragraph) ("M-p" backward-paragraph)
 		   ("M-H" ,help-map) ("M-S" ,search-map)))
   (global-set-key (kbd (car binding)) (cadr binding)))
 
 ;; -- Editing setup ------------------------------------------------------------
-
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
 		   (display-line-numbers-mode 1) (column-number-mode 1)
@@ -139,28 +126,19 @@
 
 (defun center-prose ()
   (set-window-margins nil 0 0)
-  (when (memq major-mode '(org-mode markdown-mode))
-    (let* ((char-width-pix (frame-char-width))
-           (window-width-pix (window-body-width nil t))	; t = pixels!
-           (target-width-chars 80)
-           (target-width-pix (* target-width-chars char-width-pix))
-           (margin-total-pix (max 0 (- window-width-pix target-width-pix)))
-           (margin-each-pix (/ margin-total-pix 2.0))
-           (margin-chars (max 0 (round (/ margin-each-pix char-width-pix)))))
-      (set-window-margins nil margin-chars margin-chars))))
-
-(add-hook 'buffer-list-update-hook 'center-prose)
+  (let ((margin (max 0 (round (/ (- (window-body-width nil t) 
+                                    (* 80 (frame-char-width)))
+                                 2.0 (frame-char-width))))))
+    (set-window-margins nil margin margin)))
 
 (defun prose-config ()
   (variable-pitch-mode 1) (visual-line-mode 1)
-  (add-hook 'window-size-change-functions 'center-prose)) ;; TODO doesn't trigger when window changes size
+  (add-hook 'window-size-change-functions #'center-prose nil t)
+  (add-hook 'buffer-list-update-hook #'center-prose nil t))
 
 (add-hook 'org-mode-hook (lambda () (prose-config) (org-indent-mode)))
 
-(advice-add 'org-refile :after 'org-save-all-org-buffers)
-
 ;; -- Appearance ---------------------------------------------------------------
-
 (dolist (ui-mode
 	 '(menu-bar-mode tool-bar-mode blink-cursor-mode))
   (funcall ui-mode -1)) ;; disable these
@@ -187,7 +165,6 @@
   (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter))
 
 ;; -- Languages ----------------------------------------------------------------
-
 (add-to-list 'load-path "~/.emacs.d/external-modes/")
 
 (autoload 'clojure-mode "clojure-mode" "Major mode for Clojure" t)
@@ -233,7 +210,6 @@
 (add-to-list 'interpreter-mode-alist '("bb" . clojure-mode))
 
 ;; -- Paredit ------------------------------------------------------------------
-
 (defun +paredit-RET ()
   (interactive)
   (call-interactively
