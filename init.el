@@ -104,7 +104,7 @@
 						    (or (split-window-sensibly)
 							(split-window)))))
 		   ("M-F" toggle-frame-fullscreen)
-		   ("M-I" +rgrep) ;; I for investigate
+		   ("M-I" +rgrep)
 		   ("M-K" kill-whole-line) ("M-Q" sql-connect) ("M-R" +repl)
 		   ("M-j" (lambda () (interactive) (join-line -1)))
 		   ("M-s" save-buffer)
@@ -175,23 +175,18 @@
   (add-hook 'after-save-hook 'format-buffer-templ nil t))
 
 (defun format-buffer-templ ()
-  (interactive)
   (when (buffer-file-name)
     (shell-command (concat "templ fmt " (shell-quote-argument (buffer-file-name))))
     (revert-buffer t t t)))
 
 (with-eval-after-load 'clojure-mode
   (add-hook 'clojure-mode-hook 'subword-mode)
-  (define-key clojure-mode-map (kbd "C-x C-e")
-	      (lambda () (interactive)
-		(if (region-active-p)
-		    (call-interactively #'lisp-eval-region)
-		  (lisp-eval-last-sexp))))
-  (define-key clojure-mode-map (kbd "C-c C-k")
-	      (lambda () (interactive)
-		(save-excursion
-		  (mark-whole-buffer)
-		  (call-interactively #'lisp-eval-region)))))
+  (define-key clojure-mode-map (kbd "C-x C-e") 
+    (lambda () (interactive) 
+      (if (region-active-p) (lisp-eval-region (region-beginning) (region-end))
+        (lisp-eval-last-sexp))))
+  (define-key clojure-mode-map (kbd "C-c C-k") 
+    (lambda () (interactive) (lisp-eval-region (point-min) (point-max)))))
 
 (with-eval-after-load 'go-mode
   (add-hook 'before-save-hook 'gofmt-before-save)
@@ -206,8 +201,6 @@
    ("\\.go\\'" . go-mode) ("\\.md\\'" . markdown-mode)
    ("\\.ya?ml\\'" . conf-mode) ("\\.templ\\'" . templ-mode)
    ("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode)))
-
-(add-to-list 'interpreter-mode-alist '("bb" . clojure-mode))
 
 ;; -- Paredit ------------------------------------------------------------------
 (defun +paredit-RET ()
