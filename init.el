@@ -5,6 +5,7 @@
       create-lockfiles nil
       use-short-answers t
       frame-resize-pixelwise t ;; do not maximise after leaving fullscreen
+      split-height-threshold 80 split-width-threshold 160 ;; needed fs laptop
       custom-file (concat user-emacs-directory "custom.el")
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
       org-export-with-section-numbers nil ;; essential for exporting
@@ -26,7 +27,7 @@
 
 (with-eval-after-load 'grep
   (+add-to-list 'grep-find-ignored-directories '("node_modules" ".git"))
-  (+add-to-list 'grep-find-ignored-files '("*.min.js" "*.bundle.js")))
+  (+add-to-list 'grep-find-ignored-files '("*.min.js" "*.bundle.js" "tags")))
 
 ;; -- Bindings -----------------------------------------------------------------
 (defun +kill-region-or-backward-word ()
@@ -62,11 +63,12 @@
 
 (add-hook 'find-file-hook ;; link tags
   (lambda ()
-    (let ((tag-files 
-           `(,(+with-context (concat default-directory "tags"))
-	     ,(format "~/.tags/%s.tags"
-                      (replace-regexp-in-string "-mode$" ""
-						(symbol-name major-mode))))))
+    (let* ((lang (replace-regexp-in-string "-mode$" ""
+					   (symbol-name major-mode)))
+	   (tag-files 
+            `(,(+with-context (concat default-directory "tags"))
+	      ,(format "~/.tags/%s.dep.tags" lang)
+	      ,(format "~/.tags/%s.tags" lang))))
       (setq-local tags-table-list 
                   (cl-remove-if-not #'file-exists-p tag-files)))))
 	
@@ -102,13 +104,14 @@
 		  ("M-F" toggle-frame-fullscreen)
 		  ("M-I" (lambda (pattern) (interactive "sSearch: ")
 			   (+with-context (rgrep pattern "*" "."))))
-		  ("M-K" kill-whole-line) ("M-Q" sql-connect) ("M-R" +repl)
+		  ("M-K" kill-whole-line) ("M-Q" sql-connect)
+		  ("M-R" +repl) ("M-B" shell)
 		  ("M-j" (lambda () (interactive) (join-line -1)))
 		  ("M-s" save-buffer)
 		  ("M-o" other-window) ("M-O" delete-other-windows)
 		  ("C-c m" recompile)  ("C-c M" +compile)
 		  ("M-n" forward-paragraph) ("M-p" backward-paragraph)
-		  ("M-H" ,help-map) ("M-S" ,search-map)))
+		  ("M-H" ,help-map) ("C-c C-s" ,search-map)))
   (global-set-key (kbd (car binding)) (cadr binding)))
 
 ;; -- Editing setup ------------------------------------------------------------

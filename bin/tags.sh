@@ -63,18 +63,51 @@ find_project_root() {
 }
 
 setup_go() {
-    setup_language_tags "go" \
-        "https://github.com/golang/go.git" "Go" "go.tags"
+    setup_language_tags \
+	"go" "https://github.com/golang/go.git" "Go" "go.tags"
+    setup_dependency_tags "go" "$HOME/go/pkg/mod" "Go" "go.dep.tags"
 }
 
 setup_java() {
-    setup_language_tags "java" \
-        "https://github.com/corretto/corretto-17.git" "Java" "java.tags"
+    setup_language_tags \
+	"java" "https://github.com/corretto/corretto-17.git" "Java" "java.tags"
+
+    # Maven dependencies
+    setup_dependency_tags "maven" "$HOME/.m2/repository" "Java" "maven.dep.tags"
+    
+    # Gradle dependencies (try multiple common locations)
+    setup_dependency_tags "gradle" "$HOME/.gradle/caches/modules-2/files-2.1" "Java" "gradle.dep.tags"
+    
+    # Alternative Gradle location for newer versions
+    if [[ ! -f "$user_tags_dir/gradle.dep.tags" ]]; then
+        setup_dependency_tags "gradle-alt" "$HOME/.gradle/caches/jars-9" "Java" "gradle.dep.tags"
+    fi
 }
 
 setup_clojure() {
-    setup_language_tags "clojure" \
-        "https://github.com/clojure/clojure.git" "Clojure,Java" "clojure.tags"
+    setup_language_tags \
+	"clojure" \
+	"https://github.com/clojure/clojure.git" "Clojure,Java" "clojure.tags"
+
+    # Maven dependencies (Clojure uses Maven repos)
+    setup_dependency_tags "clojure-maven" "$HOME/.m2/repository" "Clojure,Java" "clojure.maven.dep.tags"
+}
+
+setup_dependency_tags() {
+    local name="$1"
+    local path="$2"
+    local ctags_languages="$3"
+    local tag_file="$4"
+
+    if [[ -d "$path" ]]; then
+	ctags -e -f $user_tags_dir/$tag_file \
+	      --languages="$ctags_languages" \
+	      --exclude=*.class \
+	      --exclude=*.jar \
+	      --exclude=test \
+	      --exclude=tests \
+	      -R $path
+    fi
 }
 
 setup_language_tags() {
