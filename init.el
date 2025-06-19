@@ -76,11 +76,6 @@
      (setq-local tags-table-list
                  (cl-remove-if-not #'file-exists-p tag-files)))))
 
-(defun +compile ()
-  "Compile from directory with build file."
-  (interactive)
-  (+with-context (call-interactively 'compile)))
-
 (defun +find-file () ;; super fast, search all subdirs
   (interactive)
   (+with-context
@@ -89,33 +84,34 @@
      (find-file (completing-read
          (format "Find file in %s: " default-directory) files nil t)))))
 
+(defun +compile () (interactive) (+with-context (call-interactively 'compile)))
+(defmacro il (&rest body) `(lambda () (interactive) ,@body))
+(defmacro ff (&rest path) `(il (find-file (concat ,@path))))
+
 (pcase system-type
   ('darwin (setq mac-command-modifier 'meta))
   ('gnu/linux (setq x-super-keysym 'meta)))
 
-(defmacro ff (&rest path)
-  `(lambda () (interactive) (find-file (concat ,@path))))
-
-(dolist (binding`(("C-c g" vc-dir-root)
-          ("C-c i" ,(ff user-init-file))
-          ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
-          ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
-          ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
-          ("C-w" +kill-region-or-backward-word) ("C-;" hippie-expand)
-          ("M-e" (lambda () (interactive) (select-window
-                           (or (split-window-sensibly)
-                               (split-window)))))
-          ("M-F" toggle-frame-fullscreen)
-          ("M-I" (lambda (pattern) (interactive "sSearch: ")
-               (+with-context (rgrep pattern "*" "."))))
-          ("M-K" kill-whole-line) ("M-Q" sql-connect)
-          ("M-R" +repl) ("M-B" shell)
-          ("M-j" (lambda () (interactive) (join-line -1)))
-          ("M-s" save-buffer)
-          ("M-o" other-window) ("M-O" delete-other-windows)
-          ("C-c m" recompile)  ("C-c M" +compile)
-          ("M-n" forward-paragraph) ("M-p" backward-paragraph)
-          ("M-H" ,help-map) ("C-c C-s" ,search-map)))
+(dolist (binding `(("C-c g" vc-dir-root)
+                   ("C-c i" ,(ff user-init-file))
+                   ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
+                   ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
+                   ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
+                   ("C-w" +kill-region-or-backward-word) ("C-;" hippie-expand)
+                   ("M-e" ,(il (select-window (or (split-window-sensibly)
+                                                  (split-window)))))
+                   ("M-F" toggle-frame-fullscreen)
+                   ("M-I" (lambda (pattern) (interactive "sSearch: ")
+                            (+with-context (rgrep pattern "*" "."))))
+                   ("M-K" kill-whole-line) ("M-Q" sql-connect)
+                   ("M-R" +repl)
+                   ("M-B" ,(il (other-window-prefix) (shell)))
+                   ("M-j" ,(il (join-line -1)))
+                   ("M-s" save-buffer)
+                   ("M-o" other-window) ("M-O" delete-other-windows)
+                   ("C-c m" recompile)  ("C-c M" +compile)
+                   ("M-n" forward-paragraph) ("M-p" backward-paragraph)
+                   ("M-H" ,help-map) ("C-c C-s" ,search-map)))
   (global-set-key (kbd (car binding)) (cadr binding)))
 
 ;; -- Editing setup ------------------------------------------------------------
