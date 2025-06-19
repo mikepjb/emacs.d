@@ -19,7 +19,7 @@ Like drawing with pen and paper vs. a diagram tool that forces you to select pre
 
 ** Getting Started
 
-*Requirements:* Emacs 30.1 or later
+*Requirements:* Emacs 30.1 or later (chosen for it's ability to tightly integrate with REPLs/interpreters/shells and provide fast feedback when you want it).
 
 #+begin_src bash
 # Install Emacs
@@ -42,7 +42,7 @@ brew link --overwrite universal-ctags
 - ~C-c M~ - Compile from project root
 
 *** REPL Integration  
-- ~M-R~ - Smart REPL launcher (Clojure, Elisp, Scheme, Shell)
+- ~M-R~ - Launch REPL based on major-mode
 - ~C-x C-e~ - Eval expression/region (Clojure)
 - ~C-c C-k~ - Eval entire buffer (Clojure)
 

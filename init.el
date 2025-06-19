@@ -7,16 +7,19 @@
       frame-resize-pixelwise t ;; do not maximise after leaving fullscreen
       split-height-threshold 80 split-width-threshold 160 ;; needed fs laptop
       custom-file (concat user-emacs-directory "custom.el")
+      whitespace-style '(face trailing tabs empty indentation::space)
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
       org-export-with-section-numbers nil ;; essential for exporting
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
 (setq-default cursor-in-non-selected-windows nil
-	      display-fill-column-indicator-column 80
-	      truncate-lines t) ;; no word wrap thanks
+              display-fill-column-indicator-column 80
+              indent-tabs-mode nil tab-width 2 standard-indent 2
+              truncate-lines t) ;; no word wrap thanks
 
-(dolist (mode '(fido-vertical-mode global-auto-revert-mode show-paren-mode
-		save-place-mode electric-pair-mode savehist-mode))
+(dolist (mode '(fido-vertical-mode
+                global-auto-revert-mode show-paren-mode
+                save-place-mode electric-pair-mode savehist-mode))
   (funcall mode 1)) ;; enable these
 
 (load custom-file t)
@@ -45,7 +48,7 @@
   (define-key icomplete-minibuffer-map (kbd "C-w") #'+minibuffer-C-w))
 
 (defmacro +with-context (&rest body)
-  `(let ((default-directory 
+  `(let ((default-directory
           (or (cl-some (lambda (f) (locate-dominating-file default-directory f))
                        '("Makefile" "go.mod" "package.json" "deps.edn" ".git"))
               default-directory)))
@@ -55,23 +58,24 @@
   (interactive)
   (other-window-prefix)
   (+with-context (pcase major-mode
-		   ('clojure-mode (inferior-lisp "clojure -A:dev"))
-		   ('emacs-lisp-mode (ielm))
-		   ('scheme-mode (inferior-lisp "scheme"))
-		   ('sh-mode (shell))
-		   (_ (message "No REPL defined for %s" major-mode)))))
+           ('clojure-mode (inferior-lisp "clojure -A:dev"))
+           ('emacs-lisp-mode (ielm))
+           ('scheme-mode (inferior-lisp "scheme"))
+           ('sh-mode (shell))
+           (_ (message "No REPL defined for %s" major-mode)))))
 
-(add-hook 'find-file-hook ;; link tags
-  (lambda ()
-    (let* ((lang (replace-regexp-in-string "-mode$" ""
-					   (symbol-name major-mode)))
-	   (tag-files 
-            `(,(+with-context (concat default-directory "tags"))
-	      ,(format "~/.tags/%s.dep.tags" lang)
-	      ,(format "~/.tags/%s.tags" lang))))
-      (setq-local tags-table-list 
-                  (cl-remove-if-not #'file-exists-p tag-files)))))
-	
+(add-hook
+ 'find-file-hook ;; link tags
+ (lambda ()
+   (let* ((lang (replace-regexp-in-string "-mode$" ""
+                                          (symbol-name major-mode)))
+          (tag-files
+           `(,(+with-context (concat default-directory "tags"))
+             ,(format "~/.tags/%s.dep.tags" lang)
+             ,(format "~/.tags/%s.tags" lang))))
+     (setq-local tags-table-list
+                 (cl-remove-if-not #'file-exists-p tag-files)))))
+
 (defun +compile ()
   "Compile from directory with build file."
   (interactive)
@@ -81,9 +85,9 @@
   (interactive)
   (+with-context
    (let ((files
-	  (split-string (shell-command-to-string "find . -type f") "\n" t)))
+      (split-string (shell-command-to-string "find . -type f") "\n" t)))
      (find-file (completing-read
-		 (format "Find file in %s: " default-directory) files nil t)))))
+         (format "Find file in %s: " default-directory) files nil t)))))
 
 (pcase system-type
   ('darwin (setq mac-command-modifier 'meta))
@@ -93,36 +97,36 @@
   `(lambda () (interactive) (find-file (concat ,@path))))
 
 (dolist (binding`(("C-c g" vc-dir-root)
-		  ("C-c i" ,(ff user-init-file))
-		  ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
-		  ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
-		  ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
-		  ("C-w" +kill-region-or-backward-word) ("C-;" hippie-expand)
-		  ("M-e" (lambda () (interactive) (select-window
-						   (or (split-window-sensibly)
-						       (split-window)))))
-		  ("M-F" toggle-frame-fullscreen)
-		  ("M-I" (lambda (pattern) (interactive "sSearch: ")
-			   (+with-context (rgrep pattern "*" "."))))
-		  ("M-K" kill-whole-line) ("M-Q" sql-connect)
-		  ("M-R" +repl) ("M-B" shell)
-		  ("M-j" (lambda () (interactive) (join-line -1)))
-		  ("M-s" save-buffer)
-		  ("M-o" other-window) ("M-O" delete-other-windows)
-		  ("C-c m" recompile)  ("C-c M" +compile)
-		  ("M-n" forward-paragraph) ("M-p" backward-paragraph)
-		  ("M-H" ,help-map) ("C-c C-s" ,search-map)))
+          ("C-c i" ,(ff user-init-file))
+          ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
+          ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
+          ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
+          ("C-w" +kill-region-or-backward-word) ("C-;" hippie-expand)
+          ("M-e" (lambda () (interactive) (select-window
+                           (or (split-window-sensibly)
+                               (split-window)))))
+          ("M-F" toggle-frame-fullscreen)
+          ("M-I" (lambda (pattern) (interactive "sSearch: ")
+               (+with-context (rgrep pattern "*" "."))))
+          ("M-K" kill-whole-line) ("M-Q" sql-connect)
+          ("M-R" +repl) ("M-B" shell)
+          ("M-j" (lambda () (interactive) (join-line -1)))
+          ("M-s" save-buffer)
+          ("M-o" other-window) ("M-O" delete-other-windows)
+          ("C-c m" recompile)  ("C-c M" +compile)
+          ("M-n" forward-paragraph) ("M-p" backward-paragraph)
+          ("M-H" ,help-map) ("C-c C-s" ,search-map)))
   (global-set-key (kbd (car binding)) (cadr binding)))
 
 ;; -- Editing setup ------------------------------------------------------------
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
-		   (display-line-numbers-mode 1) (column-number-mode 1)
-		   (display-fill-column-indicator-mode 1) (hl-line-mode 1))))
+           (display-line-numbers-mode 1) (column-number-mode 1)
+           (display-fill-column-indicator-mode 1) (hl-line-mode 1))))
 
 (defun center-prose ()
   (set-window-margins nil 0 0)
-  (let ((margin (max 0 (round (/ (- (window-body-width nil t) 
+  (let ((margin (max 0 (round (/ (- (window-body-width nil t)
                                     (* 80 (frame-char-width)))
                                  2.0 (frame-char-width))))))
     (set-window-margins nil margin margin)))
@@ -133,10 +137,11 @@
   (add-hook 'buffer-list-update-hook #'center-prose nil t))
 
 (add-hook 'org-mode-hook (lambda () (prose-config) (org-indent-mode)))
+(add-hook 'before-save-hook 'whitespace-cleanup)
 
 ;; -- Appearance ---------------------------------------------------------------
 (dolist (ui-mode
-	 '(menu-bar-mode tool-bar-mode blink-cursor-mode))
+         '(menu-bar-mode tool-bar-mode blink-cursor-mode))
   (funcall ui-mode -1)) ;; disable these
 
 (when window-system
@@ -166,11 +171,11 @@
 
 (with-eval-after-load 'clojure-mode
   (add-hook 'clojure-mode-hook 'subword-mode)
-  (define-key clojure-mode-map (kbd "C-x C-e") 
-    (lambda () (interactive) 
+  (define-key clojure-mode-map (kbd "C-x C-e")
+    (lambda () (interactive)
       (if (region-active-p) (lisp-eval-region (region-beginning) (region-end))
         (lisp-eval-last-sexp))))
-  (define-key clojure-mode-map (kbd "C-c C-k") 
+  (define-key clojure-mode-map (kbd "C-c C-k")
     (lambda () (interactive) (lisp-eval-region (point-min) (point-max)))))
 
 (with-eval-after-load 'go-mode
@@ -206,12 +211,12 @@
 
 (when (require 'paredit nil)
   (dolist (hook '(clojure-mode-hook
-		  emacs-lisp-mode-hook
-		  inferior-lisp-mode-hook lisp-data-mode-hook
-		  eval-expression-minibuffer-setup-hook))
+          emacs-lisp-mode-hook
+          inferior-lisp-mode-hook lisp-data-mode-hook
+          eval-expression-minibuffer-setup-hook))
     (add-hook hook #'enable-paredit-mode))
 
   (dolist (binding '(("C-j" +paredit-RET) ("M-r" +paredit-M-r)
-		     ("M-k" paredit-forward-barf-sexp) ("M-s" nil)
-		     ("M-l" paredit-forward-slurp-sexp)))
+             ("M-k" paredit-forward-barf-sexp) ("M-s" nil)
+             ("M-l" paredit-forward-slurp-sexp)))
     (define-key paredit-mode-map (kbd (car binding)) (cadr binding))))
