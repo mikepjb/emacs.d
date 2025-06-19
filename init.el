@@ -9,6 +9,7 @@
       custom-file (concat user-emacs-directory "custom.el")
       whitespace-style '(face trailing tabs empty indentation::space)
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
+      org-hide-emphasis-markers t
       org-export-with-section-numbers nil ;; essential for exporting
       display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
 
