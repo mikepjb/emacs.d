@@ -11,16 +11,19 @@ main() {
     mkdir -p ~/.emacs.d/external-modes
 
     ensure_mode ~/.emacs.d/external-modes/clojure-mode.el \
-		clojure-emacs/clojure-mode/master/clojure-mode.el
+                clojure-emacs/clojure-mode/master/clojure-mode.el
 
     ensure_mode ~/.emacs.d/external-modes/go-mode.el \
-		dominikh/go-mode.el/master/go-mode.el
+                dominikh/go-mode.el/master/go-mode.el
 
     ensure_mode ~/.emacs.d/external-modes/markdown-mode.el \
-		jrblevin/markdown-mode/master/markdown-mode.el
+                jrblevin/markdown-mode/master/markdown-mode.el
 
     ensure_mode ~/.emacs.d/external-modes/paredit.el \
-		emacsmirror/paredit/master/paredit.el
+                emacsmirror/paredit/master/paredit.el
+
+    ensure_mode ~/.emacs.d/external-modes/csv-mode.el \
+                emacsmirror/csv-mode/master/csv-mode.el
 }
 
 ensure_mode() {

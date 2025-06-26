@@ -1,9 +1,16 @@
 ;; -- Emacs configuration -------------------------- -*- lexical-binding: t; -*-
+;; html-div, skeleton-insert, completing-read alterations for full match then partial?
+;; generate-new-buffer?
+;; setup split on char to be easy like your vim muscle memory. with s/,/,\r
+;; M-d kills word, how to delete *whole* word like dW?
+;; paredit for HTML/tags? we already extend for []{} in Clojure?
+;; good to avoid killing/unbalancing tags but also copy by tag (vim vat/vit)
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore
       auto-save-default nil
       create-lockfiles nil
       use-short-answers t
+      search-wrap-around t
       frame-resize-pixelwise t ;; do not maximise after leaving fullscreen
       split-height-threshold 80 split-width-threshold 160 ;; needed fs laptop
       custom-file (concat user-emacs-directory "custom.el")
@@ -65,25 +72,17 @@
            ('sh-mode (shell))
            (_ (message "No REPL defined for %s" major-mode)))))
 
-(add-hook
- 'find-file-hook ;; link tags
- (lambda ()
-   (let* ((lang (replace-regexp-in-string "-mode$" ""
-                                          (symbol-name major-mode)))
-          (tag-files
-           `(,(+with-context (concat default-directory "tags"))
-             ,(format "~/.tags/%s.dep.tags" lang)
-             ,(format "~/.tags/%s.tags" lang))))
-     (setq-local tags-table-list
-                 (cl-remove-if-not #'file-exists-p tag-files)))))
+(advice-add 'icomplete--fido-mode-setup :after ;; fido match whole then partial
+            (lambda ()
+              (setq-local completion-styles '(substring flex))))
 
-(defun +find-file () ;; super fast, search all subdirs
+(defun +find-file ()
   (interactive)
   (+with-context
-   (let ((files
-      (split-string (shell-command-to-string "find . -type f") "\n" t)))
+   (let ((files (split-string (shell-command-to-string "find . -type f") "\n" t)))
      (find-file (completing-read
-         (format "Find file in %s: " default-directory) files nil t)))))
+                 (format "Find file in %s: " default-directory)
+                 files)))))
 
 (defun +compile () (interactive) (+with-context (call-interactively 'compile)))
 (defmacro il (&rest body) `(lambda () (interactive) ,@body))
@@ -97,18 +96,19 @@
                    ("C-c i" ,(ff user-init-file))
                    ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
                    ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
+                   ("C-." repeat)
                    ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
-                   ("C-w" +kill-region-or-backward-word) ("C-;" hippie-expand)
+                   ("C-w" +kill-region-or-backward-word) ("C-;" dabbrev-expand)
                    ("M-e" ,(il (select-window (or (split-window-sensibly)
                                                   (split-window)))))
                    ("M-F" toggle-frame-fullscreen)
                    ("M-I" (lambda (pattern) (interactive "sSearch: ")
                             (+with-context (rgrep pattern "*" "."))))
-                   ("M-K" kill-whole-line) ("M-Q" sql-connect)
-                   ("M-R" +repl)
+                   ("M-D" duplicate-line) ("M-K" kill-whole-line)
+                   ("M-R" +repl) ("M-Q" sql-connect)
                    ("M-B" ,(il (other-window-prefix) (shell)))
                    ("M-j" ,(il (join-line -1)))
-                   ("M-s" save-buffer)
+                   ("M-s" save-buffer) ("M-/" replace-string)
                    ("M-o" other-window) ("M-O" delete-other-windows)
                    ("C-c m" recompile)  ("C-c M" +compile)
                    ("M-n" forward-paragraph) ("M-p" backward-paragraph)
@@ -157,9 +157,20 @@
 (autoload 'clojure-mode "clojure-mode" "Major mode for Clojure" t)
 (autoload 'go-mode "go-mode" "Major mode for Go" t)
 (autoload 'markdown-mode "markdown-mode" "Major mode for Markdown" t)
+(autoload 'csv-mode "csv-mode" "Major mode for CSV" t)
+
+(with-eval-after-load 'csv-mode
+  (add-hook 'csv-mode-hook (lambda ()
+                             (csv-align-mode 1)
+                             (csv-header-line 1))))
 
 (define-derived-mode templ-mode prog-mode "Templ"
-  (add-hook 'after-save-hook 'format-buffer-templ nil t))
+  (add-hook 'after-save-hook 'format-buffer-templ nil t)
+  (require 'sgml-mode)
+  (setq-local sgml-tag-alist html-tag-alist
+              sgml-tag-help html-tag-help
+              sgml-xml-mode t)
+  (define-key templ-mode-map (kbd "C-c t") #'sgml-tag))
 
 (defun format-buffer-templ ()
   (when (buffer-file-name)
@@ -185,7 +196,7 @@
 (+add-to-list
  'auto-mode-alist
  '(("\\.\\(clj[sc]?\\|bb\\(?:\\.edn\\)?\\|edn\\)\\'" . clojure-mode)
-   ("\\.go\\'" . go-mode) ("\\.md\\'" . markdown-mode)
+   ("\\.go\\'" . go-mode) ("\\.md\\'" . markdown-mode) ("\\.csv\\'" . csv-mode)
    ("\\.ya?ml\\'" . conf-mode) ("\\.templ\\'" . templ-mode)
    ("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode)))
 
