@@ -92,7 +92,7 @@
   ('darwin (setq mac-command-modifier 'meta))
   ('gnu/linux (setq x-super-keysym 'meta)))
 
-(dolist (binding `(("C-c g" vc-dir-root)
+(dolist (binding `(("C-c g" vc-dir-root) ("C-c h" vc-region-history)
                    ("C-c i" ,(ff user-init-file))
                    ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
                    ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
