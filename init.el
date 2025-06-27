@@ -1,10 +1,11 @@
-;; -- Emacs configuration -------------------------- -*- lexical-binding: t; -*-
+;; -- Spartan Emacs configuration ------------------ -*- lexical-binding: t; -*-
 ;; html-div, skeleton-insert, completing-read alterations for full match then partial?
 ;; generate-new-buffer?
 ;; setup split on char to be easy like your vim muscle memory. with s/,/,\r
 ;; M-d kills word, how to delete *whole* word like dW?
 ;; paredit for HTML/tags? we already extend for []{} in Clojure?
 ;; good to avoid killing/unbalancing tags but also copy by tag (vim vat/vit)
+;; how useful is transpose day to day? e.g transpose-sexp/word/line etc.
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore
       auto-save-default nil
@@ -53,7 +54,8 @@
       (icomplete-fido-backward-updir) (backward-kill-word 1)))
 
 (with-eval-after-load 'icomplete
-  (define-key icomplete-minibuffer-map (kbd "C-w") #'+minibuffer-C-w))
+  (define-key icomplete-minibuffer-map (kbd "C-w") #'+minibuffer-C-w)
+  (define-key icomplete-minibuffer-map (kbd "C-e") #'icomplete-ret))
 
 (defmacro +with-context (&rest body)
   `(let ((default-directory
@@ -93,10 +95,11 @@
   ('gnu/linux (setq x-super-keysym 'meta)))
 
 (dolist (binding `(("C-c g" vc-dir-root) ("C-c h" vc-region-history)
+                   ("C-c l" vc-print-root-log)
                    ("C-c i" ,(ff user-init-file))
                    ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
                    ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
-                   ("C-." repeat)
+                   ("C-." repeat) ("M-z" zap-up-to-char)
                    ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
                    ("C-w" +kill-region-or-backward-word) ("C-;" dabbrev-expand)
                    ("M-e" ,(il (select-window (or (split-window-sensibly)
