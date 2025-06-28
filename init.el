@@ -6,6 +6,8 @@
 ;; paredit for HTML/tags? we already extend for []{} in Clojure?
 ;; good to avoid killing/unbalancing tags but also copy by tag (vim vat/vit)
 ;; how useful is transpose day to day? e.g transpose-sexp/word/line etc.
+;; Select rectangular region: C-x SPC (or C-x r SPC)
+;; Insert text in rectangle: C-x r t then type your text
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore
       auto-save-default nil
@@ -40,6 +42,9 @@
 (with-eval-after-load 'grep
   (+add-to-list 'grep-find-ignored-directories '("node_modules" ".git"))
   (+add-to-list 'grep-find-ignored-files '("*.min.js" "*.bundle.js" "tags")))
+
+(when (require 'ansi-color nil)
+  (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter))
 
 ;; -- Bindings -----------------------------------------------------------------
 (defun +kill-region-or-backward-word ()
