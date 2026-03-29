@@ -1,13 +1,50 @@
 ;; -- Spartan Emacs configuration ------------------ -*- lexical-binding: t; -*-
-;; html-div, skeleton-insert, completing-read alterations for full match then partial?
-;; generate-new-buffer?
-;; setup split on char to be easy like your vim muscle memory. with s/,/,\r
-;; M-d kills word, how to delete *whole* word like dW?
-;; paredit for HTML/tags? we already extend for []{} in Clojure?
-;; good to avoid killing/unbalancing tags but also copy by tag (vim vat/vit)
-;; how useful is transpose day to day? e.g transpose-sexp/word/line etc.
-;; Select rectangular region: C-x SPC (or C-x r SPC)
-;; Insert text in rectangle: C-x r t then type your text
+
+(defun +pkg-init ()
+  "Initialize package.el for installing packages (idempotent via package--initialized)"
+  (unless (boundp 'package--initialized)
+    (require 'package)
+    (setq package-archives
+          (if-let ((mirror (getenv "EMACS_PACKAGE_MIRROR")))
+              `(("local" . ,mirror))
+            '(("melpa" . "https://melpa.org/packages/")
+              ("gnu" . "https://elpa.gnu.org/packages/"))))
+    (package-initialize)))
+
+(defmacro +pkg (name &rest rest)
+  "Install NAME from package.el with optional :modes and :config.
+:modes is a list of (mode-function . file-pattern) pairs
+:config contains forms to run after package loads"
+  (let (modes config)
+    (while rest
+      (cond
+        ((eq (car rest) :modes)
+         (setq modes (cadr rest))
+         (setq rest (cddr rest)))
+        ((eq (car rest) :config)
+         (setq config (cdr rest))
+         (setq rest nil))
+        (t
+         (setq rest (cdr rest)))))
+
+    `(progn
+       (unless (package-installed-p ',name)
+         (+pkg-init)
+         (unless package-archive-contents
+           (package-refresh-contents))
+         (package-install ',name))
+       (require ',name)
+       ,@(when modes
+           (mapcar (lambda (pair)
+                     `(autoload ',(car pair) ,(symbol-name name) nil t))
+                   modes))
+       ,@(when modes
+           (mapcar (lambda (pair)
+                     `(add-to-list 'auto-mode-alist '(,(cdr pair) . ,(car pair))))
+                   modes))
+       ,@(when config
+           `((with-eval-after-load ',name ,@config))))))
+
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore
       auto-save-default nil
@@ -73,7 +110,7 @@
   (interactive)
   (other-window-prefix)
   (+with-context (pcase major-mode
-           ('clojure-mode (inferior-lisp "clojure -A:dev"))
+           ((or 'clojure-mode 'edn-mode) (inferior-lisp "clojure -A:dev"))
            ('emacs-lisp-mode (ielm))
            ('scheme-mode (inferior-lisp "scheme"))
            ('sh-mode (shell))
@@ -105,11 +142,12 @@
                    ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
                    ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
                    ("C-." repeat) ("M-z" zap-up-to-char)
+                   ("C-c ;" comment-region)
                    ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
                    ("C-w" +kill-region-or-backward-word) ("C-;" dabbrev-expand)
                    ("M-e" ,(il (select-window (or (split-window-sensibly)
                                                   (split-window)))))
-                   ("M-F" toggle-frame-fullscreen)
+                   ("M-RET" toggle-frame-fullscreen)
                    ("M-I" (lambda (pattern) (interactive "sSearch: ")
                             (+with-context (rgrep pattern "*" "."))))
                    ("M-D" duplicate-line) ("M-K" kill-whole-line)
@@ -160,32 +198,13 @@
 (ignore-errors (load-theme 'flow t))
 
 ;; -- Languages ----------------------------------------------------------------
-(add-to-list 'load-path "~/.emacs.d/external-modes/")
 
-(autoload 'clojure-mode "clojure-mode" "Major mode for Clojure" t)
-(autoload 'go-mode "go-mode" "Major mode for Go" t)
-(autoload 'markdown-mode "markdown-mode" "Major mode for Markdown" t)
-(autoload 'csv-mode "csv-mode" "Major mode for CSV" t)
-
-(with-eval-after-load 'csv-mode
-  (add-hook 'csv-mode-hook (lambda ()
-                             (csv-align-mode 1)
-                             (csv-header-line 1))))
-
-(define-derived-mode templ-mode prog-mode "Templ"
-  (add-hook 'after-save-hook 'format-buffer-templ nil t)
-  (require 'sgml-mode)
-  (setq-local sgml-tag-alist html-tag-alist
-              sgml-tag-help html-tag-help
-              sgml-xml-mode t)
-  (define-key templ-mode-map (kbd "C-c t") #'sgml-tag))
-
-(defun format-buffer-templ ()
-  (when (buffer-file-name)
-    (shell-command (concat "templ fmt " (shell-quote-argument (buffer-file-name))))
-    (revert-buffer t t t)))
-
-(with-eval-after-load 'clojure-mode
+(+pkg clojure-mode
+  :modes ((clojure-mode . "\\.clj\\'")
+          (clojurescript-mode . "\\.cljs\\'")
+          (clojurec-mode . "\\.cljc\\'")
+          (edn-mode . "\\.edn\\'"))
+  :config
   (add-hook 'clojure-mode-hook 'subword-mode)
   (define-key clojure-mode-map (kbd "C-x C-e")
     (lambda () (interactive)
@@ -194,19 +213,27 @@
   (define-key clojure-mode-map (kbd "C-c C-k")
     (lambda () (interactive) (lisp-eval-region (point-min) (point-max)))))
 
-(with-eval-after-load 'go-mode
+(+pkg go-mode
+  :modes ((go-mode . "\\.go\\'"))
+  :config
   (add-hook 'before-save-hook 'gofmt-before-save)
   (setq-default gofmt-command "goimports" gofmt-show-errors 'echo))
 
-(with-eval-after-load 'markdown-mode
+(+pkg markdown-mode
+  :modes ((markdown-mode . "\\.md\\'"))
+  :config
   (add-hook 'markdown-mode-hook 'prose-config))
 
-(+add-to-list
- 'auto-mode-alist
- '(("\\.\\(clj[sc]?\\|bb\\(?:\\.edn\\)?\\|edn\\)\\'" . clojure-mode)
-   ("\\.go\\'" . go-mode) ("\\.md\\'" . markdown-mode) ("\\.csv\\'" . csv-mode)
-   ("\\.ya?ml\\'" . conf-mode) ("\\.templ\\'" . templ-mode)
-   ("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode)))
+(+pkg csv-mode
+  :modes ((csv-mode . "\\.csv\\'"))
+  :config
+  (add-hook 'csv-mode-hook (lambda ()
+                             (csv-align-mode 1)
+                             (csv-header-line 1))))
+
+;; Built-in modes
+(add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . conf-mode))
+(add-to-list 'auto-mode-alist '("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode))
 
 ;; -- Paredit ------------------------------------------------------------------
 (defun +paredit-RET ()
@@ -225,14 +252,15 @@
      ('minibuffer-mode 'previous-matching-history-element)
      (_ 'paredit-raise-sexp))))
 
-(when (require 'paredit nil)
+(+pkg paredit
+  :config
   (dolist (hook '(clojure-mode-hook
-          emacs-lisp-mode-hook
-          inferior-lisp-mode-hook lisp-data-mode-hook
-          eval-expression-minibuffer-setup-hook))
+                  emacs-lisp-mode-hook
+                  inferior-lisp-mode-hook lisp-data-mode-hook
+                  eval-expression-minibuffer-setup-hook))
     (add-hook hook #'enable-paredit-mode))
 
   (dolist (binding '(("C-j" +paredit-RET) ("M-r" +paredit-M-r)
-             ("M-k" paredit-forward-barf-sexp) ("M-s" nil)
-             ("M-l" paredit-forward-slurp-sexp)))
+                     ("M-k" paredit-forward-barf-sexp) ("M-s" nil)
+                     ("M-l" paredit-forward-slurp-sexp)))
     (define-key paredit-mode-map (kbd (car binding)) (cadr binding))))
