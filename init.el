@@ -439,6 +439,7 @@
                 "-f" ,tags-file
                 "-R"
                 "--languages=all"
+                "--exclude=node_modules"
                 ,project-root)
      :sentinel (lambda (_ event)
                  (when (string-match-p "finished" event)
