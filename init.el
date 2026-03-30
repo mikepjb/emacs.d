@@ -284,6 +284,8 @@
       (rg :mac ripgrep :arch ripgrep)
       (ctags :mac universal-ctags :arch ctags)))
 
+(defun +external-package-sync ()
+  (interactive)
   (let ((packages '()))
     (dolist (binding +external-packages)
       (let ((cmd (car binding))
@@ -294,12 +296,9 @@
           (push pkg packages))))
 
     (pcase system-type
-      ('darwin (async-shell-command (format "brew install %s" (mapconcat
-  #'symbol-name packages " "))))
-      ('gnu/linux (async-shell-command (format "sudo pacman -Syu %s" (mapconcat
-  #'symbol-name packages " "))))))
-
-
-;; (pcase system-type
-;;   ('darwin (setq mac-command-modifier 'meta))
-;;   ('gnu/linux (setq x-super-keysym 'meta)))
+      ('darwin (async-shell-command (format "brew install %s"
+                                            (mapconcat
+                                             #'symbol-name packages " "))))
+      ('gnu/linux (async-shell-command (format "sudo pacman -Syu %s"
+                                               (mapconcat
+                                                #'symbol-name packages " ")))))))
