@@ -12,7 +12,7 @@ Like drawing with pen and paper vs. a diagram tool that forces you to select pre
 
 *Simplicity constraints:*
 - 300 lines max for source code (small enough to reason about)
-- 100 lines max for config files  
+- 100 lines max for config files
 - 80 character width limit (readability)
 - Complex projects: small/surgical changes only
 - Projects you own: make them extremely simple
@@ -41,19 +41,19 @@ brew link --overwrite universal-ctags
 - ~M-I~ - Project-wide search (rgrep)
 - ~C-c M~ - Compile from project root
 
-*** REPL Integration  
+*** REPL Integration
 - ~M-R~ - Launch REPL based on major-mode
 - ~C-x C-e~ - Eval expression/region (Clojure)
 - ~C-c C-k~ - Eval entire buffer (Clojure)
 
 *** Version Control (vc > magit)
 - ~C-c g~ - vc-dir status window
-- ~C-c d~ - Show diff  
+- ~C-c d~ - Show diff
 - ~C-c h~ - File/region history
 
 *** Window Management
 - ~M-o~ - Switch windows
-- ~M-O~ - Delete other windows  
+- ~M-O~ - Delete other windows
 - ~M-e~ - Smart window split
 
 ** Reference
@@ -69,7 +69,7 @@ brew link --overwrite universal-ctags
 - ~M-j~ - Join line above
 - ~M-s~ - Save buffer
 
-**** Navigation  
+**** Navigation
 - ~M-n/M-p~ - Forward/backward paragraph
 - ~C-c i~ - Open init file
 - ~C-c n~ - Open notes
@@ -83,7 +83,7 @@ brew link --overwrite universal-ctags
 **** vc-dir Commands
 - N.B you will need to ssh-add or similar if your ssh key uses a password.
 - ~m/u~ - Mark/unmark files
-- ~M~ - Mark all  
+- ~M~ - Mark all
 - ~+~ - Pull changes
 - ~=~ - Show diff
 - ~D~ - Show all diffs

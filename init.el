@@ -58,7 +58,8 @@
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
       org-hide-emphasis-markers t
       org-export-with-section-numbers nil ;; essential for exporting
-      display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window)))
+      display-buffer-alist '(("\\*vc-dir\\*" display-buffer-pop-up-window))
+      vc-dir-hide-up-to-date t)
 
 (setq-default cursor-in-non-selected-windows nil
               display-fill-column-indicator-column 80
@@ -143,6 +144,7 @@
                    ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
                    ("C-." repeat) ("M-z" zap-up-to-char)
                    ("C-c ;" comment-region)
+                   ("C-c C-l" flycheck-list-errors)
                    ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
                    ("C-w" +kill-region-or-backward-word) ("C-;" dabbrev-expand)
                    ("M-e" ,(il (select-window (or (split-window-sensibly)
@@ -235,11 +237,34 @@
                              (csv-align-mode 1)
                              (csv-header-line 1))))
 
-(+pkg citre)
+(+pkg rust-mode
+  :modes ((rust-mode . "\\.rs\\'"))
+  :config
+  (add-hook 'rust-mode-hook 'subword-mode)
+  (add-hook 'before-save-hook
+            (lambda () (when (eq major-mode 'rust-mode)
+                         (ignore-errors (rust-format-buffer))))))
+
+(+pkg flycheck
+  :config
+  (global-flycheck-mode 1)
+  (setq flycheck-check-syntax-automatically '(save mode-enabled)))
+
+;; (+pkg citre)
+
+;; (+pkg typescript-mode
+;;   :modes ((typescript-mode . "\\.tsx?\\'"))
+;;   :config
+;;   (add-hook 'typescript-mode-hook 'subword-mode))
+
+;; (+pkg java-mode
+;;   :modes ((java-mode . "\\.java\\'"))
+;;   :config
+;;   (add-hook 'java-mode-hook 'subword-mode))
 
 ;; Built-in modes
 (add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . conf-mode))
-(add-to-list 'auto-mode-alist '("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode))
+(add-to-list 'auto-mode-alist '("\\.json\\'" . js-mode))
 
 ;; -- Paredit ------------------------------------------------------------------
 (defun +paredit-RET ()
