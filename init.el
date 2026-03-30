@@ -144,6 +144,7 @@
 
 (dolist (binding `(("C-c g" vc-dir-root) ("C-c h" vc-region-history)
                    ("C-c l" vc-print-root-log)
+                   ("C-c t" +generate-tags)
                    ("C-c i" ,(ff user-init-file))
                    ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
                    ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
@@ -351,13 +352,10 @@
     "Generate ctags for your current project."
     (interactive)
     (+with-context
-     (cond
-       ((file-exists-p "deps.edn") (+generate-tags-clojure default-directory))
-       ((or (file-exists-p "go.mod")
-            (file-exists-p "Cargo.toml")
-            (file-exists-p "package.json"))
-        (+run-ctags-project default-directory))
-       (t (message "Not a recognized project type")))))
+     (let ((project-root (expand-file-name default-directory)))
+       (if (file-exists-p "deps.edn")
+           (+generate-tags-clojure project-root)
+         (+run-ctags-project project-root)))))
 
 
 (defun +generate-tags-clojure (project-root)
@@ -374,8 +372,7 @@
 
   (defun +run-ctags-clojure (project-root extracted-dir)
     "Run ctags on Clojure sources (project src + extracted jars)."
-    (let ((project-root (expand-file-name project-root))
-          (tags-file (expand-file-name (format "~/.emacs.d/.tag-store/%s.tags"
+    (let ((tags-file (expand-file-name (format "~/.emacs.d/.tag-store/%s.tags"
                                                 (file-name-nondirectory (directory-file-name project-root))))))
       (unless (file-exists-p (file-name-directory tags-file))
         (make-directory (file-name-directory tags-file) t))
@@ -455,7 +452,8 @@
                       (format "~/.emacs.d/.tag-store/%s.tags"
                               (file-name-nondirectory (directory-file-name project-root))))))
       (when (file-exists-p tags-file)
-        (setq-local tags-table-list (list tags-file))))))
+        (setq-local tags-table-list (list tags-file))
+        (visit-tags-table tags-file t)))))
 
   (add-hook 'find-file-hook #'+setup-project-tags)
 
