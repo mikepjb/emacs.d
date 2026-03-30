@@ -150,6 +150,9 @@
                    ("M-RET" toggle-frame-fullscreen)
                    ("M-I" (lambda (pattern) (interactive "sSearch: ")
                             (+with-context (rgrep pattern "*" "."))))
+                   ("M-M" delete-other-windows)
+                   ("M-L" split-window-below)
+                   ("M-P" split-window-right)
                    ("M-D" duplicate-line) ("M-K" kill-whole-line)
                    ("M-R" +repl) ("M-Q" sql-connect)
                    ("M-B" ,(il (other-window-prefix) (shell)))
@@ -165,6 +168,7 @@
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
            (display-line-numbers-mode 1) (column-number-mode 1)
+           (auto-revert-mode 1)
            (display-fill-column-indicator-mode 1) (hl-line-mode 1))))
 
 (defun center-prose ()
@@ -231,6 +235,8 @@
                              (csv-align-mode 1)
                              (csv-header-line 1))))
 
+(+pkg citre)
+
 ;; Built-in modes
 (add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . conf-mode))
 (add-to-list 'auto-mode-alist '("\\.\\(json\\|ts\\|tsx\\)\\'" . js-mode))
@@ -264,3 +270,36 @@
                      ("M-k" paredit-forward-barf-sexp) ("M-s" nil)
                      ("M-l" paredit-forward-slurp-sexp)))
     (define-key paredit-mode-map (kbd (car binding)) (cadr binding))))
+
+;; -- External Configuration ---------------------------------------------------
+
+(defconst +external-packages
+    '((git :mac git :arch git)
+      (jq :mac jq :arch jq)
+      (yq :mac yq :arch go-yq)
+      (shellcheck :mac shellcheck :arch shellcheck)
+      (python :mac python :arch python)
+      (kubectl :mac kubectl :arch kubectl)
+      (cwebp :mac libwebp-utils :arch libwebp-utils)
+      (rg :mac ripgrep :arch ripgrep)
+      (ctags :mac universal-ctags :arch ctags)))
+
+  (let ((packages '()))
+    (dolist (binding +external-packages)
+      (let ((cmd (car binding))
+            (pkg (pcase system-type
+                   ('darwin (plist-get (cdr binding) :mac))
+                   ('gnu/linux (plist-get (cdr binding) :arch)))))
+        (when (and pkg (not (executable-find (symbol-name cmd))))
+          (push pkg packages))))
+
+    (pcase system-type
+      ('darwin (async-shell-command (format "brew install %s" (mapconcat
+  #'symbol-name packages " "))))
+      ('gnu/linux (async-shell-command (format "sudo pacman -Syu %s" (mapconcat
+  #'symbol-name packages " "))))))
+
+
+;; (pcase system-type
+;;   ('darwin (setq mac-command-modifier 'meta))
+;;   ('gnu/linux (setq x-super-keysym 'meta)))
