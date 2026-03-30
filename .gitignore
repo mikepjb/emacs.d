@@ -29,3 +29,4 @@ network-security.data
 elfeed/
 gnus/
 newsticker/
+.tag-store/

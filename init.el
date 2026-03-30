@@ -45,6 +45,9 @@
        ,@(when config
            `((with-eval-after-load ',name ,@config))))))
 
+(defconst +project-definitions
+  '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git"))
+
 (setq inhibit-startup-screen t
       ring-bell-function 'ignore
       auto-save-default nil
@@ -103,7 +106,7 @@
 (defmacro +with-context (&rest body)
   `(let ((default-directory
           (or (cl-some (lambda (f) (locate-dominating-file default-directory f))
-                       '("Makefile" "go.mod" "package.json" "deps.edn" ".git"))
+                       +project-definitions)
               default-directory)))
      ,@body))
 
@@ -217,7 +220,17 @@
       (if (region-active-p) (lisp-eval-region (region-beginning) (region-end))
         (lisp-eval-last-sexp))))
   (define-key clojure-mode-map (kbd "C-c C-k")
-    (lambda () (interactive) (lisp-eval-region (point-min) (point-max)))))
+    (lambda () (interactive) (lisp-eval-region (point-min) (point-max))))
+
+  (defun +clojure-tag ()
+    "Strip namespace alias from symbol at point for tag lookup."
+    (let ((sym (find-tag-default)))
+      (when sym
+        (replace-regexp-in-string "^[^/]+/" "" sym))))
+
+  (add-hook 'clojure-mode-hook
+            (lambda ()
+              (setq-local find-tag-default-function #'+clojure-tag))))
 
 (+pkg go-mode
   :modes ((go-mode . "\\.go\\'"))
@@ -327,3 +340,93 @@
       ('gnu/linux (async-shell-command (format "sudo pacman -Syu %s"
                                                (mapconcat
                                                 #'symbol-name packages " ")))))))
+
+;; -- Tags ---------------------------------------------------------------------
+
+(defun +generate-tags ()
+    "Generate ctags for your current project, including deps + stdlib."
+    (interactive)
+    (+with-context
+     (if (file-exists-p "deps.edn")
+         (+generate-tags-clojure default-directory)
+       (message "Not a recognized project type"))))
+
+(defun +generate-tags-clojure (project-root)
+    "Generate tags for a Clojure project with deps.edn."
+    (+generate-tags-clojure-deps
+     (lambda (jars)
+       (let ((target-dir (expand-file-name "~/.local/src")))
+         (unless (file-exists-p target-dir)
+           (make-directory target-dir t))
+         (+extract-jars jars target-dir
+           (lambda ()
+             (+run-ctags-clojure project-root target-dir)))))))
+
+  (defun +run-ctags-clojure (project-root extracted-dir)
+    "Run ctags on Clojure sources (project src + extracted jars)."
+    (let ((tags-file (expand-file-name (format "~/.emacs.d/.tag-store/%s.tags"
+                                                (file-name-nondirectory (directory-file-name project-root))))))
+      (unless (file-exists-p (file-name-directory tags-file))
+        (make-directory (file-name-directory tags-file) t))
+      (make-process
+       :name "clojure-ctags"
+       :buffer (get-buffer-create "*clojure-ctags*")
+       :command `("ctags" "--output-format=etags"
+                  "-f" ,tags-file
+                  "-R"
+                  "--languages=clojure"
+                  "--regex-clojure=/\\(def[^n][[:space:]]+([^[:space:]]+)/\\1/d,def/"
+                  "--regex-clojure=/\\(defn-?[[:space:]]+([^[:space:]]+)/\\1/f,defn/"
+                  "--regex-clojure=/\\(defmacro[[:space:]]+([^[:space:]]+)/\\1/m,macro/"
+                  "--regex-clojure=/\\(defmulti[[:space:]]+([^[:space:]]+)/\\1/M,multi/"
+                  "--regex-clojure=/\\(defrecord[[:space:]]+([^[:space:]]+)/\\1/r,record/"
+                  "--regex-clojure=/\\(defprotocol[[:space:]]+([^[:space:]]+)/\\1/p,protocol/"
+                  "--regex-clojure=/\\(ns[[:space:]]+([^[:space:]]+)/\\1/n,namespace/"
+                  ,(expand-file-name "src" project-root)
+                  ,extracted-dir)
+       :sentinel (lambda (_ event)
+                   (when (string-match-p "finished" event)
+                     (message "Clojure tags generated at %s" tags-file))))))
+
+(defun +generate-tags-clojure-deps (on-jars)
+  "Get classpath, filter .jars, pass to ON-JARS callback."
+  (make-process
+   :name "clj-spath"
+   :buffer (get-buffer-create "*clj-spath*")
+   :command '("clojure" "-Spath")
+   :sentinel (lambda (proc event)
+               (when (string= event "finished\n")
+                 (with-current-buffer (process-buffer proc)
+                   (let* ((paths (split-string (string-trim (buffer-string)) ":"))
+                          (jars (delete-dups
+                                 (seq-filter (lambda (p) (string-suffix-p ".jar" p)) paths))))
+                     (funcall on-jars jars)))))))
+
+(defun +extract-jars (jars target-dir on-complete)
+  "Extract JARS to TARGET-DIR in parallel, call ON-COMPLETE when all done."
+  (let ((remaining (length jars)))
+    (dolist (jar jars)
+      (make-process
+       :name (format "jar-extract-%s" (file-name-nondirectory jar))
+       :command `("sh" "-c" ,(format "cd %s && jar xf %s" target-dir jar))
+       :sentinel (lambda (_ event)
+                   (when (string-match-p "finished" event)
+                     (message "Extracted: %s" jar)
+                     (setq remaining (1- remaining))
+                     (when (= remaining 0)
+                       (funcall on-complete))))))))
+
+(defun +setup-project-tags ()
+    "Load tags file for current project if it exists."
+    (when-let ((project-root (cl-some (lambda (f) (locate-dominating-file default-directory f))
+                                       +project-definitions)))
+      (let ((tags-file (expand-file-name
+                        (format "~/.emacs.d/.tag-store/%s.tags"
+                                (file-name-nondirectory (directory-file-name project-root))))))
+        (when (file-exists-p tags-file)
+          (setq-local tags-table-list (list tags-file))))))
+
+  (add-hook 'find-file-hook #'+setup-project-tags)
+
+(provide 'init)
+;;; init.el ends here
