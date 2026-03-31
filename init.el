@@ -146,10 +146,11 @@
                    ("C-c l" vc-print-root-log)
                    ("C-c t" +generate-tags)
                    ("C-c i" ,(ff user-init-file))
+                   ("M-T" eshell)
                    ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
                    ("C-c p" +find-file) ("C-c P" ,(ff "~/src"))
                    ("C-." repeat) ("M-z" zap-up-to-char)
-                   ("C-c ;" comment-region)
+                   ("C-c ;" comment-or-uncomment-region)
                    ("C-c C-l" flycheck-list-errors)
                    ("C-h" delete-backward-char) ("C-j" newline) ;; autoindents
                    ("C-w" +kill-region-or-backward-word) ("C-;" dabbrev-expand)
@@ -268,17 +269,12 @@
   (global-flycheck-mode 1)
   (setq flycheck-check-syntax-automatically '(save mode-enabled)))
 
-;; (+pkg citre)
+(+pkg gptel)
 
-;; (+pkg typescript-mode
-;;   :modes ((typescript-mode . "\\.tsx?\\'"))
-;;   :config
-;;   (add-hook 'typescript-mode-hook 'subword-mode))
-
-;; (+pkg java-mode
-;;   :modes ((java-mode . "\\.java\\'"))
-;;   :config
-;;   (add-hook 'java-mode-hook 'subword-mode))
+(+pkg typescript-mode
+  :modes ((typescript-mode . "\\.tsx?\\'"))
+  :config
+  (add-hook 'typescript-mode-hook 'subword-mode))
 
 ;; Built-in modes
 (add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . conf-mode))
