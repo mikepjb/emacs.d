@@ -269,12 +269,19 @@
   (global-flycheck-mode 1)
   (setq flycheck-check-syntax-automatically '(save mode-enabled)))
 
-(+pkg gptel)
-
 (+pkg typescript-mode
   :modes ((typescript-mode . "\\.tsx?\\'"))
   :config
   (add-hook 'typescript-mode-hook 'subword-mode))
+
+(use-package gptel
+  :ensure t
+  :config
+  (gptel-make-openai "llama-cpp"
+    :stream t
+    :protocol "http"
+    :host "localhost:7777"
+    :models '(qwen)))
 
 ;; Built-in modes
 (add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . conf-mode))
