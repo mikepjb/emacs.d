@@ -58,6 +58,10 @@ brew link --overwrite universal-ctags
 
 ** Reference
 
+*** Development
+
+Use ~(local-variable-if-set-p 'var-to-check)~ to see if the variable becomes buffer local, if it is use setq, otherwise setq-default (which makes the var local for every buffer).
+
 *** Complete Keybinding Reference
 
 **** Editing

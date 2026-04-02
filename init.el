@@ -1,7 +1,13 @@
+;; -- Spartan Emacs configuration ------------------ -*- lexical-binding: t; -*-
 ;;; repl + repl lookup (rebind man bind?)
+;; PATH, hardcode.. or defer bash via process?
 
 (defconst +project-definitions
   '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git"))
+
+(defun +compile ()
+  (interactive)
+  (+with-context (call-interactively 'compile)))
 
 (defmacro il (&rest body) `(lambda () (interactive) ,@body))
 (defmacro ff (&rest path) `(il (find-file (concat ,@path))))
@@ -21,6 +27,12 @@
     ("C-c p" project-find-files)
     ("C-c P" ,(ff "~/src"))
     ("C-c g" vc-dir-root)
+    ("C-c C-g" vc-print-root-log)
+    ("C-c k" split-window-below)
+    ("C-c l" split-window-right)
+    ("M-T" eshell)
+    ("M-n" forward-paragraph) ;; more ergo than M-{} but not that easy
+    ("M-p" backward-paragraph)
     ("C-w" +kill-region-or-backward-word)
     ("M-k" +lisp-forward-barf)
     ("M-l" +lisp-forward-slurp)
@@ -30,6 +42,7 @@
     ("M-RET" toggle-frame-fullscreen)
     ("M-H" ,help-map)
     ("M-D" duplicate-line)
+    ("C-c m" recompile)  ("C-c M" +compile)
     ("C-;" dabbrev-expand)
     ("C-c C-s" ,search-map)))
 
@@ -41,11 +54,17 @@
   (define-key icomplete-minibuffer-map (kbd "C-e") #'icomplete-ret))
 
 ;;; General Settings
-(setq
- search-wrap-around t
- ring-bell-function 'ignore
- create-lockfiles nil
- frame-resize-pixelwise t)
+(setq search-wrap-around t ;; does this need to be setq-default?
+      isearch-wrap-pause 'no
+      ring-bell-function 'ignore
+      create-lockfiles nil
+      use-short-answers t
+      frame-resize-pixelwise t
+      org-hide-emphasis-markers t
+      org-export-with-section-numbers nil ;; essential for exporting
+      backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
+      large-file-warning-threshold (* 512 1024 1024) ; 500MB
+      )
 
 (defconst *general-modes*
   '(fido-vertical-mode
@@ -57,6 +76,8 @@
 
 ;;; Editor Settings
 (setq-default truncate-lines t)
+(setq whitespace-style '(face trailing tabs empty indentation::space)
+      )
 
 (defconst *editing-modes*
   '(show-paren-mode
@@ -118,6 +139,9 @@
 (use-package flycheck
   :ensure nil
   :config (global-flycheck-mode 1))
+
+(when (require 'ansi-color nil)
+  (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter))
 
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
