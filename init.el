@@ -15,11 +15,11 @@
 
 (defconst *repl-table*
   '((python run-python)
-    (ruby irb)))
+    (ruby irb))) ;; how to handle SQL? all .sql
 
-(pcase system-type
-  ('darwin (setq mac-command-modifier 'meta))
-  ('gnu/linux (setq x-super-keysym 'meta)))
+(dolist (meta-key '(mac-command-modifier x-super-keysym))
+  (when (boundp meta-key)
+    (set meta-key 'meta)))
 
 (setq isearch-wrap-pause 'no
       ring-bell-function 'ignore
@@ -27,7 +27,8 @@
       use-short-answers t
       frame-resize-pixelwise t
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
-      large-file-warning-threshold (* 512 1024 1024)) ; 500MB
+      large-file-warning-threshold (* 512 1024 1024) ; 500MB
+      auth-sources `,(concat user-emacs-directory ".authinfo.gpg"))
 
 (setq custom-file (concat user-emacs-directory "local.el"))
 (load custom-file t)
@@ -62,7 +63,7 @@
        'face '(:foreground "#ff00ff" :weight bold))))
     (:eval (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
     " "))
-n
+
 (defconst *general-modes*
   '(fido-vertical-mode
     global-auto-revert-mode
@@ -125,14 +126,6 @@ n
   (interactive)
   (if (string-match-p "/" (minibuffer-contents))
       (icomplete-fido-backward-updir) (backward-kill-word 1)))
-
-(defun +local-ai ()
-  (interactive)
-  (start-process
-   "llama-server" "*llama-server*"
-   "llama-server" "--port" "7777"
-   "--model" (expand-file-name
-        "~/models/Qwen3.5-9B-UD-Q3_K_XL.gguf")))
 
 (defun +project-tags-generate ()
   "Manually generate tags for current project."
@@ -252,44 +245,43 @@ n
   (org-hide-emphasis-markers t)
   (org-export-with-section-numbers nil)
   (org-hide-emphasis-markers t)
-  (org-export-with-section-numbers nil))
+  (org-export-with-section-numbers nil)
+  :hook (org-mode-hook . (lambda () (prose-config) (org-indent-mode))))
 
 (use-package paredit :ensure t
   :hook ((clojure-mode-hook
           emacs-lisp-mode-hook
           inferior-lisp-mode-hook lisp-data-mode-hook
           eval-expression-minibuffer-setup-hook)
-   . #'enable-paredit-mode)
+         . #'enable-paredit-mode)
   :bind (:map paredit-mode-map
-        ("C-j" . +paredit-RET)
-        ("M-r" . +paredit-M-r)
-        ("M-k" . paredit-forward-barf-sexp)
-        ("M-l" . paredit-forward-slurp-sexp)
-        ("C-;" . paredit-splice-sexp)
-        ("M-s" . nil)))
+              ("C-j" . +paredit-RET)
+              ("M-r" . +paredit-M-r)
+              ("M-k" . paredit-forward-barf-sexp)
+              ("M-l" . paredit-forward-slurp-sexp)
+              ("C-;" . paredit-splice-sexp)
+              ("M-s" . nil)))
 
 (use-package flycheck
   :ensure nil
   :config (global-flycheck-mode 1))
 
-(use-package gptel :ensure t)
 (use-package ansi-color :ensure nil
   :hook (compilation-filter-hook ansi-color-compilation-filter))
 
+(use-package vc :ensure nil
+  :hook ('log-edit-mode-hook . #'log-edit-diff))
+
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
-     (display-line-numbers-mode 1) (column-number-mode 1)
-     (auto-revert-mode 1)
-     (display-fill-column-indicator-mode 1) (hl-line-mode 1))))
-
-(add-hook 'org-mode-hook (lambda () (prose-config) (org-indent-mode)))
+                   (display-line-numbers-mode 1) (column-number-mode 1)
+                   (auto-revert-mode 1)
+                   (display-fill-column-indicator-mode 1) (hl-line-mode 1))))
 
 (add-hook 'before-save-hook 'whitespace-cleanup)
 (add-hook 'find-file-hook #'+project-tags-load)
 
 (load-theme 'modus-vivendi t)
-
-;; (mapcar #'cdr *repl-table*)
 
 (provide 'init)
 ;;; init.el ends here
