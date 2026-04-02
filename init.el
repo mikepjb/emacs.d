@@ -75,8 +75,13 @@
 (dolist (mode *general-modes*) (funcall mode 1))
 
 ;;; Editor Settings
-(setq-default truncate-lines t)
+(setq-default truncate-lines t
+	      indent-tabs-mode nil tab-width 2 standard-indent 2
+	      display-fill-column-indicator-column 80)
+
 (setq whitespace-style '(face trailing tabs empty indentation::space)
+
+
       )
 
 (defconst *editing-modes*
