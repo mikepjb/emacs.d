@@ -2,7 +2,7 @@
 ;;; repl + repl lookup (rebind man bind?)
 ;; PATH, hardcode.. or defer bash via process?
 
-(defconst +project-definitions
+(defconst *project-identifiers*
   '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git"))
 
 (defun +compile ()
@@ -21,6 +21,7 @@
 (defconst *bindings*
   `(("M-o" other-window) ("M-O" delete-other-windows)
     ("M-s" save-buffer)
+    ("M-C" ,(il (comint-run "navi")))
     ("C-c C-l" flycheck-list-errors)
     ("C-c i" ,(ff user-emacs-directory "init.el"))
     ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
@@ -31,9 +32,12 @@
     ("C-c k" split-window-below)
     ("C-c l" split-window-right)
     ("M-T" eshell)
+    ("M-/" replace-string)
     ("M-n" forward-paragraph) ;; more ergo than M-{} but not that easy
     ("M-p" backward-paragraph)
     ("C-w" +kill-region-or-backward-word)
+    ("M-i" rgrep)
+    ("M-K" kill-whole-line)
     ("M-k" +lisp-forward-barf)
     ("M-l" +lisp-forward-slurp)
     ("C-c s" +lisp-splice-sexp)
@@ -80,8 +84,6 @@
 	      display-fill-column-indicator-column 80)
 
 (setq whitespace-style '(face trailing tabs empty indentation::space)
-
-
       )
 
 (defconst *editing-modes*
@@ -185,9 +187,11 @@
 
 (defun +local-ai ()
   (interactive)
-  (start-process "llama-server" "*llama-server*"
-		 "llama-server" "--port" "7777"
-		 "--model" "~/models/Qwen3.5-9B-UD-Q3_K_XL.gguf"))
+  (start-process
+   "llama-server" "*llama-server*"
+   "llama-server" "--port" "7777"
+   "--model" (expand-file-name
+	      "~/models/Qwen3.5-9B-UD-Q3_K_XL.gguf")))
 
 (load-theme 'modus-vivendi t)
 
@@ -223,7 +227,7 @@
 (defmacro +with-context (&rest body)
   `(let ((default-directory
 	  (or (cl-some (lambda (f) (locate-dominating-file default-directory f))
-		       +project-definitions)
+		       *project-identifiers*)
 	      default-directory)))
      ,@body))
 
@@ -231,7 +235,7 @@
   "Manually generate tags for current project."
   (interactive)
   (when-let ((project-root (cl-some (lambda (f) (locate-dominating-file default-directory f))
-				    +project-definitions)))
+				    *project-identifiers*)))
     (let ((tags-file (expand-file-name (format "~/.emacs.d/.tag-store/%s.tags"
 					       (file-name-nondirectory (directory-file-name project-root))))))
       (ignore-errors (make-directory (file-name-directory tags-file) t))
@@ -242,12 +246,15 @@
 		  "--languages=all" "--exclude=node_modules" ,project-root)
        :sentinel (lambda (_ event)
 		   (when (string-match-p "finished" event)
-		     (message "Tags generated at %s" tags-file)))))))
+		     (message "Tags generated at %s" tags-file))))
+      (when (file-exists-p tags-file) ;; assign newly generated tags file
+	(setq-local tags-table-list (list tags-file))
+	(visit-tags-table tags-file t)))))
 
 (defun +project-tags-load ()
   "Load tags file for current project if it exists."
   (when-let ((project-root (cl-some (lambda (f) (locate-dominating-file default-directory f))
-				    +project-definitions)))
+				    *project-identifiers*)))
     (let ((tags-file (expand-file-name (format "~/.emacs.d/.tag-store/%s.tags"
 					       (file-name-nondirectory (directory-file-name project-root))))))
       (when (file-exists-p tags-file)
