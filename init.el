@@ -1,4 +1,4 @@
-;;;
+;;; repl + repl lookup (rebind man bind?)
 
 (defconst +project-definitions
   '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git"))
@@ -110,10 +110,10 @@
 (use-package clojure-mode :ensure t)
 (use-package json-mode :ensure t)
 (use-package project :ensure nil)
-;; (use-package org-mode :ensure nil
-;;   :custom
-;;   (org-hide-emphasis-markers t)
-;;   (org-export-with-section-numbers nil))
+(use-package org :ensure nil
+  :custom
+  (org-hide-emphasis-markers t)
+  (org-export-with-section-numbers nil))
 
 (use-package flycheck
   :ensure nil
@@ -160,7 +160,6 @@
 		 "llama-server" "--port" "7777"
 		 "--model" "~/models/Qwen3.5-9B-UD-Q3_K_XL.gguf"))
 
-
 (load-theme 'modus-vivendi t)
 
 ;;; Modeline
@@ -199,114 +198,31 @@
 	      default-directory)))
      ,@body))
 
-;; -- Tags ---------------------------------------------------------------------
-
-(defun +generate-tags ()
-  "Generate ctags for your current project."
+(defun +project-tags-generate ()
+  "Manually generate tags for current project."
   (interactive)
-  (+with-context
-   (let ((project-root (expand-file-name default-directory)))
-     (if (file-exists-p "deps.edn")
-	 (+generate-tags-clojure project-root)
-       (+run-ctags-project project-root)))))
-
-
-(defun +generate-tags-clojure (project-root)
-  "Generate tags for a Clojure project with deps.edn."
-  (+generate-tags-clojure-deps
-   (lambda (jars)
-     (let* ((project-name (file-name-nondirectory (directory-file-name project-root)))
-	    (target-dir (expand-file-name (format "~/.local/src/%s" project-name))))
-       (unless (file-exists-p target-dir)
-	 (make-directory target-dir t))
-       (+extract-jars jars target-dir
-		      (lambda ()
-			(+run-ctags-clojure project-root target-dir)))))))
-
-  (defun +run-ctags-clojure (project-root extracted-dir)
-    "Run ctags on Clojure sources (project src + extracted jars)."
+  (when-let ((project-root (cl-some (lambda (f) (locate-dominating-file default-directory f))
+				    +project-definitions)))
     (let ((tags-file (expand-file-name (format "~/.emacs.d/.tag-store/%s.tags"
-						(file-name-nondirectory (directory-file-name project-root))))))
-      (unless (file-exists-p (file-name-directory tags-file))
-	(make-directory (file-name-directory tags-file) t))
+					       (file-name-nondirectory (directory-file-name project-root))))))
+      (ignore-errors (make-directory (file-name-directory tags-file) t))
       (make-process
-       :name "clojure-ctags"
-       :buffer (get-buffer-create "*clojure-ctags*")
-       :command `("ctags" "--output-format=etags"
-		  "-f" ,tags-file
-		  "-R"
-		  "--languages=clojure,css"
-		  "--regex-css=/\\.([A-Za-z0-9_-]+) *[,{]/\\1/c,class/"
-		  "--regex-css=/^[ \t]+\\.([A-Za-z0-9_-]+) *[,{]/\\1/c,class/"
-		  "--regex-css=/,[[:space:]]*\\.([A-Za-z0-9_-]+)/\\1/c,class/"
-		  "--regex-clojure=/\\(def[^n][[:space:]]+([^[:space:]]+)/\\1/d,def/"
-		  "--regex-clojure=/\\(defn-?[[:space:]]+([^[:space:]]+)/\\1/f,defn/"
-		  "--regex-clojure=/\\(defmacro[[:space:]]+([^[:space:]]+)/\\1/m,macro/"
-		  "--regex-clojure=/\\(defmulti[[:space:]]+([^[:space:]]+)/\\1/M,multi/"
-		  "--regex-clojure=/\\(defrecord[[:space:]]+([^[:space:]]+)/\\1/r,record/"
-		  "--regex-clojure=/\\(defprotocol[[:space:]]+([^[:space:]]+)/\\1/p,protocol/"
-		  "--regex-clojure=/\\(ns[[:space:]]+([^[:space:]]+)/\\1/n,namespace/"
-		  ,project-root
-		  ,extracted-dir)
+       :name "ctags"
+       :buffer (get-buffer-create "*ctags*")
+       :command `("ctags" "--output-format=etags" "-f" ,tags-file "-R"
+		  "--languages=all" "--exclude=node_modules" ,project-root)
        :sentinel (lambda (_ event)
 		   (when (string-match-p "finished" event)
-		     (message "Clojure tags generated at %s" tags-file))))))
+		     (message "Tags generated at %s" tags-file)))))))
 
-(defun +generate-tags-clojure-deps (on-jars)
-  "Get classpath, filter .jars, pass to ON-JARS callback."
-  (make-process
-   :name "clj-spath"
-   :buffer (get-buffer-create "*clj-spath*")
-   :command '("clojure" "-Spath")
-   :sentinel (lambda (proc event)
-	       (when (string= event "finished\n")
-		 (with-current-buffer (process-buffer proc)
-		   (let* ((paths (split-string (string-trim (buffer-string)) ":"))
-			  (jars (delete-dups
-				 (seq-filter (lambda (p) (string-suffix-p ".jar" p)) paths))))
-		     (funcall on-jars jars)))))))
-
-(defun +extract-jars (jars target-dir on-complete)
-  "Extract JARS to TARGET-DIR in parallel, call ON-COMPLETE when all done."
-  (let ((remaining (length jars)))
-    (dolist (jar jars)
-      (make-process
-       :name (format "jar-extract-%s" (file-name-nondirectory jar))
-       :command `("sh" "-c" ,(format "cd %s && jar xf %s" target-dir jar))
-       :sentinel (lambda (_ event)
-		   (when (string-match-p "finished" event)
-		     (message "Extracted: %s" jar)
-		     (setq remaining (1- remaining))
-		     (when (= remaining 0)
-		       (funcall on-complete))))))))
-
-(defun +run-ctags-project (project-root)
-  "Run ctags on project sources (all languages)."
-  (let ((tags-file (expand-file-name (format "~/.emacs.d/.tag-store/%s.tags"
-					      (file-name-nondirectory (directory-file-name project-root))))))
-    (ignore-errors (make-directory (file-name-directory tags-file) t))
-    (make-process
-     :name "ctags"
-     :buffer (get-buffer-create "*ctags*")
-     :command `("ctags" "--output-format=etags"
-		"-f" ,tags-file
-		"-R"
-		"--languages=all"
-		"--exclude=node_modules"
-		,project-root)
-     :sentinel (lambda (_ event)
-		 (when (string-match-p "finished" event)
-		   (message "Tags generated at %s" tags-file))))))
-
-(defun +setup-project-tags ()
+(defun +project-tags-load ()
   "Load tags file for current project if it exists."
   (when-let ((project-root (cl-some (lambda (f) (locate-dominating-file default-directory f))
 				    +project-definitions)))
-    (let ((tags-file (expand-file-name
-		      (format "~/.emacs.d/.tag-store/%s.tags"
-			      (file-name-nondirectory (directory-file-name project-root))))))
+    (let ((tags-file (expand-file-name (format "~/.emacs.d/.tag-store/%s.tags"
+					       (file-name-nondirectory (directory-file-name project-root))))))
       (when (file-exists-p tags-file)
 	(setq-local tags-table-list (list tags-file))
 	(visit-tags-table tags-file t)))))
 
-(add-hook 'find-file-hook #'+setup-project-tags)
+(add-hook 'find-file-hook #'+project-tags-load)
