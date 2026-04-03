@@ -30,3 +30,4 @@ elfeed/
 gnus/
 newsticker/
 .tag-store/
+.authinfo.gpg

@@ -22,24 +22,27 @@
     (set meta-key 'meta)))
 
 (setq isearch-wrap-pause 'no
+      inhibit-startup-screen t
       ring-bell-function 'ignore
       create-lockfiles nil
       use-short-answers t
       frame-resize-pixelwise t
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
       large-file-warning-threshold (* 512 1024 1024) ; 500MB
-      auth-sources `,(concat user-emacs-directory ".authinfo.gpg"))
+      custom-file (concat user-emacs-directory "local.el")
+      auth-sources (concat user-emacs-directory ".authinfo.gpg")
+      package-archives (if-let ((mirror (getenv "EMACS_PACKAGE_MIRROR")))
+                           `(("local" . ,mirror))
+                         '(("melpa" . "https://melpa.org/packages/")
+                           ("gnu" . "https://elpa.gnu.org/packages/"))))
 
-(setq custom-file (concat user-emacs-directory "local.el"))
 (load custom-file t)
 
-;; Appearance
-(setq inhibit-startup-screen t)
 (menu-bar-mode -1)
 (when window-system
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
-  (fringe-mode -1)
+  (fringe-mode 0) ;; not actually a minor mode!
 
   (set-face-attribute
    'default nil
@@ -64,20 +67,20 @@
     (:eval (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
     " "))
 
-(defconst *general-modes*
-  '(fido-vertical-mode
-    global-auto-revert-mode
-    save-place-mode
-    savehist-mode))
-
-(dolist (mode *general-modes*) (funcall mode 1))
+(dolist (mode ;; global minor modes
+         '(fido-vertical-mode
+           global-auto-revert-mode
+           save-place-mode
+           savehist-mode))
+  (funcall mode 1))
 
 ;;; Editor Settings:
 
-(setq-default truncate-lines t
-              indent-tabs-mode nil tab-width 2 standard-indent 2
-              display-fill-column-indicator-column 80
-              whitespace-style '(face trailing tabs empty indentation::space))
+(setq-default
+ truncate-lines t
+ indent-tabs-mode nil tab-width 2 standard-indent 2
+ display-fill-column-indicator-column 80
+ whitespace-style '(face trailing tabs empty indentation::space))
 
 (defconst *editing-modes*
   '(show-paren-mode
@@ -101,20 +104,20 @@
 (defmacro il (&rest body) `(lambda () (interactive) ,@body))
 (defmacro ff (&rest path) `(il (find-file (concat ,@path))))
 
-(defun center-prose (buf)
-  (when (buffer-live-p buf)
-    (dolist (win (get-buffer-window-list buf nil 'visible))
-      (let ((margin (max 0 (round (/ (- (window-body-width win t)
-          (* 80 (frame-char-width)))
-             2.0 (frame-char-width))))))
-  (set-window-margins win margin margin)))))
+;; (defun center-prose (buf)
+;;   (when (buffer-live-p buf)
+;;     (dolist (win (get-buffer-window-list buf nil 'visible))
+;;       (let ((margin (max 0 (round (/ (- (window-body-width win t)
+;;           (* 80 (frame-char-width)))
+;;              2.0 (frame-char-width))))))
+;;   (set-window-margins win margin margin)))))
 
-(defun prose-config ()
-  (visual-line-mode 1)
-  (let ((buf (current-buffer)))
-    (add-hook 'window-size-change-functions
-        (lambda (&rest _) (center-prose buf))
-        nil t)))
+;; (defun prose-config ()
+;;   (visual-line-mode 1)
+;;   (let ((buf (current-buffer)))
+;;     (add-hook 'window-size-change-functions
+;;         (lambda (&rest _) (center-prose buf))
+;;         nil t)))
 
 (defun +kill-region-or-backward-word ()
   (interactive)
@@ -183,11 +186,10 @@
      ('minibuffer-mode 'previous-matching-history-element)
      (_ 'paredit-raise-sexp))))
 
-;; Input/Keybinds ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Input/Keybinds:
 
 (dolist (bind
          `(
-           ("M-s" save-buffer)
            ("M-C" ,(il (comint-run "navi")))
            ("C-c C-l" flycheck-list-errors)
            ("C-c i" ,(ff user-emacs-directory "init.el"))
@@ -209,7 +211,6 @@
            ("M-i" rgrep)
            ("C-c g" vc-dir-root)
            ("C-c C-g" vc-print-root-log)
-
            ("M-T" eshell)
 
            ;; Editing
@@ -221,6 +222,7 @@
            ("C-h" delete-backward-char)
            ("C-j" newline) ;; autoindents
            ("M-j" ,(il (join-line -1)))
+           ("M-s" save-buffer)
 
            ("M-D" duplicate-line)
 
@@ -239,6 +241,12 @@
 (use-package clojure-mode :ensure t)
 (use-package json-mode :ensure t)
 (use-package project :ensure nil)
+(use-package olivetti :ensure t
+  :custom
+  (olivetti-style nil)
+  (olivetti-body-width 80)
+  :hook (text-mode-hook . olivetti-mode))
+
 (use-package org :ensure nil
   :custom
   (org-ellipsis " ▼")
@@ -246,7 +254,7 @@
   (org-export-with-section-numbers nil)
   (org-hide-emphasis-markers t)
   (org-export-with-section-numbers nil)
-  :hook (org-mode-hook . (lambda () (prose-config) (org-indent-mode))))
+  :hook (org-mode . org-indent-mode))
 
 (use-package paredit :ensure t
   :hook ((clojure-mode-hook

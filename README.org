@@ -1,4 +1,4 @@
-* 🔱 Emacs
+n* 🔱 Emacs
 
 /An environment for writing software./
 
@@ -33,6 +33,11 @@ git clone https://github.com/mikepjb/emacs.d.git ~/.emacs.d
 brew install universal-ctags # or use your package manager
 brew link --overwrite universal-ctags
 #+end_src
+
+*** Post-setup tips
+
+Use ~gpg --output .authinfo.gpg --symmetric .authinfo~ to generate a
+credential store, incase you want to keep secrets.
 
 ** Key Features
 
