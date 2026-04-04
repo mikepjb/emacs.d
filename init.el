@@ -314,9 +314,11 @@
   :custom
   (vc-handled-backends '(Git))
   (vc-git-diff-switches '("--stat" "-p"))
-  ;; :hook ('log-edit-mode-hook . #'vc-diff)
-  ;; (remove-hook 'log-edit-hook #'log-edit-show-files)
-  )
+  :config
+  (remove-hook 'log-edit-hook #'log-edit-show-files))
+
+(use-package diff-mode :ensure nil
+  :bind (:map diff-mode-map ("M-o" . nil)))
 
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()

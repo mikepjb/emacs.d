@@ -1,4 +1,4 @@
-n* 🔱 Emacs
+* 🔱 Emacs
 
 /An environment for writing software./
 
@@ -53,7 +53,7 @@ credential store, incase you want to keep secrets.
 
 *** Version Control (vc > magit)
 - ~C-c g~ - vc-dir status window
-- ~C-c d~ - Show diff
+- ~C-c C-d~ - Show diff (useful when committing)
 - ~C-c h~ - File/region history
 
 *** Window Management
