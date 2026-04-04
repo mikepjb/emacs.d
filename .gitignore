@@ -31,3 +31,4 @@ gnus/
 newsticker/
 .tag-store/
 .authinfo.gpg
+org-clock-save.el

@@ -186,6 +186,20 @@
      ('minibuffer-mode 'previous-matching-history-element)
      (_ 'paredit-raise-sexp))))
 
+(defun +time-current-tasks ()
+  "Clock in when entering CURRENT, clock out when leaving."
+  (when (and (bound-and-true-p org-state)
+             )
+    (if (string= org-state "CURRENT")
+        (org-clock-in)
+      (when (string= org-from-state "CURRENT")
+        (org-clock-out nil t)))))
+
+(defun +org-clock-todo-change ()
+  (if (string= org-state "CURRENT")
+      (org-clock-in)
+    (org-clock-out-if-current)))
+
 ;;; Input/Keybinds:
 
 (dolist (bind
@@ -198,6 +212,7 @@
            ("C-c P" ,(ff "~/src"))
            ("M-RET" toggle-frame-fullscreen)
            ("M-H" ,help-map)
+           ("C-c a" org-agenda-list)
 
            ;; Split management
            ("C-c k" ,(il (select-window (split-window-below))))
@@ -254,7 +269,25 @@
   (org-export-with-section-numbers nil)
   (org-hide-emphasis-markers t)
   (org-export-with-section-numbers nil)
-  :hook (org-mode . org-indent-mode))
+  (org-todo-keywords
+   '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
+  (org-todo-keyword-faces
+   '(("TODO"      . (:foreground "#ff6c6b" :weight bold))
+     ("NEXT"      . (:foreground "#51afef" :weight bold))
+     ("CURRENT"   . (:foreground "#ef51af" :weight bold))
+     ("DONE"      . (:foreground "#98be65"))
+     ("CANCELLED" . (:foreground "#5B6268" :strike-through t))))
+  ;; Log DONE time into LOGBOOK drawer
+  (org-log-done 'time)
+  (org-log-into-drawer t)
+  ;; Clock tracking
+  (org-clock-persist 'history)
+  (org-clock-in-resume t)
+  ;; Agenda files — point at your org dir
+  (org-agenda-files '("~/.emacs.d/notes/"))
+  :hook ((org-mode . org-indent-mode)
+         (org-after-todo-state-change . +org-clock-todo-change))
+  :config (org-clock-persistence-insinuate))
 
 (use-package paredit :ensure t
   :hook ((clojure-mode-hook
@@ -278,7 +311,12 @@
   :hook (compilation-filter-hook ansi-color-compilation-filter))
 
 (use-package vc :ensure nil
-  :hook ('log-edit-mode-hook . #'log-edit-diff))
+  :custom
+  (vc-handled-backends '(Git))
+  (vc-git-diff-switches '("--stat" "-p"))
+  ;; :hook ('log-edit-mode-hook . #'vc-diff)
+  ;; (remove-hook 'log-edit-hook #'log-edit-show-files)
+  )
 
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
