@@ -185,7 +185,6 @@
 
 (dolist (bind
          `(
-           ("M-C" ,(il (comint-run "navi")))
            ("C-c C-l" flycheck-list-errors)
            ("C-c i" ,(ff user-emacs-directory "init.el"))
            ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
@@ -194,6 +193,7 @@
            ("M-RET" toggle-frame-fullscreen)
            ("M-H" ,help-map)
            ("C-c a" org-agenda-list)
+           ("C-z" nil)
 
            ;; Split management
            ("C-c k" ,(il (select-window (split-window-below))))
@@ -224,8 +224,7 @@
            ("M-D" duplicate-line)
 
            ("C-c m" recompile)  ("C-c M" +compile)
-           ("C-;" execute-extended-command)
-           ;; ("C-;" dabbrev-expand)
+           ("C-;" completion-at-point)
            ("C-c C-s" ,search-map)))
   (global-set-key (kbd (car bind)) (cadr bind)))
 
@@ -259,13 +258,10 @@
      ("CURRENT"   . (:foreground "#ef51af" :weight bold))
      ("DONE"      . (:foreground "#98be65"))
      ("CANCELLED" . (:foreground "#5B6268" :strike-through t))))
-  ;; Log DONE time into LOGBOOK drawer
   (org-log-done 'time)
   (org-log-into-drawer t)
-  ;; Clock tracking
   (org-clock-persist 'history)
   (org-clock-in-resume t)
-  ;; Agenda files — point at your org dir
   (org-agenda-files '("~/.emacs.d/notes/"))
   :hook ((org-mode . org-indent-mode)
          (org-after-todo-state-change . +org-clock-todo-change))
@@ -282,7 +278,7 @@
               ("M-r" . +paredit-M-r)
               ("M-k" . paredit-forward-barf-sexp)
               ("M-l" . paredit-forward-slurp-sexp)
-              ("C-;" . paredit-splice-sexp)
+              ("C-z" . paredit-splice-sexp)
               ("M-s" . nil)))
 
 (use-package flycheck
