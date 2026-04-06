@@ -77,6 +77,7 @@
            savehist-mode))
   (funcall mode 1))
 
+
 ;;; Editor Settings:
 
 (setq-default
@@ -150,6 +151,10 @@
       :command '("ctags" "-eR" "-f" ".tags" "--exclude=node_modules" ".")
       :sentinel (lambda (_ e) (message "ctags: %s" (string-trim e)))))))
 
+(defun +project-tags-load ()
+  (when-let ((f (locate-dominating-file default-directory ".tags")))
+    (visit-tags-table (expand-file-name ".tags" f) t)))
+
 (defun +flow-truncate-buffer-name ()
   "Show right 1/3 of buffer name, prepend '<' if truncated."
   (let* ((name (if buffer-file-name
@@ -188,7 +193,7 @@
            ("C-c C-l" flycheck-list-errors)
            ("C-c i" ,(ff user-emacs-directory "init.el"))
            ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
-           ("C-c p" project-find-files)
+           ("C-c p" project-find-file)
            ("C-c P" ,(ff "~/src"))
            ("M-RET" toggle-frame-fullscreen)
            ("M-H" ,help-map)
@@ -241,6 +246,10 @@
   :custom
   (olivetti-style nil)
   (olivetti-body-width 80)
+  :bind (:map org-mode-map
+              ("M-RET" . nil)
+              ;; ("M-RET" . org-meta-return) ;; TODO needs new binding
+              )
   :hook ((org-mode-hook
           markdown-mode-hook)
          . olivetti-mode))
@@ -298,24 +307,58 @@
 (use-package diff-mode :ensure nil
   :bind (:map diff-mode-map ("M-o" . nil)))
 
+(use-package grep
+  :ensure nil
+  :config
+  (defvar +rg-available (executable-find "rg"))
+
+  (when +rg-available
+    (grep-apply-setting
+     'grep-command "rg --no-heading --color=never -nH -e ")
+    (grep-apply-setting
+     'grep-find-command
+     '("rg --no-heading --color=never -nH -r -e ''" . 46)))
+
+  (when +rg-available
+    (setq xref-search-program 'ripgrep))
+
+  (defun +grep-project (regexp)
+    "Search REGEXP recursively from the project root."
+    (interactive "sSearch: ")
+    (+with-context
+     (grep (concat (if +rg-available
+                       "rg --no-heading --color=never -nH -r -e "
+                     "grep -rn --color=never -e ")
+                   (shell-quote-argument regexp)
+                   " ."))))
+
+  :bind
+  ("M-i" . +grep-project))
+
+(use-package gptel
+  :config
+  (gptel-make-openai "fireworks"
+    :host "api.fireworks.ai"
+    :endpoint "/inference/v1/chat/completions"
+    :stream t
+    :key (lambda () (auth-source-pick-first-password :host "api.fireworks.ai"))
+    :models '(accounts/fireworks/models/kimi-k2p5
+              accounts/fireworks/models/glm-4p7))
+
+  (gptel-make-openai "gemini"
+    :host "generativelanguage.googleapis.com"
+    :endpoint "/v1beta/openai/chat/completions"
+    :stream t
+    :key (lambda () (auth-source-pick-first-password :host "generativelanguage.googleapis.com"))
+    :models '(gemini-3-flash-preview))
+
+  (setq gptel-backend (gptel-get-backend "fireworks")
+        gptel-model  'accounts/fireworks/models/kimi-k2p5))
+
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
                    (display-line-numbers-mode 1) (column-number-mode 1)
                    (display-fill-column-indicator-mode 1) (hl-line-mode 1))))
-
-(defun +project-tags-generate ()
-  (interactive)
-  (+with-context
-   (let ((default-directory default-directory))
-     (make-process
-      :name "ctags"
-      :buffer nil
-      :command '("ctags" "-eR" "-f" ".tags" "--exclude=node_modules" ".")
-      :sentinel (lambda (_ e) (message "ctags: %s" (string-trim e)))))))
-
-(defun +project-tags-load ()
-  (when-let ((f (locate-dominating-file default-directory ".tags")))
-    (visit-tags-table (expand-file-name ".tags" f) t)))
 
 (add-hook 'before-save-hook 'whitespace-cleanup)
 (add-hook 'find-file-hook #'+project-tags-load)
