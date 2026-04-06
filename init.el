@@ -92,7 +92,7 @@
 
 (defmacro +with-context (&rest body)
   `(let ((default-directory
-          (or (cl-some (lambda (f) (locate-dominating-file default-directory f))
+          (or (seq-some (lambda (f) (locate-dominating-file default-directory f))
                        *project-identifiers*)
               default-directory)))
      ,@body))
@@ -186,6 +186,18 @@
       (org-clock-in)
     (org-clock-out-if-current)))
 
+(defun +read-stacktrace ()
+  "Open clipboard contents in a compilation buffer for navigation."
+  (interactive)
+  (let ((buf (get-buffer-create "*stacktrace*")))
+    (with-current-buffer buf
+      (setq buffer-read-only nil)
+      (erase-buffer)
+      (insert (current-kill 0))
+      (compilation-mode)
+      (goto-char (point-min)))
+    (pop-to-buffer buf)))
+
 ;;; -Input/Keybinds:
 
 (dolist (bind
@@ -197,8 +209,9 @@
            ("C-c P" ,(ff "~/src"))
            ("M-RET" toggle-frame-fullscreen)
            ("M-H" ,help-map)
-           ("C-c a" org-agenda-list)
+           ("C-c a" ,(il (org-agenda nil "a")))
            ("C-z" nil)
+           ("M-_" gptel)
 
            ;; Split management
            ("C-c k" ,(il (select-window (split-window-below))))
@@ -267,11 +280,21 @@
      ("CURRENT"   . (:foreground "#ef51af" :weight bold))
      ("DONE"      . (:foreground "#98be65"))
      ("CANCELLED" . (:foreground "#5B6268" :strike-through t))))
+  (org-agenda-start-with-log-mode t)
+  (org-agenda-log-mode-items '(clock closed))
   (org-log-done 'time)
   (org-log-into-drawer t)
   (org-clock-persist 'history)
   (org-clock-in-resume t)
-  (org-agenda-files '("~/.emacs.d/notes/"))
+  (org-directory "~/.emacs.d/notes")
+  (org-agenda-files '("~/.emacs.d/notes"))
+  (org-agenda-custom-commands
+   '(("a" "Agenda + Unscheduled TODOs"
+      ((agenda "")
+       (todo "TODO|NEXT|CURRENT"
+             ((org-agenda-skip-function
+               '(org-agenda-skip-entry-if 'scheduled 'deadline 'timestamp))
+              (org-agenda-overriding-header "Unscheduled TODOs")))))))
   :hook ((org-mode . org-indent-mode)
          (org-after-todo-state-change . +org-clock-todo-change))
   :config (org-clock-persistence-insinuate))
