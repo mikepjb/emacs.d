@@ -1,15 +1,30 @@
 ;;; Package --- init -------- -*- lexical-binding: t; -*-
+;;
+;;  Package-Requires: ((emacs "30.1"))
 
 ;;; Commentary:
-;;; A Spartan Emacs configuration.
-;;;
-;;; This is designed to be a minimal environment that is stable, to
-;;; help the user get things done!
+;;  A Spartan Emacs configuration.
+;;
+;;  This is designed to be a minimal environment that is stable, to
+;;  help the user get things done!
+
+;;; Development Notes:
+;;
+;;  Consider using outline-minor-mode
+;;  Consider using fewer/no packages
+;;  Consider using flow-theme.el BUT refine colors etc before embarking on this mission.
+;;  also ^^ modeus vivendi is awesome either way.
+;;  Consider checking for external deps.. ripgrep/clojure/curl etc.
+;;  Consider newsticker
+;;  Consider your own olivetti again.
+;;  Consider popper-mode.
 
 ;;; Code:
 
 ;;; Configuration:
 
+;; possibly
+;;(project-vc-extra-root-markers '("Cargo.toml" "package.json" "go.mod")) ; Excelent for mono repos with multiple langs, makes Eglot happy
 (defconst *project-identifiers*
   '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git"))
 
@@ -17,8 +32,8 @@
   '((python-mode      run-python)
     (ruby-mode        comint-run "irb")
     (emacs-lisp-mode  ielm)
-    (edn-mode         inferior-lisp "clojure")
-    (clojure-mode     inferior-lisp "clojure")))
+    (edn-mode         inferior-lisp "clojure -A:dev")
+    (clojure-mode     inferior-lisp "clojure -A:dev")))
 
 (dolist (meta-key '(mac-command-modifier x-super-keysym))
   (when (boundp meta-key)
@@ -26,10 +41,20 @@
 
 (setq isearch-wrap-pause 'no
       inhibit-startup-screen t
+      split-width-threshold 170
+      split-height-threshold nil
       ring-bell-function 'ignore
-      create-lockfiles nil
+      use-dialog-box nil
+      use-file-dialog nil
       use-short-answers t
       frame-resize-pixelwise t
+      completion-ignore-case t
+      global-goto-address-mode t
+      create-lockfiles nil
+      make-backup-files nil
+      pixel-scroll-precision-mode t
+      scroll-conservatively 8
+      scroll-margin 5
       backup-directory-alist `(("." . ,(concat user-emacs-directory "saves")))
       large-file-warning-threshold (* 512 1024 1024) ; 500MB
       custom-file (concat user-emacs-directory "local.el")
@@ -38,6 +63,13 @@
                            `(("local" . ,mirror))
                          '(("melpa" . "https://melpa.org/packages/")
                            ("gnu" . "https://elpa.gnu.org/packages/"))))
+
+(modify-coding-system-alist 'file "" 'utf-8)
+
+(add-to-list 'save-some-buffers-action-alist
+               (list "d"
+                     (lambda (buffer) (diff-buffer-with-file (buffer-file-name buffer)))
+                     "show diff between the buffer and its file"))
 
 (load custom-file t)
 
@@ -198,7 +230,7 @@
       (goto-char (point-min)))
     (pop-to-buffer buf)))
 
-;;; -Input/Keybinds:
+;;; Input/Keybinds:
 
 (dolist (bind
          `(
@@ -280,13 +312,13 @@
      ("CURRENT"   . (:foreground "#ef51af" :weight bold))
      ("DONE"      . (:foreground "#98be65"))
      ("CANCELLED" . (:foreground "#5B6268" :strike-through t))))
-  (org-agenda-start-with-log-mode t)
-  (org-agenda-log-mode-items '(clock closed))
   (org-log-done 'time)
   (org-log-into-drawer t)
   (org-clock-persist 'history)
   (org-clock-in-resume t)
   (org-directory "~/.emacs.d/notes")
+  (org-agenda-start-with-log-mode t)
+  (org-agenda-log-mode-items '(clock closed))
   (org-agenda-files '("~/.emacs.d/notes"))
   (org-agenda-custom-commands
    '(("a" "Agenda + Unscheduled TODOs"
@@ -298,6 +330,20 @@
   :hook ((org-mode . org-indent-mode)
          (org-after-todo-state-change . +org-clock-todo-change))
   :config (org-clock-persistence-insinuate))
+
+;; (use-package which-key
+;;   :defer t
+;;   :ensure nil
+;;   :hook
+;;   (after-init-hook . which-key-mode)
+;;   :config
+;;   (setq which-key-separator " ")
+;;   (setq which-key-prefix-prefix "… ")
+;;   (setq which-key-max-display-columns 3)
+;;   (setq which-key-idle-delay 0.5)
+;;   (setq which-key-idle-secondary-delay 0.25)
+;;   (setq which-key-add-column-padding 1)
+;;   (setq which-key-max-description-length 40))
 
 (use-package paredit :ensure t
   :hook ((clojure-mode-hook
@@ -314,20 +360,36 @@
               ("M-s" . nil)))
 
 (use-package flycheck
-  :ensure nil
+  :ensure t
   :config (global-flycheck-mode 1))
 
-(use-package ansi-color :ensure nil
-  :hook (compilation-filter-hook ansi-color-compilation-filter))
+(use-package compile :ensure nil
+  :custom
+  (compilation-always-kill t)
+  (compilation-scroll-output t)
+  (ansi-color-for-compilation-mode t))
+
+(use-package js :ensure nil
+  :custom
+  (js-indent-level 2))
 
 (use-package vc :ensure nil
   :custom
   (vc-handled-backends '(Git))
+  (vc-auto-revert-mode t)
+  (vc-git-diff-switches '("--patch-with-stat" "histogram"))
+  (vc-git-log-switches '("--stat"))
+  (vc-git-log-edit-summary-target-len 50)
+  (vc-git-print-log-follow t)
+  (vc-git-show-stash 0)
+  (vc-dir-hide-up-to-date-on-revert t)
+  (vc-make-backup-files nil)
   (vc-git-diff-switches '("--stat" "-p"))
   :config
   (remove-hook 'log-edit-hook #'log-edit-show-files))
 
 (use-package diff-mode :ensure nil
+  :defer t
   :bind (:map diff-mode-map ("M-o" . nil)))
 
 (use-package grep
@@ -354,9 +416,30 @@
                      "grep -rn --color=never -e ")
                    (shell-quote-argument regexp)
                    " ."))))
-
   :bind
   ("M-i" . +grep-project))
+
+(use-package dired
+  :ensure nil
+  :custom (dired-kill-when-opening-new-dired-buffer t))
+
+(use-package eshell
+  :ensure nil
+  :custom
+  (eshell-visual-commands '("vi" "vim" "nvim" "top" "htop" "less" "more" "psql" "sqlite3" "w3m"))
+  :config
+  (setopt eshell-banner-message ""))
+
+(use-package proced
+  :ensure nil
+  :defer t
+  :custom
+  (proced-enable-color-flag t)
+  (proced-tree-flag t)
+  (proced-auto-update-flag 'visible)
+  (proced-auto-update-interval 1)
+  (proced-descent t)
+  (proced-filter 'user))
 
 (use-package gptel
   :config
@@ -381,6 +464,7 @@
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
                    (display-line-numbers-mode 1) (column-number-mode 1)
+                   (completion-preview-mode 1)
                    (display-fill-column-indicator-mode 1) (hl-line-mode 1))))
 
 (add-hook 'before-save-hook 'whitespace-cleanup)
