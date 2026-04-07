@@ -443,6 +443,13 @@
 
 (use-package gptel
   :config
+  (gptel-make-openai "llama.cpp"
+    :host "127.0.0.1:7777"
+    :protocol "http"
+    :endpoint "/inference/v1/chat/completions"
+    :stream t
+    :models '(gemma4-26b-a4b))
+
   (gptel-make-openai "fireworks"
     :host "api.fireworks.ai"
     :endpoint "/inference/v1/chat/completions"
