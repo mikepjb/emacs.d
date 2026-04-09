@@ -327,9 +327,40 @@
              ((org-agenda-skip-function
                '(org-agenda-skip-entry-if 'scheduled 'deadline 'timestamp))
               (org-agenda-overriding-header "Unscheduled TODOs")))))))
+  (org-refile-targets
+      '((nil :maxlevel . 3)
+        ("~/.emacs.d/notes/archive.org" :maxlevel . 3)))
+  ;; Show full path in completion (e.g. "Projects/Work/Task" not just "Task")
+  (org-refile-use-outline-path t)
+  ;; Required when using outline-path — lets completing-read handle the full path
+  (org-outline-path-complete-in-steps nil)
+  ;; Allow creating new parent nodes on refile
+  (org-refile-allow-creating-parent-nodes 'confirm)
   :hook ((org-mode . org-indent-mode)
          (org-after-todo-state-change . +org-clock-todo-change))
-  :config (org-clock-persistence-insinuate))
+  :config
+  (org-clock-persistence-insinuate)
+  ;; (advice-add 'org-refile :after #'org-save-all-org-buffers)
+  (advice-add 'org-refile :after (lambda (&rest _) (org-save-all-org-buffers)))
+)
+
+(defvar my/archive-file "~/.emacs.d/notes/archive.org")
+
+(defun my/archive-task-at-point ()
+  "Archive the heading at point to archive.org under the same project."
+  (interactive)
+  (let* ((project (save-excursion
+                    (while (and (> (org-current-level) 3) (org-up-heading-safe)))
+                    (when (= (org-current-level) 3)
+                      (org-get-heading t t t t))))
+         (archive-file (expand-file-name my/archive-file))
+         (pos (when project
+                (with-current-buffer (find-file-noselect archive-file)
+                  (org-find-exact-headline-in-buffer project)))))
+    (if (not project)
+        (user-error "No level-3 project ancestor found")
+      (org-refile nil nil (list project archive-file nil pos))
+      (message "Archived under: %s" project))))
 
 ;; (use-package which-key
 ;;   :defer t
