@@ -1,14 +1,18 @@
-* 🔱 Emacs
+* 🔱 Spartan Emacs
 
 /An environment for writing software./
 
-Lightweight by design, to assist and not get in the way of developing software. This setup was created with a spartan mindset - constraints enforce deeper engagement.
+Lightweight by design, to assist and not get in the way of developing software. Constraints enforce deeper engagement.
 
 ** Philosophy
 
-*Flow over interruption.* This setup intentionally separates writing from validation. No syntax highlighting, no real-time error checking, no LSP interruptions. The goal is to write down exactly what's in your mind without tool interference, then get feedback from the actual compiler/interpreter.
+*Flow over interruption.* This setup intentionally separates writing
+from validation. Light syntax highlighting, no real-time error
+checking, no LSP interruptions. The goal is to write down exactly
+what's in your mind without tool interference, then get feedback from
+the actual compiler/interpreter.
 
-Like drawing with pen and paper vs. a diagram tool that forces you to select pre-defined shapes—sometimes the tool constraints interrupt the creative process. Code clarity emerges from clear thinking, not colorful text.
+Like drawing with pen and paper vs. a diagram tool that forces you to select pre-defined shapes—sometimes the tool constraints interrupt the creative process. Code clarity emerges from clear thinking, not colorful text and nagging errors.
 
 *Simplicity constraints:*
 - 300 lines max for source code (small enough to reason about)
@@ -16,6 +20,12 @@ Like drawing with pen and paper vs. a diagram tool that forces you to select pre
 - 80 character width limit (readability)
 - Complex projects: small/surgical changes only
 - Projects you own: make them extremely simple
+
+*Data Orientation:*
+- 100 operations on 1 structure > 10 operations on 10 structures
+- Practically, this is /why/ emacs is powerful, it brings everything
+  inside it's buffer-centric, elisp world.
+- i.e grep in emacs > grep in neovim.
 
 ** Getting Started
 
@@ -26,18 +36,26 @@ Like drawing with pen and paper vs. a diagram tool that forces you to select pre
 brew install --cask emacs  # or use your package manager
 
 # Clone this config
-git clone https://github.com/mikepjb/emacs.d.git ~/.emacs.d
-
-# Setup dependencies
-./setup.sh  # installs major-modes + paredit
-brew install universal-ctags # or use your package manager
-brew link --overwrite universal-ctags
+git clone https://github.com/mikepjb/spartan-emacs.git ~/.emacs.d
 #+end_src
 
 *** Post-setup tips
 
 Use ~gpg --output .authinfo.gpg --symmetric .authinfo~ to generate a
 credential store, incase you want to keep secrets.
+
+** Debugging
+
+~profiler-start~
+~profiler-report~
+~profiler-stop~
+
+These 3 functions will help you understand what Emacs is spending its
+time doing if you want to debug a performance issue.
+
+~emacs-init-time~ will tell you exactly how fast startup was.
+~benchmark-run~ will do 100 executions of a fn to profile GC
+usage/runtime for fine grained work on a single function/hook.
 
 ** Key Features
 

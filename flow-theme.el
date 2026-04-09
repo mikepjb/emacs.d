@@ -6,10 +6,10 @@
 
       ;; Normal/muted colors (from alacritty normal palette)
       (black          "#202020")  ; dark gray
-      (red            "#cc8faa")  ; muted magenta/pink
+      (red            "#eba0ac")  ; catppucin mocha maroon
       (green          "#8fcc9f")  ; muted green
-      (yellow         "#ccb38f")  ; muted amber
-      (blue           "#8fb3cc")  ; muted cyan-blue
+      (yellow         "#ccb38f")  ; catppucin mocha yellow
+      (blue           "#74c7ec")  ; catppucin mocha sapphire
       (magenta        "#cc8fcc")  ; muted magenta
       (cyan           "#8fcccc")  ; muted cyan
       (white          "#b8b8b8")  ; medium gray
@@ -89,7 +89,7 @@
 
    ;; Syntax highlighting - mostly monochrome
    `(font-lock-comment-face ((t (:foreground ,bright-black))))
-   `(font-lock-string-face ((t (:foreground ,fg))))
+   `(font-lock-string-face ((t (:foreground ,yellow))))
    `(font-lock-keyword-face ((t (:foreground ,fg))))
    `(font-lock-function-name-face ((t (:foreground ,blue))))
    `(font-lock-variable-name-face ((t (:foreground ,blue))))
