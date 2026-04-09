@@ -441,14 +441,26 @@
   (proced-descent t)
   (proced-filter 'user))
 
+(use-package markdown-mode
+  :ensure t
+  :custom
+  (markdown-hide-markup t))
+
 (use-package gptel
+  :custom
+  gptel-directives
+  `((default . ,(lambda ()
+                  (with-temp-buffer
+                    (insert-file-contents
+                     (concat user-emacs-directory "assistant.md"))
+                    (buffer-string)))))
   :config
   (gptel-make-openai "llama.cpp"
     :host "127.0.0.1:7777"
     :protocol "http"
     :endpoint "/v1/chat/completions"
     :stream t
-    :models '(gemma4-26b-a4b))
+    :models '(gemma4-e2b))
 
   (gptel-make-openai "fireworks"
     :host "api.fireworks.ai"
@@ -465,8 +477,28 @@
     :key (lambda () (auth-source-pick-first-password :host "generativelanguage.googleapis.com"))
     :models '(gemini-3-flash-preview))
 
-  (setq gptel-backend (gptel-get-backend "fireworks")
-        gptel-model  'accounts/fireworks/models/kimi-k2p5))
+  (setq
+   gptel-backend (gptel-get-backend "llama.cpp")
+   gptel-model  'gemma4-e2b)
+
+  (add-hook 'gptel-mode-hook #'visual-line-mode))
+
+(defun +local-llm ()
+  (interactive)
+  (make-process
+   :name "local-llm"
+   :buffer (get-buffer-create "*local-llm*")
+   :command `("llama-server"
+              "-m" ,(expand-file-name "~/models/gemma-4-E2B-it-UD-Q4_K_XL.gguf")
+              "--host" "127.0.0.1"
+              "--port" "7777"
+              "-c" "32768"
+              "--metrics"
+              "-ngl" "1"
+              "-np" "1"
+              "--temp" "0.7"
+              "--top-p" "0.95"
+              "--top-k" "64")))
 
 (dolist (hook '(prog-mode-hook css-mode-hook))
   (add-hook hook (lambda ()
@@ -475,7 +507,7 @@
                    (display-fill-column-indicator-mode 1) (hl-line-mode 1))))
 
 (add-hook 'before-save-hook 'whitespace-cleanup)
-(add-hook 'find-file-hook #'+project-tags-load)
+;; (add-hook 'find-file-hook #'+project-tags-load) ;; slow AF to run on every file change.
 
 (load-theme 'modus-vivendi t)
 
