@@ -14,13 +14,6 @@
 (setq gc-cons-threshold (* 64 1024 1024) ; 64MB
       gc-cons-percentage 0.2)
 
-(defconst *project-identifiers*
-  '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git"))
-
-(dolist (meta-key '(mac-command-modifier x-super-keysym))
-  (when (boundp meta-key)
-    (set meta-key 'meta)))
-
 (setq isearch-wrap-pause 'no
       inhibit-startup-screen t
       split-width-threshold 170
@@ -84,17 +77,6 @@
 
 ;;; Functions:
 
-(defmacro +with-context (&rest body)
-  `(let ((default-directory
-          (or (seq-some (lambda (f) (locate-dominating-file default-directory f))
-                       *project-identifiers*)
-              default-directory)))
-     ,@body))
-
-(defun +compile ()
-  (interactive)
-  (+with-context (call-interactively 'compile)))
-
 (defmacro il (&rest body) `(lambda () (interactive) ,@body))
 (defmacro ff (&rest path) `(il (find-file (concat ,@path))))
 
@@ -108,20 +90,6 @@
   (interactive)
   (if (string-match-p "/" (minibuffer-contents))
       (icomplete-fido-backward-updir) (backward-kill-word 1)))
-
-(defun +project-tags-generate ()
-  (interactive)
-  (+with-context
-   (let ((default-directory default-directory))
-     (make-process
-      :name "ctags"
-      :buffer nil
-      :command '("ctags" "-eR" "-f" ".tags" "--exclude=node_modules" ".")
-      :sentinel (lambda (_ e) (message "ctags: %s" (string-trim e)))))))
-
-(defun +project-tags-load ()
-  (when-let ((f (locate-dominating-file default-directory ".tags")))
-    (visit-tags-table (expand-file-name ".tags" f) t)))
 
 (defun +paredit-RET ()
   (interactive)
@@ -207,38 +175,15 @@
 
 (use-package clojure-mode :ensure t)
 (use-package json-mode :ensure t)
-(use-package project :ensure nil)
-(use-package olivetti :ensure t
-  :custom
-  (olivetti-style nil)
-  (olivetti-body-width 80)
-  :hook ((org-mode
-          markdown-mode)
-         . olivetti-mode))
-
-(use-package paredit :ensure t
-  :hook ((clojure-mode
-          emacs-lisp-mode
-          inferior-lisp-mode lisp-data-mode
-          eval-expression-minibuffer-setup)
-         . #'enable-paredit-mode)
-  :bind (:map paredit-mode-map
-              ("C-j" . +paredit-RET)
-              ("M-r" . +paredit-M-r)
-              ("M-k" . paredit-forward-barf-sexp)
-              ("M-l" . paredit-forward-slurp-sexp)
-              ("C-z" . paredit-splice-sexp)
-              ("M-s" . nil)))
-
-(use-package compile :ensure nil
-  :custom
-  (compilation-always-kill t)
-  (compilation-scroll-output t)
-  (ansi-color-for-compilation-mode t))
 
 (use-package js :ensure nil
   :custom
   (js-indent-level 2))
+
+(use-package markdown-mode
+  :ensure t
+  :custom
+  (markdown-hide-markup t))
 
 (use-package vc :ensure nil
   :custom
@@ -272,6 +217,7 @@
   (when +rg-available
     (setq xref-search-program 'ripgrep))
 
+  ;; TODO needs to move to context package
   (defun +grep-project (regexp)
     "Search REGEXP recursively from the project root."
     (interactive "sSearch: ")
@@ -283,6 +229,35 @@
                    " ."))))
   :bind
   ("M-i" . +grep-project))
+
+(use-package project :ensure nil)
+(use-package olivetti :ensure t
+  :custom
+  (olivetti-style nil)
+  (olivetti-body-width 80)
+  :hook ((org-mode
+          markdown-mode)
+         . olivetti-mode))
+
+(use-package paredit :ensure t
+  :hook ((clojure-mode
+          emacs-lisp-mode
+          inferior-lisp-mode lisp-data-mode
+          eval-expression-minibuffer-setup)
+         . #'enable-paredit-mode)
+  :bind (:map paredit-mode-map
+              ("C-j" . +paredit-RET)
+              ("M-r" . +paredit-M-r)
+              ("M-k" . paredit-forward-barf-sexp)
+              ("M-l" . paredit-forward-slurp-sexp)
+              ("C-z" . paredit-splice-sexp)
+              ("M-s" . nil)))
+
+(use-package compile :ensure nil
+  :custom
+  (compilation-always-kill t)
+  (compilation-scroll-output t)
+  (ansi-color-for-compilation-mode t))
 
 (use-package dired
   :ensure nil
@@ -305,24 +280,19 @@
   (proced-descent t)
   (proced-filter 'user))
 
-(use-package markdown-mode
-  :ensure t
-  :custom
-  (markdown-hide-markup t))
-
 ;; only useful if you figure out how to integration with clj-kondo/eslint etc
-(use-package flymake :ensure nil
-  :hook (prog-mode . flymake-mode)
-  :custom
-  (flymake-no-changes-timeout nil) ; check on save only, not while typing
-  (flymake-fringe-indicator-position 'left-fringe)
-  (flymake-show-diagnostics-at-end-of-line nil)
-  (flymake-wrap-around nil)
-  :bind (:map flymake-mode-map
-              ;; ("C-c e n" . flymake-goto-next-error)
-              ;; ("C-c e p" . flymake-goto-prev-error)
-              ("C-c C-l" . flymake-show-buffer-diagnostics)
-              ))
+;; (use-package flymake :ensure nil
+;;   :hook (prog-mode . flymake-mode)
+;;   :custom
+;;   (flymake-no-changes-timeout nil) ; check on save only, not while typing
+;;   (flymake-fringe-indicator-position 'left-fringe)
+;;   (flymake-show-diagnostics-at-end-of-line nil)
+;;   (flymake-wrap-around nil)
+;;   :bind (:map flymake-mode-map
+;;               ;; ("C-c e n" . flymake-goto-next-error)
+;;               ;; ("C-c e p" . flymake-goto-prev-error)
+;;               ("C-c C-l" . flymake-show-buffer-diagnostics)
+;;               ))
 
 (add-hook 'prog-mode-hook
           (lambda ()
@@ -339,6 +309,8 @@
 (require 'spartan-ai)
 (require 'spartan-repl)
 (require 'spartan-org)
+(require 'spartan-environment)
+(require 'spartan-context)
 
 (provide 'init)
 ;;; init.el ends here
