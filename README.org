@@ -20,6 +20,7 @@ Like drawing with pen and paper vs. a diagram tool that forces you to select pre
 - 80 character width limit (readability)
 - Complex projects: small/surgical changes only
 - Projects you own: make them extremely simple
+- Try not to add uncessary extras i.e ~pixel-scroll-precision-mode~
 
 *Data Orientation:*
 - 100 operations on 1 structure > 10 operations on 10 structures

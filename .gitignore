@@ -33,3 +33,4 @@ newsticker/
 .authinfo.gpg
 org-clock-save.el
 *.elc
+cache
