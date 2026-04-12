@@ -51,8 +51,7 @@
  indent-tabs-mode nil
  tab-width 2
  standard-indent 2
- whitespace-style '(face trailing tabs empty indentation::space)
- )
+ whitespace-style '(face trailing tabs empty indentation::space))
 
 (load custom-file t)
 
@@ -106,13 +105,10 @@
              ("M-n" forward-paragraph)
              ("M-p" backward-paragraph)
              ("M-/" replace-string) ;; maybe there's better fn that supports regions too?
-             ("C-c m" recompile) ("C-c M" +compile)
-             ))
+             ("C-c m" recompile)
+             ("C-c M" ,(il (+with-context (call-interactively 'compile))))))
   (global-set-key (kbd (car b)) (cadr b)))
 
-;; this whole minibuffer re-mapping.. just seems like it should be a
-;; configuration rather than ad-hoc code, I am surprised C-w doesn't
-;; go back a directory out of the box or at least be a customize option.
 (with-eval-after-load 'icomplete
   (define-key icomplete-minibuffer-map (kbd "C-w")
     (lambda () (interactive)
@@ -142,8 +138,6 @@
                         *context-markers*)
               default-directory)))
      ,@body))
-
-(defun +compile () (interactive) (+with-context (call-interactively 'compile)))
 
 (defun +ctags ()
   (interactive)
@@ -187,8 +181,6 @@
               ("C-z" . paredit-splice-sexp)
               ("M-s" . nil)))
 
-;; (add-hook 'prog-mode) ;; not sure what the syntax is here
-
 (use-package clojure-mode :ensure t)
 (use-package typescript-mode :ensure t :custom (typescript-indent-level 2))
 (use-package json-mode :ensure t)
@@ -203,9 +195,7 @@
   :custom
   (olivetti-style nil)
   (olivetti-body-width 80)
-  :hook ((org-mode
-          markdown-mode)
-         . olivetti-mode))
+  :hook ((org-mode markdown-mode) . olivetti-mode))
 
 (use-package org :ensure nil
   :custom
