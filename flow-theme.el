@@ -1,30 +1,60 @@
 ;;; flow-theme.el, Quiet theme + synthwave accents  -*- lexical-binding: t; -*-
 (deftheme flow "Designed to encourage quiet focus")
-(let (;; Primary colors (from alacritty.toml)
-      (bg             "#0c0c0c")  ; background
-      (fg             "#e4e4e4")  ; foreground
 
-      ;; Normal/muted colors (from alacritty normal palette)
-      (black          "#202020")  ; dark gray
-      (red            "#eba0ac")  ; catppucin mocha maroon
-      (green          "#8fcc9f")  ; muted green
-      (yellow         "#ccb38f")  ; catppucin mocha yellow
-      (blue           "#74c7ec")  ; catppucin mocha sapphire
-      (magenta        "#cc8fcc")  ; muted magenta
-      (cyan           "#8fcccc")  ; muted cyan
-      (white          "#b8b8b8")  ; medium gray
+(defcustom flow-mode 'dark
+  "Theme variant. Either 'dark or 'light"
+  :type '(choice (const :tag "Dark" 'dark)
+                 (const :tag "Light" 'light))
+  :group 'flow)
 
-      (mid-black      "#787878")  ; bright black (used for UI mainly)
+(defun flow-toggle-theme ()
+  (interactive)
+  (setq flow-mode
+        (if (eq flow-mode 'dark) 'light 'dark))
+  (load-theme 'flow t))
 
-      ;; Bright/neon colors (from alacritty bright palette)
-      (bright-black   "#787878")  ; invisible gray
-      (bright-red     "#ff0080")  ; hot pink/error red
-      (bright-green   "#00ff80")  ; electric green
-      (bright-yellow  "#ffb300")  ; neon amber
-      (bright-blue    "#00ccff")  ; electric cyan-blue
-      (bright-magenta "#ff00ff")  ; pure neon magenta
-      (bright-cyan    "#00ffff")  ; pure cyan
-      (bright-white   "#ffffff")) ; pure white
+(let* ((dark-p (eq flow-mode 'dark))
+       ;; Primary colors (catpuccin mocha + latte but with darker background)
+       (bg             (if dark-p "#0a0a10" "#eff1f5"))
+       ;; +colors are darker/lighter depending on theme for consistent depth effect.
+       (bg+            (if dark-p "#11111b" "#dce0e8"))
+       (bg++            (if dark-p "#181825" "#e6e9ef"))
+       (bg+++          (if dark-p "#1e1e2e" "#eff1f5"))
+       (bg+green       (if dark-p "#0c1412" "#d1fde6")) ;; for git diffs
+       (bg+green+       (if dark-p "#0e211c" "#bffbdc"))
+       (bg+red         (if dark-p "#1f0809" "#f4d3d5"))
+       (bg+red+         (if dark-p "#350f11" "#ecb9bc"))
+
+       (fg             (if dark-p "#cdd6f4" "#4c4f69"))
+       (fg+            (if dark-p "#bac2de" "#5c5f77"))
+       (fg++           (if dark-p "#a6adc8" "#6c6f85"))
+       (fg+++          (if dark-p "#6c7086" "#9ca0b0"))
+
+       ;; not sure black etc really works here? for dual theme
+       (black          (if dark-p "#202020" "#4c4f69"))       ; dark gray
+       (red            (if dark-p "#eba0ac" "#e64553"))       ; catppucin mocha maroon
+       (green          (if dark-p "#a6e3a1" "#40a02b"))       ; muted green
+       ;; may want a more faded yellow
+       (yellow         (if dark-p "#f9e2af" "#df8e1d"))       ; catppucin mocha yellow
+       (blue           (if dark-p "#89b4fa" "#1e66f5"))       ; catppucin mocha sapphire
+       (magenta        (if dark-p "#cba6f7" "#8839ef"))       ; purple
+       (cyan           (if dark-p "#89dceb" "#04a5e5"))       ; muted cyan
+
+
+       ;; Bright/neon colors (from alacritty bright palette)
+       (bright-black   "#787878")       ; invisible gray
+       (bright-red     "#ff0080")       ; hot pink/error red
+       (bright-green   "#00ff80")       ; electric green
+       (bright-yellow  "#ffb300")       ; neon amber
+       (bright-blue    "#00ccff")       ; electric cyan-blue
+       (bright-magenta "#ff00ff")       ; pure neon magenta - cursor
+       (bright-cyan    "#00ffff")       ; pure cyan
+       (bright-white   "#ffffff")
+
+       ;; Semantic colors set from the above
+       (match yellow)
+
+       )
 
   (custom-theme-set-faces
    'flow
@@ -32,105 +62,143 @@
    ;; Basic faces
    `(default ((t (:background ,bg :foreground ,fg))))
    `(cursor ((t (:background ,bright-magenta :foreground ,bg))))
-   `(region ((t (:background ,black))))
-   `(fringe ((t (:background ,bg))))
-   `(minibuffer-prompt ((t (:foreground ,fg))))
-   `(hl-line ((t (:background ,black))))
+   `(region ((t (:background ,bg++)))) ;; highlight
+   `(fringe ((t (:background ,bg :foreground ,bg+++))))
+   `(minibuffer-prompt ((t (:foreground ,green))))
+   `(hl-line ((t (:background ,bg+))))
 
    `(mode-line ((t (:background ,bg
-                    :foreground ,fg
-                    :box (:line-width 1 :color ,black :style nil)))))
+                                :foreground ,fg
+                                :box (:line-width 1 :color ,bg++ :style nil)))))
    `(mode-line-inactive ((t (:background ,bg
-                             :foreground ,bright-black
-                             :box (:line-width 1 :color ,black :style nil)))))
+                                         :foreground ,fg
+                                         :box (:line-width 1 :color ,bg++ :style nil)))))
 
-   `(mode-line-buffer-id ((t (:foreground ,bright-blue :weight bold))))
+   ;; TODO does this work?
+   `(mode-line-buffer-id ((t (:foreground ,yellow :weight bold))))
 
    ;; Additional modeline refinements
-   `(mode-line-emphasis ((t (:foreground ,bright-red))))
-   `(mode-line-highlight ((t (:foreground ,bright-blue))))
+   `(mode-line-emphasis ((t (:foreground ,red))))
+   `(mode-line-highlight ((t (:foreground ,blue))))
 
+   ;; Misc. UI
    `(vertical-border ((t (:foreground ,black))))
+   `(link ((t (:foreground ,yellow :underline t))))
+   `(escape-glyph ((t (:foreground ,yellow))))
+   `(icon ((t (:foreground ,yellow))))
+   `(xref-line-number ((t (:foreground ,yellow))))
 
    ;; Success, info, and search faces using full color palette
-   `(success ((t (:foreground ,bright-green))))
-   `(info ((t (:foreground ,bright-cyan))))
-   `(match ((t (:background ,bg :foreground ,bright-yellow))))
-   `(isearch ((t (:background ,bright-magenta :foreground ,bg))))
-   `(lazy-highlight ((t (:background ,magenta :foreground ,bg))))
-   `(query-replace ((t (:background ,bright-yellow :foreground ,bg))))
+   `(success ((t (:foreground ,green))))
+   `(info ((t (:foreground ,cyan))))
+   `(match ((t (:background ,bg :foreground ,match))))
+   `(isearch ((t (:background ,match :foreground ,bg))))
+   `(lazy-highlight ((t (:background ,match :foreground ,bg))))
+   `(query-replace ((t (:background ,green :foreground ,bg))))
 
    ;; Dired colors
-   `(dired-directory ((t (:foreground ,bright-blue))))
-   `(dired-executable ((t (:foreground ,bright-green))))
-   `(dired-symlink ((t (:foreground ,bright-cyan))))
-   `(dired-marked ((t (:foreground ,bright-yellow :weight bold))))
+   `(dired-directory ((t (:foreground ,yellow))))
+   `(dired-executable ((t (:foreground ,green))))
+   `(dired-symlink ((t (:foreground ,cyan))))
+   `(dired-marked ((t (:foreground ,yellow :weight bold))))
 
    ;; Compilation and grep
-   `(compilation-info ((t (:foreground ,bright-green))))
-   `(compilation-warning ((t (:foreground ,bright-yellow))))
-   `(compilation-error ((t (:foreground ,bright-red))))
-   `(grep-hit-face ((t (:foreground ,bright-magenta))))
-   `(grep-match-face ((t (:background ,magenta :foreground ,bg))))
+   `(compilation-info ((t (:foreground ,green))))
+   `(compilation-warning ((t (:foreground ,yellow))))
+   `(compilation-error ((t (:foreground ,red))))
+   `(grep-hit-face ((t (:foreground ,magenta))))
+   `(grep-match-face ((t (:background ,match :foreground ,bg))))
 
    ;; Version control (magit, vc, etc.)
-   `(diff-added ((t (:foreground ,bright-green))))
-   `(diff-removed ((t (:foreground ,bright-red))))
-   `(diff-changed ((t (:foreground ,bright-yellow))))
-   `(diff-header ((t (:foreground ,bright-blue))))
-   `(diff-file-header ((t (:foreground ,bright-cyan :weight bold))))
+   `(diff-added ((t (:background ,bg+green))))
+   `(diff-refine-added ((t (:background ,bg+green+))))
+   `(diff-removed ((t (:background ,bg+red))))
+   `(diff-refine-removed ((t (:background ,bg+red+))))
+   `(diff-changed ((t (:foreground ,yellow))))
+   `(diff-header ((t (:foreground ,blue))))
+   `(diff-file-header ((t (:foreground ,cyan :weight bold))))
 
    ;; Completions and minibuffer
-   `(completions-highlight ((t (:background ,mid-black))))
-   `(icomplete-selected-match ((t (:background ,mid-black))))
-   `(completions-annotations ((t (:foreground ,bright-black))))
-   `(completions-common-part ((t (:foreground ,bright-blue))))
-   `(completions-first-difference ((t (:foreground ,bright-yellow))))
+   `(completions-highlight ((t (:foreground ,yellow :background ,bg+++))))
+   `(icomplete-selected-match ((t (:foreground ,yellow :background ,bg+++))))
+   `(completions-annotations ((t (:foreground ,bg+++))))
+   `(completions-common-part ((t (:foreground ,magenta))))
+   `(completions-first-difference ((t (:foreground ,yellow))))
 
    ;; Syntax highlighting - mostly monochrome
-   `(font-lock-comment-face ((t (:foreground ,bright-black))))
+   `(font-lock-comment-face ((t (:foreground ,fg+++))))
    `(font-lock-string-face ((t (:foreground ,yellow))))
    `(font-lock-keyword-face ((t (:foreground ,fg))))
    `(font-lock-function-name-face ((t (:foreground ,blue))))
    `(font-lock-variable-name-face ((t (:foreground ,blue))))
    `(font-lock-type-face ((t (:foreground ,fg))))
-   `(font-lock-constant-face ((t (:foreground ,red))))
-   `(font-lock-builtin-face ((t (:foreground ,red))))
+   `(font-lock-constant-face ((t (:foreground ,blue))))
+   `(font-lock-builtin-face ((t (:foreground ,fg++))))
 
    ;; Errors and warnings
-   `(error ((t (:foreground ,bright-red))))
-   `(warning ((t (:foreground ,red))))
+   `(error ((t (:foreground ,red))))
+   `(warning ((t (:foreground ,yellow))))
 
    ;; Line numbers
-   `(line-number ((t (:foreground ,mid-black))))
-   `(line-number-current-line ((t (:foreground ,bright-black :background ,black))))
+   `(line-number ((t (:foreground ,bg+++))))
+   `(line-number-current-line ((t (:foreground ,fg+++ :background ,bg+++))))
 
-   `(fill-column-indicator ((t (:foreground ,black))))
+   `(fill-column-indicator ((t (:foreground ,bg))))
 
    ;; Headers
-   `(markdown-header-face-1 ((t (:height 1.3 :weight bold :foreground ,bright-blue))))
-   `(markdown-header-face-2 ((t (:height 1.2 :weight bold :foreground ,blue))))
+   `(markdown-header-face-1 ((t (:height 1.3 :weight bold :foreground ,blue))))
+   `(markdown-header-face-2 ((t (:height 1.2 :weight bold :foreground ,green))))
    `(markdown-header-face-3 ((t (:height 1.1 :weight bold :foreground ,fg))))
-   `(markdown-header-face-4 ((t (:height 1.0 :weight bold :foreground ,bright-black))))
-   `(org-level-1 ((t (:height 1.3 :weight bold :foreground ,bright-blue))))
-   `(org-level-2 ((t (:height 1.2 :weight bold :foreground ,bright-green))))
+   `(markdown-header-face-4 ((t (:height 1.0 :weight bold :foreground ,fg))))
+   `(org-level-1 ((t (:height 1.3 :weight bold :foreground ,blue))))
+   `(org-level-2 ((t (:height 1.2 :weight bold :foreground ,green))))
    `(org-level-3 ((t (:height 1.1 :weight bold :foreground ,fg))))
-   `(org-level-4 ((t (:height 1.0 :weight bold :foreground ,bright-black))))
-   `(org-level-5 ((t (:height 1.0 :weight bold :foreground ,black))))
-   `(org-level-6 ((t (:height 1.0 :weight bold :foreground ,black))))
-   `(org-level-7 ((t (:height 1.0 :weight bold :foreground ,black))))
-   `(org-level-8 ((t (:height 1.0 :weight bold :foreground ,black))))
-   `(org-ellipsis ((t (:foreground ,mid-black :underline nil))))
+   `(org-level-4 ((t (:height 1.0 :weight bold :foreground ,fg))))
+   `(org-level-5 ((t (:height 1.0 :weight bold :foreground ,fg))))
+   `(org-level-6 ((t (:height 1.0 :weight bold :foreground ,fg))))
+   `(org-level-7 ((t (:height 1.0 :weight bold :foreground ,fg))))
+   `(org-level-8 ((t (:height 1.0 :weight bold :foreground ,fg))))
+   `(org-ellipsis ((t (:foreground ,bg++ :underline nil))))
+   `(org-headline-done ((t (:foreground ,fg+++ :underline nil))))
+   `(org-done ((t (:foreground ,green :underline nil))))
+   `(org-todo ((t (:foreground ,yellow :underline nil))))
+
 
    ;; Language Specific
    `(sh-quoted-exec ((t (:foreground ,fg))))
 
-   ;; Parentheses and brackets
-   `(font-lock-paren-face ((t (:foreground ,bright-cyan))))
-   `(font-lock-bracket-face ((t (:foreground ,bright-magenta))))
-   `(font-lock-brace-face ((t (:foreground ,bright-yellow))))
+   ;; Terminal
+   ;; `(ansi-color-black ((t (:foreground bg :background bg))))
+   ;; `(ansi-color-red ((t (:foreground red :background red))))
+   ;; `(ansi-color-green ((t (:foreground green :background green))))
 
+   ;; Parentheses and brackets
+   `(font-lock-paren-face ((t (:foreground ,fg+++))))
+   `(font-lock-bracket-face ((t (:foreground ,fg+++))))
+   `(font-lock-brace-face ((t (:foreground ,fg+++))))
    )
+
+  ;; When fringe-mode is 0, I am not sure the truncation chars are
+  ;; fontified so we set this manually and update the glyph while
+  ;; we're at it.
+  (set-display-table-slot
+   standard-display-table 0
+   (make-glyph-code ?… 'escape-glyph))
+
+  (defface font-lock-paren-face nil "Face for parentheses." :group 'font-lock-faces)
+  (defface font-lock-bracket-face nil "Face for brackets." :group 'font-lock-faces)
+  (defface font-lock-brace-face nil "Face for braces." :group 'font-lock-faces)
+
+  (defun flow-delimiters-enable ()
+    (font-lock-add-keywords
+     nil
+     '(("(\\|)" 0 'font-lock-paren-face t)
+       ("\\[\\|\\]" 0 'font-lock-bracket-face t)
+       ("{\\|}" 0 'font-lock-brace-face t))
+     'append)
+    (font-lock-flush))
+
+  (add-hook 'prog-mode-hook #'flow-delimiters-enable)
 
   (defun flow/truncate-buffer-name ()
     (let* ((name (if buffer-file-name
@@ -139,30 +207,31 @@
            (max-len (/ (window-width) 3)))
       (if (<= (length name) max-len)
           name
-  (concat "<" (substring name (- (length name) (- max-len 1)))))))
+        (concat "<" (substring name (- (length name) (- max-len 1)))))))
 
   (let ((flow/mode-line
-   `(" "
-     (:eval (propertize
-       (flow/truncate-buffer-name)
-       'face
-       '(:foreground ,bright-blue :weight bold)))
-     " [%*]"
-     mode-line-format-right-align
-     (:eval (when (and (boundp 'vc-mode) vc-mode) ;; git branch + space
-        (concat (propertize " | " 'face '(:foreground ,mid-black))
-          (replace-regexp-in-string "^ Git[-:]" "" vc-mode))))
-     (:eval (propertize " | " 'face '(:foreground ,mid-black)))
-     "%l:%c" ;; line/col count
-     (:eval (propertize " | " 'face '(:foreground ,mid-black)))
-     (:eval (when-let ((proc (get-buffer-process (current-buffer))))
-        (propertize (format "[%s] " (process-name proc))
-        'face '(:foreground ,bright-magenta :weight bold))))
-     (:eval (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
-     " ")))
+         `(" "
+           (:eval (propertize
+                   (flow/truncate-buffer-name)
+                   'face
+                   '(:foreground ,yellow :weight bold)))
+           " [%*]"
+           mode-line-format-right-align
+           (:eval (when (and (boundp 'vc-mode) vc-mode) ;; git branch + space
+                    (concat (propertize " | " 'face '(:foreground ,bg++))
+                            (replace-regexp-in-string "^ Git[-:]" "" vc-mode))))
+           (:eval (propertize " | " 'face '(:foreground ,bg++)))
+           "%l:%c" ;; line/col count
+           (:eval (propertize " | " 'face '(:foreground ,bg++)))
+           (:eval (when-let ((proc (get-buffer-process (current-buffer))))
+                    (propertize (format "[%s] " (process-name proc))
+                                'face '(:foreground ,bright-magenta :weight bold))))
+           (:eval (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
+           " ")))
     (setq mode-line-format flow/mode-line)
     (setq-default mode-line-format flow/mode-line)))
 
 (provide-theme 'flow)
 
+;; (face-at-point)
 ;; (progn (disable-theme 'flow) (load-theme 'flow t))

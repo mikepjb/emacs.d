@@ -86,6 +86,9 @@
              ("M-o" ,(il (other-window 1)))
              ("M-O" ,(il (other-window -1)))
 
+             ("M-L" flow-toggle-theme)
+             ("M-V" ,(il (load-theme 'flow t))) ;; temporary for theme work
+
              ("C-c f" imenu)
              ("M-RET" toggle-frame-fullscreen)
              ("M-H" ,help-map)
@@ -182,6 +185,7 @@
               ("M-s" . nil)))
 
 (use-package clojure-mode :ensure t)
+(use-package go-mode :ensure t)
 (use-package typescript-mode :ensure t :custom (typescript-indent-level 2))
 (use-package json-mode :ensure t)
 (use-package js :ensure nil :custom (js-indent-level 2))
