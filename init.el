@@ -221,6 +221,11 @@
   (org-archive-location "~/.emacs.d/notes/archive.org::* From %s")
   (org-directory "~/.emacs.d/notes")
   (org-agenda-files '("~/.emacs.d/notes"))
+  (org-agenda-prefix-format
+   '((agenda . " %i %?-12t% s")
+     (todo . " %i ")
+     (tags . " %i ")
+     (search . " %i ")))
   (org-agenda-custom-commands
    '(("a" "Agenda + Unscheduled TODOs"
       ((agenda "")
@@ -233,6 +238,7 @@
      ("~/.emacs.d/notes/archive.org" :maxlevel . 3)))
   :bind (:map org-mode-map
               ("M-RET" . nil)
+              ("C-c RET" . org-insert-todo-heading)
               ("C-c r" . org-archive-subtree))
   :hook ((org-mode . org-indent-mode)
          (org-after-todo-state-change . +org-clock-todo-change))
