@@ -239,7 +239,7 @@
   (org-modules nil)
   (org-ellipsis " ▼")
   (org-todo-keywords
-   '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
+   '((sequence "TODO(t)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
   (org-log-done 'time)
   (org-log-into-drawer t)
   (org-agenda-span 14)
