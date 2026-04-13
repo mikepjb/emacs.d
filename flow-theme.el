@@ -162,6 +162,7 @@
    `(org-headline-done ((t (:foreground ,fg+++ :underline nil))))
    `(org-done ((t (:foreground ,green :underline nil))))
    `(org-todo ((t (:foreground ,yellow :underline nil))))
+   `(org-tag ((t (:foreground ,fg+++ :underline nil))))
 
    ;; Eshell
    `(eshell-prompt ((t (:foreground ,yellow))))
@@ -171,9 +172,11 @@
    `(sh-quoted-exec ((t (:foreground ,fg))))
 
    ;; Terminal
-   ;; `(ansi-color-black ((t (:foreground bg :background bg))))
-   ;; `(ansi-color-red ((t (:foreground red :background red))))
-   ;; `(ansi-color-green ((t (:foreground green :background green))))
+   `(ansi-color-black ((t (:foreground ,bg :background ,bg))))
+   `(ansi-color-red ((t (:foreground ,red :background ,bg))))
+   `(ansi-color-green ((t (:foreground ,green :background ,bg))))
+   `(ansi-color-yellow ((t (:foreground ,yellow :background ,bg))))
+   `(ansi-color-magenta ((t (:foreground ,magenta :background ,bg))))
 
    ;; Parentheses and brackets
    `(font-lock-paren-face ((t (:foreground ,fg+++))))
@@ -237,4 +240,5 @@
 (provide-theme 'flow)
 
 ;; (face-at-point)
+;; (list-faces-display)
 ;; (progn (disable-theme 'flow) (load-theme 'flow t))

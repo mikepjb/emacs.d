@@ -80,6 +80,7 @@
              ("C-c p" project-find-file)
              ("C-c P" ,(ff "~/src"))
              ("C-c s" +run-script)
+             ("M-_" ,(il (if (org-clocking-p) (org-clock-out) (org-clock-in-last))))
 
              ;; Split management
              ("C-c k" ,(il (select-window (split-window-below))))
@@ -239,14 +240,19 @@
   (org-modules nil)
   (org-ellipsis " ▼")
   (org-todo-keywords
-   '((sequence "TODO(t)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
+   '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
+  (org-todo-keyword-faces
+   '(("CURRENT" . ansi-color-magenta) ("NEXT"    . ansi-color-magenta)))
   (org-log-done 'time)
   (org-log-into-drawer t)
+  (org-clock-idle-time 10)
   (org-agenda-span 14)
   (org-agenda-start-day "today")
   (org-agenda-start-on-weekday nil)
   (org-archive-location "~/.emacs.d/notes/archive.org::* From %s")
   (org-directory "~/.emacs.d/notes")
+  (org-agenda-show-inherited-tags t)
+  (org-agenda-sorting-strategy '(todo-state-down priority-up))
   (org-agenda-files '("~/.emacs.d/notes"))
   (org-agenda-prefix-format
    '((agenda . " %i %?-12t% s")
