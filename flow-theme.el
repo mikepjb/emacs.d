@@ -163,6 +163,9 @@
    `(org-done ((t (:foreground ,green :underline nil))))
    `(org-todo ((t (:foreground ,yellow :underline nil))))
 
+   ;; Eshell
+   `(eshell-prompt ((t (:foreground ,yellow))))
+
 
    ;; Language Specific
    `(sh-quoted-exec ((t (:foreground ,fg))))

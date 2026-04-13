@@ -76,8 +76,10 @@
              ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
              ("C-c a" ,(il (org-agenda nil "a")))
              ("C-c g" vc-dir-root)
+             ("C-c G" vc-print-root-log)
              ("C-c p" project-find-file)
              ("C-c P" ,(ff "~/src"))
+             ("C-c s" +run-script)
 
              ;; Split management
              ("C-c k" ,(il (select-window (split-window-below))))
@@ -96,7 +98,8 @@
              ("M-i" ,(il (+with-context (call-interactively 'rgrep))))
 
              ("M-T" eshell)
-             ("M-R" ,(il (other-window-prefix) (inferior-lisp "clojure -A:dev")))
+             ("M-R" ,(il (+launch-repl "clojure")))
+             ("M-Q" ,(il (+launch-repl)))
 
              ("C-h" delete-backward-char)
              ("C-j" newline) ;; autoindents
@@ -156,6 +159,36 @@
         (visit-tags-table tags-file t)))))
 
 (add-hook 'find-file-hook #'+ctags-link)
+
+(defun +run-script ()
+  "Select and run a script from ~/.emacs.d/scripts/."
+  (interactive)
+  (let* ((scripts-dir (expand-file-name "scripts" user-emacs-directory))
+         (scripts (directory-files scripts-dir nil "^[^.]"))
+         (script (completing-read "Run script: " scripts nil t))
+         (script-path (expand-file-name script scripts-dir)))
+    (compile (concat "bash " script-path))))
+
+(defvar +repls
+  '(("python"        run-python)
+    ("ruby"          comint-run "irb")
+    ("node"          comint-run "node")
+    ("racket"        comint-run "racket")
+    ("sqlite"        sql-sqlite)
+    ("clojure"       inferior-lisp "clojure -A:dev")
+    ("cljs"          inferior-lisp "clojure -M:cljs")
+    ("bb"            inferior-lisp "bb"))
+  "REPL specs for `+launch-repl'. Each entry is (NAME FN &optional ARGS...).")
+
+(defun +launch-repl (&optional repl)
+  "Launch a REPL. REPL is a key from `+repls'; if nil, prompt via completing-read."
+  (interactive)
+  (let* ((choice (or repl (completing-read "REPL: " (mapcar #'car +repls) nil t)))
+         (spec   (cdr (assoc choice +repls)))
+         (fn     (car spec))
+         (args   (cdr spec)))
+    (other-window-prefix)
+    (apply fn args)))
 
 (use-package paredit :ensure t
   :hook ((clojure-mode emacs-lisp-mode inferior-lisp-mode

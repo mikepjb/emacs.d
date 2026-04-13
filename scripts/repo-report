@@ -1,0 +1,31 @@
+#!/usr/bin/env bb
+;; Analyse a git repository for information about how it is used.
+;; Based on this blog: https://piechowski.io/post/git-commands-before-reading-code/
+
+(def analyses
+  {"Most changed files (last year)"
+   (str "git log --format=format: --name-only --since='1 year ago'"
+        " | sort | uniq -c | sort -nr | head -20")
+
+   "Who built this?"
+   "git shortlog -sn --no-merges"
+
+   "Where do bugs cluster?"
+   (str "git log -i -E --grep='fix|bug|broken'"
+        " --name-only --format=''"
+        " | sort | uniq -c | sort -nr | head -20")
+
+   "Commits per month"
+   (str "git log --format='%ad' --date=format:'%Y-%m'"
+        " | sort | uniq -c")
+
+   "How often is the team firefighting?"
+   (str "git log --oneline --since='1 year ago'"
+        " | grep -iE 'revert|hotfix|emergency|rollback'")})
+
+(doseq [[title cmd] analyses]
+  (println (str "\n" (apply str (repeat 60 "─"))))
+  (println (str "  " title))
+  (println (str (apply str (repeat 60 "─"))))
+  (println (:out (shell/sh "bash" "-c" cmd)))
+  (flush))
