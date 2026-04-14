@@ -97,6 +97,7 @@
              ("M-H" ,help-map)
              ("C-c t" +ctags)
              ("M-i" ,(il (+with-context (call-interactively 'rgrep))))
+             ("M-I" ,(il (+with-context (call-interactively 'occur))))
 
              ("M-T" eshell)
              ("M-R" ,(il (+launch-repl "clojure")))
