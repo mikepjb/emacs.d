@@ -179,7 +179,7 @@
    `(org-done ((t (:foreground ,green :underline nil))))
    `(org-todo ((t (:foreground ,sapphire :underline nil))))
    `(org-tag ((t (:foreground ,fg+++ :underline nil))))
-   `(org-hide ((t (:foreground ,bg))))
+   `(org-hide ((t (:foreground ,bg :inherit fixed-pitch))))
 
    ;; Monospace faces
    `(org-block            ((t (:inherit fixed-pitch))))
@@ -237,38 +237,83 @@
 
   (add-hook 'prog-mode-hook #'flow-delimiters-enable)
 
-  ;; (defun flow-org-style-bullets ()
-  ;;   ;; Hide levels 1-3 stars completely (invisible)
+  (defun flow-org-style-bullets ()
+    ;; Hide levels 1-3 stars completely (invisible)
+    (font-lock-add-keywords
+     nil
+     '(("^\\*\\{1,3\\} "
+        (0 (put-text-property (match-beginning 0)
+                              (match-end 0)
+                              'invisible t)
+           nil)))
+     'append)
+
+    ;; Replace level 4+ stars with a bullet •
+    (font-lock-add-keywords
+     nil
+     '(("^\\(\\*\\{4,\\}\\) "
+        (1 (prog1 () (compose-region (match-beginning 1)
+                                     (match-end 1)
+                                     "	•")))))
+     'append)
+
+    ;; Replace - list markers with bullet •
+    (font-lock-add-keywords
+     nil
+     '(("^ *\\(-\\) "
+        (1 (prog1 () (compose-region (match-beginning 1)
+                                     (match-end 1)
+                                     "	•")))))
+     'append)
+
+    (font-lock-fontify-buffer))
+
+  (add-hook 'org-mode-hook #'flow-org-style-bullets)
+
+  (defvar flow-org-indent-min-level 4
+    "Suppress org-indent indentation for levels below this.")
+
+  (defun flow-org-indent--clear-shallow-prefixes (&rest _)
+    "Remap indent prefixes so indentation starts fresh at `flow-org-indent-min-level'."
+    (let ((empty (org-add-props "" nil 'face 'org-indent))
+          (min flow-org-indent-min-level)
+          (depth (length org-indent--text-line-prefixes)))
+      ;; Remap FIRST while low indices still have their original values
+      (cl-loop for n from min below depth do
+               (let ((remapped (- n min -1)))
+                 ;; Text body gets +1 so it sits inside its heading, not level with it
+                 (aset org-indent--text-line-prefixes n
+                       (aref org-indent--text-line-prefixes
+                             (min (1+ remapped) (1- depth))))
+                 (aset org-indent--heading-line-prefixes n
+                       (aref org-indent--heading-line-prefixes remapped))
+                 (aset org-indent--inlinetask-line-prefixes n
+                       (aref org-indent--inlinetask-line-prefixes remapped))))
+      ;; THEN zero out the shallow levels
+      (dotimes (n min)
+        (aset org-indent--heading-line-prefixes n empty)
+        (aset org-indent--inlinetask-line-prefixes n empty)
+        (aset org-indent--text-line-prefixes n empty))))
+
+  (advice-add 'org-indent--compute-prefixes :after
+              #'flow-org-indent--clear-shallow-prefixes)
+
+  ;; Useful if we want bullets for all headings
+  ;; (defun flow-org-bullets ()
   ;;   (font-lock-add-keywords
   ;;    nil
-  ;;    '(("^\\*\\{1,3\\} "
-  ;;       (0 (put-text-property (match-beginning 0)
-  ;;                             (match-end 0)
-  ;;                             'invisible t)
-  ;;          nil)))
-  ;;    'append)
+  ;;    '(("^\\(\\*+\\)"
+  ;;       (1 (prog1 nil
+  ;;            (let* ((beg (match-beginning 1))
+  ;;                   (end (match-end 1))
+  ;;                   (n   (- end beg)))
+  ;;              (compose-region (1- end) end "◇")
+  ;;              (when (> n 1)
+  ;;                (put-text-property beg (1- end)
+  ;;                                   'face 'org-hide)))))))
+  ;;    'append))
 
-  ;;   ;; Replace level 4+ stars with a bullet •
-  ;;   (font-lock-add-keywords
-  ;;    nil
-  ;;    '(("^\\(\\*\\{4,\\}\\) "
-  ;;       (1 (prog1 () (compose-region (match-beginning 1)
-  ;;                                    (match-end 1)
-  ;;                                    "	◆")))))
-  ;;    'append)
-
-  ;;   ;; Replace - list markers with bullet •
-  ;;   (font-lock-add-keywords
-  ;;    nil
-  ;;    '(("^ *\\(-\\) "
-  ;;       (1 (prog1 () (compose-region (match-beginning 1)
-  ;;                                    (match-end 1)
-  ;;                                    "	•")))))
-  ;;    'append)
-
-  ;;   (font-lock-fontify-buffer))
-
-  ;; (add-hook 'org-mode-hook #'flow-org-style-bullets)
+  ;; (add-hook 'org-mode-hook #'flow-org-bullets)
 
   (defun flow/truncate-buffer-name ()
     (let* ((name (if buffer-file-name

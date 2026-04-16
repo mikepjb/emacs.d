@@ -60,14 +60,14 @@
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
   (fringe-mode 0)
-  (set-face-attribute 'default nil
-    :font (seq-find #'x-list-fonts '("Rec Mono Casual" "Monospace")) :height 160)
+  (let ((monospace-font
+         (seq-find #'x-list-fonts '("Rec Mono Casual" "Monospace"))))
+    (set-face-attribute 'default nil :font monospace-font :height 160)
+    (set-face-attribute 'fixed-pitch nil :font monospace-font))
   (set-face-attribute 'variable-pitch nil
-    :font (seq-find #'x-list-fonts '(
-                                     ;; "Crimson Pro"
-                                     "Recursive Sans Casual Static"
-                                     ;; "Libre Baskerville"
-                                     "Monospace")) :height 180))
+                      :font (seq-find #'x-list-fonts '("Crimson Pro"
+                                                       ;; "Recursive Sans Casual Static"
+                                                       "Monospace")) :height 180))
 
 (seq-filter (lambda (s) (not (string-match-p "Noto" s))) (font-family-list))
 
