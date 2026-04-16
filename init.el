@@ -61,7 +61,16 @@
   (scroll-bar-mode -1)
   (fringe-mode 0)
   (set-face-attribute 'default nil
-    :font (seq-find #'x-list-fonts '("Rec Mono Casual" "Monospace")) :height 160))
+    :font (seq-find #'x-list-fonts '("Rec Mono Casual" "Monospace")) :height 160)
+  (set-face-attribute 'variable-pitch nil
+    :font (seq-find #'x-list-fonts '(
+                                     ;; "Crimson Pro"
+                                     "Recursive Sans Casual Static"
+                                     ;; "Libre Baskerville"
+                                     "Monospace")) :height 180))
+
+(seq-filter (lambda (s) (not (string-match-p "Noto" s))) (font-family-list))
+
 
 (dolist (m '(fido-vertical-mode
              global-auto-revert-mode
@@ -236,10 +245,17 @@
   (olivetti-body-width 80)
   :hook ((org-mode markdown-mode) . olivetti-mode))
 
+;; (setq-local mode-line-format nil) ;; hide modeline
+;; (setq org-cycle-separator-lines 5) ; blank line between top-level sections, does this work? LOL
+
+(setq org-cycle-separator-lines 0) ;; really don't understand this one..
+
 (use-package org :ensure nil
   :custom
   (org-modules nil)
   (org-ellipsis " ▼")
+  (org-startup-folded 'content)
+  (org-startup-with-inline-images t)
   (org-todo-keywords
    '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
   (org-todo-keyword-faces
@@ -274,7 +290,9 @@
               ("M-RET" . nil)
               ("C-c RET" . org-insert-todo-heading)
               ("C-c r" . org-archive-subtree))
-  :hook ((org-mode . org-indent-mode)
+  :hook (                               ; (org-mode . org-indent-mode)
+         (org-mode . variable-pitch-mode)
+         (org-mode . (lambda () (setq-local mode-line-format nil)))
          (org-after-todo-state-change . +org-clock-todo-change))
   :config
   (advice-add 'org-refile :after (lambda (&rest _) (org-save-all-org-buffers))))

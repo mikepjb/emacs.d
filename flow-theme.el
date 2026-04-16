@@ -165,20 +165,36 @@
    `(markdown-header-face-2 ((t (:height 1.2 :weight bold :foreground ,teal))))
    `(markdown-header-face-3 ((t (:height 1.1 :weight bold :foreground ,lavender))))
    `(markdown-header-face-4 ((t (:height 1.0 :weight bold :foreground ,fg))))
-   `(org-level-1 ((t (:height 1.3 :weight bold :foreground ,sapphire))))
-   `(org-level-2 ((t (:height 1.2 :weight bold :foreground ,teal))))
-   `(org-level-3 ((t (:height 1.1 :weight bold :foreground ,lavender))))
+   `(org-level-1 ((t (:height 1.6 :weight bold :foreground ,fg
+                              :box (:line-width (-1 . 32) :color ,bg)))))
+   `(org-level-2 ((t (:height 1.3 :slant italic :foreground ,fg
+                              :box (:line-width (-1 . 20) :color ,bg)))))
+   `(org-level-3 ((t (:height 1.0 :weight bold :slant italic :foreground ,fg
+                              :box (:line-width (-1 . 12) :color ,bg)))))
    `(org-level-4 ((t (:height 1.0 :weight bold :foreground ,fg))))
-   `(org-level-5 ((t (:height 1.0 :weight bold :foreground ,fg))))
-   `(org-level-6 ((t (:height 1.0 :weight bold :foreground ,fg))))
-   `(org-level-7 ((t (:height 1.0 :weight bold :foreground ,fg))))
-   `(org-level-8 ((t (:height 1.0 :weight bold :foreground ,fg))))
+   `(org-level-5 ((t (:height 1.0 :foreground ,fg))))
+   `(org-level-6 ((t (:height 1.0 :foreground ,fg))))
    `(org-ellipsis ((t (:foreground ,bg++ :underline nil))))
    `(org-headline-done ((t (:foreground ,fg+++ :underline nil))))
    `(org-done ((t (:foreground ,green :underline nil))))
    `(org-todo ((t (:foreground ,sapphire :underline nil))))
    `(org-tag ((t (:foreground ,fg+++ :underline nil))))
    `(org-hide ((t (:foreground ,bg))))
+
+   ;; Monospace faces
+   `(org-block            ((t (:inherit fixed-pitch))))
+   `(org-block-begin-line ((t (:inherit fixed-pitch))))
+   `(org-block-end-line   ((t (:inherit fixed-pitch))))
+   `(org-code             ((t (:inherit fixed-pitch))))
+   `(org-verbatim         ((t (:inherit fixed-pitch))))
+   `(org-table            ((t (:inherit fixed-pitch))))
+   `(org-formula          ((t (:inherit fixed-pitch))))
+   `(org-checkbox         ((t (:inherit fixed-pitch))))
+   `(org-meta-line        ((t (:inherit fixed-pitch))))  ; #+title, #+begin_src etc
+   `(org-drawer           ((t (:inherit fixed-pitch))))  ; :PROPERTIES: etc
+   ;; `(org-special-keyword  ((t (:inherit fixed-pitch))))  ; SCHEDULED, DEADLINE etc
+   `(org-todo             ((t (:inherit fixed-pitch :weight bold :foreground ,sapphire))))
+   `(org-done             ((t (:inherit fixed-pitch :weight bold :foreground ,green))))
 
    ;; Eshell
    `(eshell-prompt ((t (:foreground ,yellow))))
@@ -221,6 +237,39 @@
 
   (add-hook 'prog-mode-hook #'flow-delimiters-enable)
 
+  ;; (defun flow-org-style-bullets ()
+  ;;   ;; Hide levels 1-3 stars completely (invisible)
+  ;;   (font-lock-add-keywords
+  ;;    nil
+  ;;    '(("^\\*\\{1,3\\} "
+  ;;       (0 (put-text-property (match-beginning 0)
+  ;;                             (match-end 0)
+  ;;                             'invisible t)
+  ;;          nil)))
+  ;;    'append)
+
+  ;;   ;; Replace level 4+ stars with a bullet •
+  ;;   (font-lock-add-keywords
+  ;;    nil
+  ;;    '(("^\\(\\*\\{4,\\}\\) "
+  ;;       (1 (prog1 () (compose-region (match-beginning 1)
+  ;;                                    (match-end 1)
+  ;;                                    "	◆")))))
+  ;;    'append)
+
+  ;;   ;; Replace - list markers with bullet •
+  ;;   (font-lock-add-keywords
+  ;;    nil
+  ;;    '(("^ *\\(-\\) "
+  ;;       (1 (prog1 () (compose-region (match-beginning 1)
+  ;;                                    (match-end 1)
+  ;;                                    "	•")))))
+  ;;    'append)
+
+  ;;   (font-lock-fontify-buffer))
+
+  ;; (add-hook 'org-mode-hook #'flow-org-style-bullets)
+
   (defun flow/truncate-buffer-name ()
     (let* ((name (if buffer-file-name
                      (abbreviate-file-name buffer-file-name)
@@ -249,11 +298,15 @@
                                 'face '(:foreground ,bright-magenta :weight bold))))
            (:eval (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
            " ")))
-    (setq mode-line-format flow/mode-line)
+
+    ;; Avoid resetting local hidden modelines in org when switching light themes.
+    ;; (setq mode-line-format flow/mode-line)
+
     (setq-default mode-line-format flow/mode-line)))
 
 (provide-theme 'flow)
 
+;; (font-family-list)
 ;; (face-at-point)
 ;; (list-faces-display)
 ;; (progn (disable-theme 'flow) (load-theme 'flow t))
