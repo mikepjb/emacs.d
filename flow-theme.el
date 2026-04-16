@@ -13,6 +13,40 @@
         (if (eq flow-mode 'dark) 'light 'dark))
   (load-theme 'flow t))
 
+(defvar flow--face-attr-symbols
+  '(bold italic oblique normal ultra-bold semi-bold semi-light ultra-light
+    thin unspecified inherit fixed-pitch)
+  "Symbols used as face attribute values that need quoting.")
+
+(defun flow--val->form (val)
+  (cond
+   ((and (consp val) (not (listp (cdr val)))) ; cons cell e.g. (-1 . 32)
+    `(cons ,(car val) ,(cdr val)))
+   ((and (listp val) (listp (car val)))        ; nested list e.g. :inherit (bold italic)
+    `',val)
+   ((and (listp val) (keywordp (car val)))     ; nested plist e.g. :box (...)
+    `(list ,@(flow--plist->form val)))
+   ((memq val flow--face-attr-symbols)         ; known attr symbol e.g. bold
+    `',val)
+   (t val)))                                   ; variable e.g. bg, fg, cyan
+
+(defun flow--plist->form (attrs)
+  "Convert a face attr plist into a (list ...) form,
+recursively handling nested plists like :box and quoted symbols like bold."
+  (let (result)
+    (while attrs
+      (push (pop attrs) result)
+      (push (flow--val->form (pop attrs)) result))
+    (nreverse result)))
+
+(defmacro flow-set-faces (theme &rest specs)
+  `(custom-theme-set-faces
+    ',theme
+    ,@(mapcar (lambda (spec)
+                `(list ',(car spec)
+                       (list (list t (list ,@(flow--plist->form (cdr spec)))))))
+              specs)))
+
 (let* ((dark-p (eq flow-mode 'dark))
        ;; Color organised as a pyramid for attention, with small areas
        ;; of interest down to the main bulk of the view. This should
@@ -22,9 +56,9 @@
        ;; Top layer, high interest - buffer names, errors/warnings,
        ;; prompts, cursor. Do we need all 4? Especially as magenta is
        ;; close to purple/lavender.
-       (yellow         (if dark-p "#f9e2af" "#df8e1d"))       ; catppucin mocha yellow
-       (magenta        (if dark-p "#cba6f7" "#8839ef"))       ; purple
-       (cyan           (if dark-p "#89dceb" "#04a5e5"))       ; muted cyan
+       (yellow         (if dark-p "#f9e2af" "#df8e1d")) ; catppucin mocha yellow
+       (magenta        (if dark-p "#cba6f7" "#8839ef")) ; purple
+       (cyan           (if dark-p "#89dceb" "#04a5e5")) ; muted cyan
        (bright-magenta "#ff00ff")       ; pure neon magenta - cursor
 
        ;; Middle layer, low but significant interest, function names
@@ -51,10 +85,10 @@
 
        ;; rest/unsorted - to be deprecated most likely.
        ;; not sure black etc really works here? for dual theme
-       (red            (if dark-p "#eba0ac" "#e64553"))       ; catppucin mocha maroon
-       (green          (if dark-p "#a6e3a1" "#40a02b"))       ; muted green
+       (red            (if dark-p "#eba0ac" "#e64553")) ; catppucin mocha maroon
+       (green          (if dark-p "#a6e3a1" "#40a02b")) ; muted green
        ;; may want a more faded yellow
-       (blue           (if dark-p "#89b4fa" "#1e66f5"))       ; catppucin mocha sapphire
+       (blue           (if dark-p "#89b4fa" "#1e66f5")) ; catppucin mocha sapphire
 
 
        ;; Bright/neon colors (from alacritty bright palette)
@@ -71,151 +105,141 @@
 
        )
 
-  (custom-theme-set-faces
-   'flow
+  (flow-set-faces
+   flow
+   (default :background bg :foreground fg)
+   (cursor :background bright-magenta :foreground bg)
+   (region :background bg++)
+   (fringe :background bg :foreground bg+++)
+   (minibuffer-prompt :foreground teal)
+   (hl-line :background bg)
 
-   ;; Basic faces
-   `(default ((t (:background ,bg :foreground ,fg))))
-   `(cursor ((t (:background ,bright-magenta :foreground ,bg))))
-   `(region ((t (:background ,bg++)))) ;; highlight
-   `(fringe ((t (:background ,bg :foreground ,bg+++))))
-   `(minibuffer-prompt ((t (:foreground ,green))))
-   `(hl-line ((t (:background ,bg+))))
-
-   `(mode-line ((t (:background ,bg
-                                :foreground ,fg
-                                :box (:line-width 1 :color ,bg++ :style nil)))))
-   `(mode-line-inactive ((t (:background ,bg
-                                         :foreground ,fg
-                                         :box (:line-width 1 :color ,bg++ :style nil)))))
-
-   ;; Doesn't work for custom modeline
-   `(mode-line-buffer-id ((t (:foreground ,cyan :weight bold))))
-
-   ;; Additional modeline refinements
-   `(mode-line-emphasis ((t (:foreground ,yellow))))
-   `(mode-line-highlight ((t (:foreground ,teal))))
+   ;; Mode Line
+   (mode-line :background bg :foreground fg
+              :box (:line-width 1 :color bg++ :style nil))
+   (mode-line-inactive :background bg :foreground fg
+                       :box (:line-width 1 :color bg++ :style nil))
+   (mode-line-buffer-id :foreground cyan :weight bold)
+   (mode-line-emphasis :foreground teal)
+   (mode-line-highlight :foreground teal)
 
    ;; Misc. UI
-   `(vertical-border ((t (:foreground ,bg+))))
-   `(link ((t (:foreground ,lavender :underline t))))
-   `(escape-glyph ((t (:foreground ,bg+))))
-   `(icon ((t (:foreground ,yellow))))
-   `(xref-line-number ((t (:foreground ,yellow))))
+   (vertical-border :foreground bg+)
+   (link :foreground lavender :underline t)
+   (escape-glyph :foreground bg+)
+   (icon :foreground yellow)
+   (xref-line-number)
 
-   ;; Success, info, and search faces using full color palette
-   `(success ((t (:foreground ,green))))
-   `(info ((t (:foreground ,lavender))))
-   `(match ((t (:background ,bg :foreground ,match))))
-   `(isearch ((t (:background ,match :foreground ,bg))))
-   `(lazy-highlight ((t (:background ,match :foreground ,bg))))
-   `(query-replace ((t (:background ,green :foreground ,bg))))
+   ;; ?? status section?
+   (success :foreground green)
+   (info :foreground lavender)
+   (match :background bg :foreground match)
+   (isearch :background match :foreground bg)
+   (lazy-highlight :background match :foreground bg)
+   (query-replace :background green :foreground bg)
 
-   ;; Dired colors
-   `(dired-directory ((t (:foreground ,teal))))
-   `(dired-executable ((t (:foreground ,sapphire))))
-   `(dired-symlink ((t (:foreground ,lavender))))
-   `(dired-marked ((t (:foreground ,yellow :weight bold))))
+   ;; Dired
+   (dired-directory :foreground teal)
+   (dired-executable :foreground sapphire)
+   (dired-symlink :foreground lavender)
+   (dired-marked :foreground yellow :weight bold)
 
-   ;; Compilation and grep
-   `(compilation-info ((t (:foreground ,green))))
-   `(compilation-warning ((t (:foreground ,yellow))))
-   `(compilation-error ((t (:foreground ,magenta))))
-   `(grep-hit-face ((t (:foreground ,magenta))))
-   `(grep-match-face ((t (:background ,match :foreground ,bg))))
+   ;; Compilation
+   (compilation-info :foreground teal)
+   (compilation-warning :foreground yellow)
+   (compilation-error :foreground magenta)
 
-   ;; Version control (magit, vc, etc.)
-   `(diff-added ((t (:background ,bg+green))))
-   `(diff-refine-added ((t (:background ,bg+green+))))
-   `(diff-removed ((t (:background ,bg+red))))
-   `(diff-refine-removed ((t (:background ,bg+red+))))
-   `(diff-changed ((t (:foreground ,yellow))))
-   `(diff-header ((t (:foreground ,sapphire))))
-   `(diff-file-header ((t (:foreground ,cyan :weight bold))))
+   ;; Grep
+   (grep-hit-face :foreground magenta)
+   (grep-match-face :background match :foreground bg)
 
-   ;; Completions and minibuffer
-   `(completions-highlight ((t (:foreground ,fg :background ,bg+++))))
-   `(icomplete-selected-match ((t (:foreground ,fg :background ,bg+++))))
-   `(completions-annotations ((t (:foreground ,teal))))
-   `(completions-common-part ((t (:foreground ,fg++))))
-   `(completions-first-difference ((t (:foreground ,fg+++))))
+   ;; Git / Version Control
+   (diff-added :foreground fg :background bg+green)
+   (diff-refine-added :background bg+green+)
+   (diff-removed :background bg+red)
+   (diff-refine-removed :background bg+red+)
+   (diff-changed :foreground yellow)
+   (diff-header :foreground sapphire)
+   (diff-file-header :foreground cyan :weight bold)
 
-   ;; Syntax highlighting - mostly monochrome
-   `(font-lock-comment-face ((t (:foreground ,fg+++))))
-   `(font-lock-string-face ((t (:foreground ,teal))))
-   `(font-lock-keyword-face ((t (:foreground ,fg))))
-   `(font-lock-function-name-face ((t (:foreground ,sapphire))))
-   `(font-lock-variable-name-face ((t (:foreground ,lavender))))
-   `(font-lock-type-face ((t (:foreground ,fg))))
-   `(font-lock-constant-face ((t (:foreground ,sapphire))))
-   `(font-lock-builtin-face ((t (:foreground ,fg++))))
+   ;; Completions
+   (completions-highlight :foreground fg :background bg+++)
+   (icomplete-selected-match :foreground fg :background bg+++)
+   (completions-annotations :foreground teal)
+   (completions-common-part :foreground fg++)
+   (completions-first-difference :foreground fg+++)
 
-   ;; Errors and warnings
-   `(error ((t (:foreground ,red))))
-   `(warning ((t (:foreground ,yellow))))
+   ;; Syntax highlighting
+   (font-lock-comment-face :foreground fg+++)
+   (font-lock-string-face :foreground teal)
+   (font-lock-keyword-face :foreground fg)
+   (font-lock-function-name-face :foreground sapphire)
+   (font-lock-variable-name-face :foreground lavender)
+   (font-lock-type-face :foreground fg)
+   (font-lock-constant-face :foreground sapphire)
+   (font-lock-builtin-face :foreground fg++)
 
-   ;; Line numbers
-   `(line-number ((t (:foreground ,bg+++))))
-   `(line-number-current-line ((t (:foreground ,fg+++ :background ,bg+++))))
+   ;; Errors and Warnings
+   (error :foreground magenta)
+   (warning :foreground yellow)
 
-   `(fill-column-indicator ((t (:foreground ,bg))))
+   ;; Line Numbers
+   (line-number :foreground fg+++)
+   (line-number-current-line :foreground fg++ :background bg+++)
 
-   ;; Headers
-   `(markdown-header-face-1 ((t (:height 1.3 :weight bold :foreground ,sapphire))))
-   `(markdown-header-face-2 ((t (:height 1.2 :weight bold :foreground ,teal))))
-   `(markdown-header-face-3 ((t (:height 1.1 :weight bold :foreground ,lavender))))
-   `(markdown-header-face-4 ((t (:height 1.0 :weight bold :foreground ,fg))))
-   `(org-level-1 ((t (:height 1.6 :weight bold :foreground ,fg
-                              :box (:line-width (-1 . 32) :color ,bg)))))
-   `(org-level-2 ((t (:height 1.3 :slant italic :foreground ,fg
-                              :box (:line-width (-1 . 20) :color ,bg)))))
-   `(org-level-3 ((t (:height 1.0 :weight bold :slant italic :foreground ,fg
-                              :box (:line-width (-1 . 12) :color ,bg)))))
-   `(org-level-4 ((t (:height 1.0 :weight bold :foreground ,fg))))
-   `(org-level-5 ((t (:height 1.0 :foreground ,fg))))
-   `(org-level-6 ((t (:height 1.0 :foreground ,fg))))
-   `(org-ellipsis ((t (:foreground ,bg++ :underline nil))))
-   `(org-headline-done ((t (:foreground ,fg+++ :underline nil))))
-   `(org-done ((t (:foreground ,green :underline nil))))
-   `(org-todo ((t (:foreground ,sapphire :underline nil))))
-   `(org-tag ((t (:foreground ,fg+++ :underline nil))))
-   `(org-hide ((t (:foreground ,bg :inherit fixed-pitch))))
+   (fill-column-indicator :foreground bg) ;; what does this do?
 
-   ;; Monospace faces
-   `(org-block            ((t (:inherit fixed-pitch))))
-   `(org-block-begin-line ((t (:inherit fixed-pitch))))
-   `(org-block-end-line   ((t (:inherit fixed-pitch))))
-   `(org-code             ((t (:inherit fixed-pitch))))
-   `(org-verbatim         ((t (:inherit fixed-pitch))))
-   `(org-table            ((t (:inherit fixed-pitch))))
-   `(org-formula          ((t (:inherit fixed-pitch))))
-   `(org-checkbox         ((t (:inherit fixed-pitch))))
-   `(org-meta-line        ((t (:inherit fixed-pitch))))  ; #+title, #+begin_src etc
-   `(org-drawer           ((t (:inherit fixed-pitch))))  ; :PROPERTIES: etc
-   ;; `(org-special-keyword  ((t (:inherit fixed-pitch))))  ; SCHEDULED, DEADLINE etc
-   `(org-todo             ((t (:inherit fixed-pitch :weight bold :foreground ,sapphire))))
-   `(org-done             ((t (:inherit fixed-pitch :weight bold :foreground ,green))))
+   ;; Document Headings
+   (markdown-header-face-1 :height 1.6 :weight bold :foreground fg
+                           :box (:line-width (-1 . 32) :color bg))
+   (markdown-header-face-2 :height 1.3 :slant italic :foreground fg
+                           :box (:line-width (-1 . 20) :color bg))
+   (markdown-header-face-3 :height 1.0 :weight bold :foreground fg
+                           :box (:line-width (-1 . 12) :color bg))
+   (markdown-header-face-4 :height 1.0 :weight bold :foreground fg)
+   (org-level-1 :height 1.6 :weight bold :foreground fg
+                :box (:line-width (-1 . 32) :color bg))
+   (org-level-2 :height 1.3 :slant italic :foreground fg
+                :box (:line-width (-1 . 20) :color bg))
+   (org-level-3 :height 1.0 :weight bold :foreground fg
+                :box (:line-width (-1 . 12) :color bg))
+   ;; bullets style after this point
+   (org-level-4 :height 1.0 :foreground fg)
+   (org-level-5 :height 1.0 :foreground fg)
+   (org-level-6 :height 1.0 :foreground fg)
 
-   ;; Eshell
-   `(eshell-prompt ((t (:foreground ,yellow))))
+   ;; Org Styling
+   (org-ellipsis :foreground fg+++ :underline nil)
+   (org-headline-done :foreground fg+++ :underline nil :strike-through t)
+   (org-done :foreground green :underline nil :weight bold)
+   (org-todo :foreground sapphire :underline nil :weight bold)
+   (org-tag :foreground fg+++ :underline nil)
+   (org-hide :foreground bg :inherit fixed-pitch)
+   (org-block :inherit fixed-pitch)
+   (org-block-begin-line :inherit fixed-pitch)
+   (org-block-end-line :inherit fixed-pitch)
+   (org-code :inherit fixed-pitch)
+   (org-verbatim :inherit fixed-pitch)
+   (org-checkbox :inherit fixed-pitch)
+   (org-meta-line :inherit fixed-pitch)
+   (org-drawer :inherit fixed-pitch)
 
-   ;; Language Specific
-   `(sh-quoted-exec ((t (:foreground ,fg))))
+   (eshell-prompt :inherit yellow)
 
-   ;; Terminal
-   `(ansi-color-black ((t (:foreground ,bg :background ,bg))))
-   `(ansi-color-red ((t (:foreground ,red :background ,bg))))
-   `(ansi-color-green ((t (:foreground ,green :background ,bg))))
-   `(ansi-color-yellow ((t (:foreground ,yellow :background ,bg))))
-   `(ansi-color-magenta ((t (:foreground ,magenta :background ,bg))))
+   (sh-quoted-exec :foreground fg)
 
-   ;; Parentheses and brackets
-   `(font-lock-paren-face ((t (:foreground ,lavender))))
-   `(font-lock-bracket-face ((t (:foreground ,sapphire))))
-   `(font-lock-brace-face ((t (:foreground ,teal))))
-   )
+   (ansi-color-black :foreground bg :background fg)
+   (ansi-color-red :foreground red :background bg)
+   (ansi-color-green :foreground green :background bg)
+   (ansi-color-yellow :foreground yellow :background bg)
+   (ansi-color-blue :foreground blue :background bg)
+   (ansi-color-magenta :foreground magenta :background bg)
 
-  ;; When fringe-mode is 0, I am not sure the truncation chars are
+   (font-lock-paren-face :foreground lavender)
+   (font-lock-bracket-face :foreground sapphire)
+   (font-lock-brace-face :foreground teal))
+
+    ;; When fringe-mode is 0, I am not sure the truncation chars are
   ;; fontified so we set this manually and update the glyph while
   ;; we're at it.
   (set-display-table-slot

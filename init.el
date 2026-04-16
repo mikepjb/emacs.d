@@ -259,7 +259,7 @@
   (org-todo-keywords
    '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
   (org-todo-keyword-faces
-   '(("CURRENT" . ansi-color-magenta) ("NEXT"    . ansi-color-magenta)))
+   '(("CURRENT" . ansi-color-blue) ("NEXT"    . ansi-color-blue)))
   (org-log-done 'time)
   (org-log-into-drawer t)
   (org-clock-idle-time 10)
