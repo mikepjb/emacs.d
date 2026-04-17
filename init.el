@@ -23,7 +23,7 @@
  frame-resize-pixelwise t
  completion-ignore-case t
  load-prefer-newer t ;; init.el > init.elc if newer
- dired-listing-switches "-lah" ;; human readable sizes.. again, does this work when set this way?
+ dired-listing-switches "-lah" ;; human readable sizes
  package-archives '(("melpa" . "https://melpa.org/packages/")
                     ("gnu" . "https://elpa.gnu.org/packages/"))
 
@@ -244,11 +244,6 @@
   (olivetti-style nil)
   (olivetti-body-width 80)
   :hook ((org-mode markdown-mode) . olivetti-mode))
-
-;; (setq-local mode-line-format nil) ;; hide modeline
-;; (setq org-cycle-separator-lines 5) ; blank line between top-level sections, does this work? LOL
-
-(setq org-cycle-separator-lines 0) ;; really don't understand this one..
 
 (use-package org :ensure nil
   :custom

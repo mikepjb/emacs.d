@@ -72,12 +72,14 @@ recursively handling nested plists like :box and quoted symbols like bold."
        (fg+            (if dark-p "#bac2de" "#5c5f77"))
        (fg++           (if dark-p "#a6adc8" "#6c6f85"))
        (fg+++          (if dark-p "#6c7086" "#9ca0b0"))
+       (fg++++         (if dark-p "#585b70" "#8c8fa1"))
 
        (bg             (if dark-p "#0a0a10" "#eff1f5"))
        ;; +colors are darker/lighter depending on theme for consistent depth effect.
-       (bg+            (if dark-p "#11111b" "#eff1f5"))
+       (bg+            (if dark-p "#11111b" "#dce0e8"))
        (bg++            (if dark-p "#181825" "#e6e9ef"))
-       (bg+++          (if dark-p "#1e1e2e" "#dce0e8"))
+       (bg+++          (if dark-p "#1e1e2e" "#eff1f5"))
+       (bg++++         (if dark-p "#313244" "#ccd0da"))
        (bg+green       (if dark-p "#0c1412" "#d1fde6")) ;; for git diffs
        (bg+green+       (if dark-p "#0e211c" "#bffbdc"))
        (bg+red         (if dark-p "#1f0809" "#f4d3d5"))
@@ -116,15 +118,15 @@ recursively handling nested plists like :box and quoted symbols like bold."
 
    ;; Mode Line
    (mode-line :background bg :foreground fg
-              :box (:line-width 1 :color bg++ :style nil))
+              :box (:line-width 1 :color bg++++ :style nil))
    (mode-line-inactive :background bg :foreground fg
-                       :box (:line-width 1 :color bg++ :style nil))
+                       :box (:line-width 1 :color bg++++ :style nil))
    (mode-line-buffer-id :foreground cyan :weight bold)
    (mode-line-emphasis :foreground teal)
    (mode-line-highlight :foreground teal)
 
    ;; Misc. UI
-   (vertical-border :foreground bg+)
+   (vertical-border :foreground bg++++)
    (link :foreground lavender :underline t)
    (escape-glyph :foreground bg+)
    (icon :foreground yellow)
@@ -211,9 +213,11 @@ recursively handling nested plists like :box and quoted symbols like bold."
    ;; Org Styling
    (org-ellipsis :foreground fg+++ :underline nil)
    (org-headline-done :foreground fg+++ :underline nil :strike-through t)
-   (org-done :foreground green :underline nil :weight bold)
-   (org-todo :foreground sapphire :underline nil :weight bold)
+   (org-done :foreground green :underline nil)
+   (org-todo :foreground sapphire :underline nil)
    (org-tag :foreground fg+++ :underline nil)
+   (org-agenda-structure :foreground lavender)
+   (org-scheduled-previously :foreground yellow)
    (org-hide :foreground bg :inherit fixed-pitch)
    (org-block :inherit fixed-pitch)
    (org-block-begin-line :inherit fixed-pitch)
@@ -239,7 +243,7 @@ recursively handling nested plists like :box and quoted symbols like bold."
    (font-lock-bracket-face :foreground sapphire)
    (font-lock-brace-face :foreground teal))
 
-    ;; When fringe-mode is 0, I am not sure the truncation chars are
+  ;; When fringe-mode is 0, I am not sure the truncation chars are
   ;; fontified so we set this manually and update the glyph while
   ;; we're at it.
   (set-display-table-slot
@@ -322,22 +326,35 @@ recursively handling nested plists like :box and quoted symbols like bold."
   (advice-add 'org-indent--compute-prefixes :after
               #'flow-org-indent--clear-shallow-prefixes)
 
-  ;; Useful if we want bullets for all headings
-  ;; (defun flow-org-bullets ()
-  ;;   (font-lock-add-keywords
-  ;;    nil
-  ;;    '(("^\\(\\*+\\)"
-  ;;       (1 (prog1 nil
-  ;;            (let* ((beg (match-beginning 1))
-  ;;                   (end (match-end 1))
-  ;;                   (n   (- end beg)))
-  ;;              (compose-region (1- end) end "◇")
-  ;;              (when (> n 1)
-  ;;                (put-text-property beg (1- end)
-  ;;                                   'face 'org-hide)))))))
-  ;;    'append))
+  (defvar flow/vc-commit-age-cache (make-hash-table :test 'equal))
 
-  ;; (add-hook 'org-mode-hook #'flow-org-bullets)
+  (defun flow/vc-commit-age-refresh ()
+    (when-let* ((root (and buffer-file-name (vc-root-dir)))
+                (root (expand-file-name root)))
+      (unless (gethash root flow/vc-commit-age-cache)
+        (message "fired!")
+        (puthash root 'pending flow/vc-commit-age-cache)
+        (make-process
+         :name "flow/vc-commit-age"
+         :command (list "git" "--no-pager" "-C" root "log" "-1" "--format=%ct")
+         :noquery t
+         :filter (lambda (_ output)
+                   (let* ((ts (string-to-number (string-trim output)))
+                          (secs (- (float-time) ts))
+                          (age (when (> ts 0)
+                                 (cond ((< secs 3600)  (format "%dm" (/ secs 60)))
+                                       ((< secs 86400) (format "%dh" (/ secs 3600)))
+                                       (t              (format "%dd" (/ secs 86400)))))))
+                     (puthash root (or age 'error) flow/vc-commit-age-cache)
+                     (force-mode-line-update t)))))))
+
+  (defun flow/vc-commit-age ()
+    (when-let* ((root (and buffer-file-name (vc-root-dir)))
+                (val (gethash (expand-file-name root) flow/vc-commit-age-cache)))
+      (unless (memq val '(pending error)) val)))
+
+  (run-with-idle-timer 0.5 t #'flow/vc-commit-age-refresh)
+  (run-with-timer 0 60 (lambda () (clrhash flow/vc-commit-age-cache)))
 
   (defun flow/truncate-buffer-name ()
     (let* ((name (if buffer-file-name
@@ -356,21 +373,25 @@ recursively handling nested plists like :box and quoted symbols like bold."
                    '(:foreground ,cyan :weight bold)))
            " [%*]"
            mode-line-format-right-align
-           (:eval (when (and (boundp 'vc-mode) vc-mode) ;; git branch + space
-                    (concat (propertize " | " 'face '(:foreground ,bg++))
-                            (replace-regexp-in-string "^ Git[-:]" "" vc-mode))))
-           (:eval (propertize " | " 'face '(:foreground ,bg++)))
-           "%l:%c" ;; line/col count
-           (:eval (propertize " | " 'face '(:foreground ,bg++)))
+           (:eval (concat (if (and (boundp 'org-clocking-p) (org-clocking-p))
+                              (propertize (format " ● %s"
+                                                  (org-duration-from-minutes (org-clock-get-clocked-time)))
+                                          'face '(:foreground ,cyan :weight bold))
+                            (propertize " ○" 'face '(:foreground ,cyan :weight bold)))
+                          (propertize " | " 'face '(:foreground ,bg++++))))
+           (:eval (when (and (boundp 'vc-mode) vc-mode)
+                  (concat (replace-regexp-in-string "^ Git[-:]" "" vc-mode)
+                          (when-let ((age (flow/vc-commit-age)))
+                            (propertize (concat " (" age ")")
+                                        'face '(:foreground ,fg++++)))
+                          (propertize " | " 'face '(:foreground ,bg++++)))))
+           "%l:%c"
+           (:eval (propertize " | " 'face '(:foreground ,bg++++)))
            (:eval (when-let ((proc (get-buffer-process (current-buffer))))
                     (propertize (format "[%s] " (process-name proc))
                                 'face '(:foreground ,bright-magenta :weight bold))))
            (:eval (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
            " ")))
-
-    ;; Avoid resetting local hidden modelines in org when switching light themes.
-    ;; (setq mode-line-format flow/mode-line)
-
     (setq-default mode-line-format flow/mode-line)))
 
 (provide-theme 'flow)
