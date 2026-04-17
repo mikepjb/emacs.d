@@ -91,6 +91,9 @@
              ("C-c s" +run-script)
              ("M-_" ,(il (if (org-clocking-p) (org-clock-out) (org-clock-in-last))))
 
+             ;; Information
+             ("M-N" newsticker-show-news)
+
              ;; Split management
              ("C-c k" ,(il (select-window (split-window-below))))
              ("C-c l" ,(il (select-window (split-window-right))))
@@ -295,5 +298,19 @@
 (defun +org-clock-todo-change ()
   (if (string= org-state "CURRENT")
       (org-clock-in)))
+
+(use-package newsticker
+  :ensure nil
+  :custom
+  (newsticker-retrieval-interval 1800)
+  (newsticker-wget-name "curl")
+  (newsticker-wget-arguments '("--silent" "--location"))
+  (newsticker-obsolete-item-max-age (* 3 86400))
+  (newsticker-frontend 'newsticker-treeview)
+  (newsticker-start-news-ticker-on-start nil)
+  :config
+  (setq newsticker-url-list
+        '(("Hacker News" "https://hnrss.org/frontpage" nil nil nil)
+          ("Guardian World" "https://www.theguardian.com/world/rss" nil nil nil))))
 
 (provide 'init)

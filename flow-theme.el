@@ -332,7 +332,6 @@ recursively handling nested plists like :box and quoted symbols like bold."
     (when-let* ((root (and buffer-file-name (vc-root-dir)))
                 (root (expand-file-name root)))
       (unless (gethash root flow/vc-commit-age-cache)
-        (message "fired!")
         (puthash root 'pending flow/vc-commit-age-cache)
         (make-process
          :name "flow/vc-commit-age"
