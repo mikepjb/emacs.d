@@ -203,7 +203,7 @@ recursively handling nested plists like :box and quoted symbols like bold."
                 :box (:line-width (-1 . 32) :color bg))
    (org-level-2 :height 1.3 :slant italic :foreground fg
                 :box (:line-width (-1 . 20) :color bg))
-   (org-level-3 :height 1.0 :weight bold :foreground fg
+   (org-level-3 :height 1.0 :foreground fg
                 :box (:line-width (-1 . 12) :color bg))
    ;; bullets style after this point
    (org-level-4 :height 1.0 :foreground fg)
@@ -214,16 +214,21 @@ recursively handling nested plists like :box and quoted symbols like bold."
    (org-ellipsis :foreground fg+++ :underline nil)
    (org-headline-done :foreground fg+++ :underline nil :strike-through t)
    (org-done :foreground green :underline nil)
-   (org-todo :foreground sapphire :underline nil)
-   (org-tag :foreground fg+++ :underline nil)
+   (org-todo :foreground sapphire :underline nil :inherit fixed-pitch)
+   (org-next :foreground yellow :underline nil :inherit fixed-pitch)
+   (org-current :foreground green :underline nil :inherit fixed-pitch)
+   (org-tag :foreground fg+++ :underline nil :inherit fixed-pitch)
    (org-agenda-structure :foreground lavender)
    (org-scheduled-previously :foreground yellow)
    (org-hide :foreground bg :inherit fixed-pitch)
+   (org-drawer :foreground fg++ :inherit fixed-pitch)
    (org-block :inherit fixed-pitch)
    (org-block-begin-line :inherit fixed-pitch)
    (org-block-end-line :inherit fixed-pitch)
    (org-code :inherit fixed-pitch)
    (org-verbatim :inherit fixed-pitch)
+   (org-special-keyword :foreground fg+++ :inherit fixed-pitch)
+   (org-date :foreground teal :inherit fixed-pitch)
    (org-checkbox :inherit fixed-pitch)
    (org-meta-line :inherit fixed-pitch)
    (org-drawer :inherit fixed-pitch)
@@ -264,6 +269,9 @@ recursively handling nested plists like :box and quoted symbols like bold."
     (font-lock-flush))
 
   (add-hook 'prog-mode-hook #'flow-delimiters-enable)
+
+  (defface org-current nil "Face for current tasks." :group 'font-lock-faces)
+  (defface org-next nil "Face for next tasks." :group 'font-lock-faces)
 
   (defun flow-org-style-bullets ()
     ;; Hide levels 1-3 stars completely (invisible)

@@ -63,11 +63,14 @@
   (let ((monospace-font
          (seq-find #'x-list-fonts '("Rec Mono Casual" "Monospace"))))
     (set-face-attribute 'default nil :font monospace-font :height 160)
-    (set-face-attribute 'fixed-pitch nil :font monospace-font))
+    (set-face-attribute 'fixed-pitch nil :font monospace-font :height 140))
   (set-face-attribute 'variable-pitch nil
-                      :font (seq-find #'x-list-fonts '("Crimson Pro"
-                                                       ;; "Recursive Sans Casual Static"
-                                                       "Monospace")) :height 180))
+                      :font (seq-find #'x-list-fonts '(
+                                                       ;; "Lora"
+                                                       "Recursive Sans Casual Static"
+                                                       ;; "Libre Baskerville"
+                                                       "Crimson Pro"
+                                                       "Monospace")) :height 160))
 
 (seq-filter (lambda (s) (not (string-match-p "Noto" s))) (font-family-list))
 
@@ -257,13 +260,14 @@
   (org-todo-keywords
    '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
   (org-todo-keyword-faces
-   '(("CURRENT" . ansi-color-blue) ("NEXT"    . ansi-color-blue)))
+   '(("CURRENT" . org-current) ("NEXT"    . org-next)))
   (org-log-done 'time)
   (org-log-into-drawer t)
   (org-clock-idle-time 10)
   (org-agenda-span 14)
   (org-agenda-start-day "today")
   (org-agenda-start-on-weekday nil)
+  (org-agenda-restore-windows-after-quit t)
   (org-archive-location "~/.emacs.d/notes/archive.org::* From %s")
   (org-directory "~/.emacs.d/notes")
   (org-agenda-show-inherited-tags t)
