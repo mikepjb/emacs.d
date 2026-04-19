@@ -207,6 +207,10 @@
     (other-window-prefix)
     (apply fn args)))
 
+(defun +lisp-load-current-file ()
+  (interactive)
+  (lisp-load-file (buffer-file-name)))
+
 (use-package paredit :ensure t
   :hook ((clojure-mode emacs-lisp-mode inferior-lisp-mode
                        lisp-data-mode eval-expression-minibuffer-setup)
@@ -234,7 +238,17 @@
               ("C-z" . paredit-splice-sexp)
               ("M-s" . nil)))
 
-(use-package clojure-mode :ensure t)
+(use-package clojure-mode :ensure t
+  :bind (:map clojure-mode-map
+              ("C-x C-e" . lisp-eval-last-sexp)
+              ("C-M-x"   . lisp-eval-defun)
+              ("C-c C-r" . lisp-eval-region)
+              ("C-c C-k" . +lisp-load-current-file)
+              ("C-c C-l" . lisp-load-file))
+  :hook (clojure-mode . (lambda ()
+                          (setq-local inferior-lisp-load-command
+                                      "(load-file \"%s\")\n"))))
+
 (use-package go-mode :ensure t)
 (use-package typescript-mode :ensure t :custom (typescript-indent-level 2))
 (use-package json-mode :ensure t)
@@ -255,7 +269,7 @@
   :custom
   (org-modules nil)
   (org-ellipsis " ▼")
-  (org-startup-folded 'content)
+  (org-startup-folded 'show3levels) ;; 'content also works
   (org-startup-with-inline-images t)
   (org-todo-keywords
    '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
@@ -294,7 +308,7 @@
               ("C-c r" . org-archive-subtree))
   :hook (                               ; (org-mode . org-indent-mode)
          (org-mode . variable-pitch-mode)
-         (org-mode . (lambda () (setq-local mode-line-format nil)))
+         ;; (org-mode . (lambda () (setq-local mode-line-format nil)))
          (org-after-todo-state-change . +org-clock-todo-change))
   :config
   (advice-add 'org-refile :after (lambda (&rest _) (org-save-all-org-buffers))))

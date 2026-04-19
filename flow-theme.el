@@ -380,7 +380,7 @@ recursively handling nested plists like :box and quoted symbols like bold."
                    '(:foreground ,cyan :weight bold)))
            " [%*]"
            mode-line-format-right-align
-           (:eval (concat (if (and (boundp 'org-clocking-p) (org-clocking-p))
+           (:eval (concat (if (and (fboundp 'org-clocking-p) (org-clocking-p))
                               (propertize (format " ● %s"
                                                   (org-duration-from-minutes (org-clock-get-clocked-time)))
                                           'face '(:foreground ,cyan :weight bold))
