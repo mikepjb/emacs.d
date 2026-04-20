@@ -233,7 +233,7 @@ recursively handling nested plists like :box and quoted symbols like bold."
    (org-meta-line :inherit fixed-pitch)
    (org-drawer :inherit fixed-pitch)
 
-   (eshell-prompt :inherit yellow)
+   (eshell-prompt :foreground yellow)
 
    (sh-quoted-exec :foreground fg)
 

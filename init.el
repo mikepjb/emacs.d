@@ -7,12 +7,9 @@
 (dolist (k '(mac-command-modifier x-super-keysym))
   (when (boundp k) (set k 'meta)))
 
-(load-theme 'flow t)
-
 (modify-coding-system-alist 'file "" 'utf-8)
 
-(setq
- ;; Emacs/System settings
+(setq ;; Emacs/System settings
  inhibit-startup-screen t
  ring-bell-function 'ignore
  use-dialog-box nil
@@ -24,18 +21,9 @@
  completion-ignore-case t
  load-prefer-newer t ;; init.el > init.elc if newer
  dired-listing-switches "-lah" ;; human readable sizes
- package-archives '(("melpa" . "https://melpa.org/packages/")
-                    ("gnu" . "https://elpa.gnu.org/packages/"))
-
- ;; Editing
- isearch-wrap-pause 'no
-
- ;; Save files
- create-lockfiles nil
+ create-lockfiles nil ;; Save files
  make-backup-files nil
- custom-file (concat user-emacs-directory "local.el")
-
- ;; Code tools
+ isearch-wrap-pause 'no ;; Editing
  large-file-warning-threshold (* 512 1024 1024) ;; for ctags
  compilation-always-kill t
  compilation-scroll-output t
@@ -43,10 +31,12 @@
  vc-handled-backends '(Git)
  vc-make-backup-files nil
  eshell-banner-message ""
- eshell-visual-commands '("vi" "htop" "less" "more"))
+ eshell-visual-commands '("vi" "htop" "less" "more")
+ custom-file (concat user-emacs-directory "local.el")
+ package-archives '(("melpa" . "https://melpa.org/packages/")
+                    ("gnu" . "https://elpa.gnu.org/packages/")))
 
-(setq-default
- ;; Editing
+(setq-default ;; Editing
  truncate-lines t
  indent-tabs-mode nil
  tab-width 2
@@ -54,6 +44,7 @@
  whitespace-style '(face trailing tabs empty indentation::space))
 
 (load custom-file t)
+(load-theme 'flow t)
 
 (menu-bar-mode -1)
 (when window-system
@@ -93,6 +84,7 @@
              ("C-c P" ,(ff "~/src"))
              ("C-c s" +run-script)
              ("M-_" ,(il (if (org-clocking-p) (org-clock-out) (org-clock-in-last))))
+             ("M-Z" +toggle-transparency)
 
              ;; Information
              ("M-N" newsticker-show-news)
@@ -210,6 +202,13 @@
 (defun +lisp-load-current-file ()
   (interactive)
   (lisp-load-file (buffer-file-name)))
+
+(defun +toggle-transparency ()
+  (interactive)
+  (let* ((current (frame-parameter nil 'alpha-background))
+         (new-alpha (if (= current 100) 60 100)))
+    (set-frame-parameter (selected-frame) 'alpha-background new-alpha)
+    (setf (alist-get 'alpha-background default-frame-alist) new-alpha)))
 
 (use-package paredit :ensure t
   :hook ((clojure-mode emacs-lisp-mode inferior-lisp-mode
