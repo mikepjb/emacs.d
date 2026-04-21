@@ -33,6 +33,7 @@
  eshell-banner-message ""
  eshell-visual-commands '("vi" "htop" "less" "more")
  custom-file (concat user-emacs-directory "local.el")
+ initial-frame-alist (append initial-frame-alist '((width . 160) (height . 60)))
  package-archives '(("melpa" . "https://melpa.org/packages/")
                     ("gnu" . "https://elpa.gnu.org/packages/")))
 
@@ -51,20 +52,20 @@
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
   (fringe-mode 0)
-  (let ((monospace-font
-         (seq-find #'x-list-fonts '("Rec Mono Casual" "Monospace"))))
-    (set-face-attribute 'default nil :font monospace-font :height 160)
-    (set-face-attribute 'fixed-pitch nil :font monospace-font :height 140))
-  (set-face-attribute 'variable-pitch nil
-                      :font (seq-find #'x-list-fonts '(
-                                                       ;; "Lora"
-                                                       "Recursive Sans Casual Static"
-                                                       ;; "Libre Baskerville"
-                                                       "Crimson Pro"
-                                                       "Monospace")) :height 160))
 
-(seq-filter (lambda (s) (not (string-match-p "Noto" s))) (font-family-list))
+  (defmacro with-font (var font &rest body)
+    `(if (member ,font (font-family-list))
+       (let ((,var ,font)) ,@body)
+       (message "%s font not found, assuming defaults" ,font)))
 
+  (with-font
+   mono "Rec Mono Casual"
+   (set-face-attribute 'default nil :font mono :height 160)
+   (set-face-attribute 'fixed-pitch nil :font mono :height 140))
+
+  (with-font
+   variable "Recursive Sans Casual Static"
+   (set-face-attribute 'variable-pitch nil :font variable) :height 160))
 
 (dolist (m '(fido-vertical-mode
              global-auto-revert-mode
@@ -82,9 +83,7 @@
              ("C-c G" vc-print-root-log)
              ("C-c p" project-find-file)
              ("C-c P" ,(ff "~/src"))
-             ("C-c s" +run-script)
              ("M-_" ,(il (if (org-clocking-p) (org-clock-out) (org-clock-in-last))))
-             ("M-Z" +toggle-transparency)
 
              ;; Information
              ("M-N" newsticker-show-news)
@@ -131,9 +130,6 @@
           (icomplete-fido-backward-updir) (backward-kill-word 1))))
   (define-key icomplete-minibuffer-map (kbd "C-e") #'icomplete-ret))
 
-(use-package proced :ensure nil :defer t :custom (proced-filter 'user))
-(use-package which-key :ensure nil :init (which-key-mode 1))
-
 (with-eval-after-load 'diff-mode
   (define-key diff-mode-map (kbd "M-o") nil))
 
@@ -169,21 +165,13 @@
 
 (add-hook 'find-file-hook #'+ctags-link)
 
-(defun +run-script ()
-  "Select and run a script from ~/.emacs.d/scripts/."
-  (interactive)
-  (let* ((scripts-dir (expand-file-name "scripts" user-emacs-directory))
-         (scripts (directory-files scripts-dir nil "^[^.]"))
-         (script (completing-read "Run script: " scripts nil t))
-         (script-path (expand-file-name script scripts-dir)))
-    (compile (concat "bash " script-path))))
-
 (defvar +repls
   '(("python"        run-python)
     ("ruby"          comint-run "irb")
     ("node"          comint-run "node")
     ("racket"        comint-run "racket")
     ("sqlite"        sql-sqlite)
+    ("elisp"         ielm)
     ("clojure"       inferior-lisp "clojure -A:dev")
     ("cljs"          inferior-lisp "clojure -M:cljs")
     ("bb"            inferior-lisp "bb"))
@@ -255,7 +243,8 @@
 (use-package markdown-mode :ensure t :custom (markdown-hide-markup t))
 
 (add-hook 'prog-mode-hook
-  (lambda () (display-line-numbers-mode 1) (hl-line-mode 1)))
+  (lambda () (display-line-numbers-mode 1) (hl-line-mode 1)
+    (display-fill-column-indicator-mode 1)))
 (add-hook 'before-save-hook #'whitespace-cleanup)
 
 (use-package olivetti :ensure t ;; to replace (eventually)
@@ -329,5 +318,3 @@
   (setq newsticker-url-list
         '(("Hacker News" "https://hnrss.org/frontpage" nil nil nil)
           ("Guardian World" "https://www.theguardian.com/world/rss" nil nil nil))))
-
-(provide 'init)

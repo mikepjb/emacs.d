@@ -114,7 +114,7 @@ recursively handling nested plists like :box and quoted symbols like bold."
    (region :background bg++)
    (fringe :background bg :foreground bg+++)
    (minibuffer-prompt :foreground teal)
-   (hl-line :background bg)
+   (hl-line :background bg+++)
 
    ;; Mode Line
    (mode-line :background bg :foreground fg
@@ -127,6 +127,7 @@ recursively handling nested plists like :box and quoted symbols like bold."
 
    ;; Misc. UI
    (vertical-border :foreground bg++++)
+   (fill-column-indicator :foreground fg++++)
    (link :foreground lavender :underline t)
    (escape-glyph :foreground bg+)
    (icon :foreground yellow)
