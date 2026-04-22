@@ -127,11 +127,11 @@ recursively handling nested plists like :box and quoted symbols like bold."
 
    ;; Misc. UI
    (vertical-border :foreground bg++++)
-   (fill-column-indicator :foreground fg++++)
    (link :foreground lavender :underline t)
    (escape-glyph :foreground bg+)
    (icon :foreground yellow)
    (xref-line-number)
+   (fill-column-indicator :foreground bg+++)
 
    ;; ?? status section?
    (success :foreground green)
@@ -167,7 +167,7 @@ recursively handling nested plists like :box and quoted symbols like bold."
 
    ;; Completions
    (completions-highlight :foreground fg :background bg+++)
-   (icomplete-selected-match :foreground fg :background bg+++)
+   (icomplete-selected-match :foreground fg :background bg++++)
    (completions-annotations :foreground teal)
    (completions-common-part :foreground fg++)
    (completions-first-difference :foreground fg+++)
@@ -189,8 +189,6 @@ recursively handling nested plists like :box and quoted symbols like bold."
    ;; Line Numbers
    (line-number :foreground fg+++)
    (line-number-current-line :foreground fg++ :background bg+++)
-
-   (fill-column-indicator :foreground bg) ;; what does this do?
 
    ;; Document Headings
    (markdown-header-face-1 :height 1.6 :weight bold :foreground fg
@@ -255,6 +253,8 @@ recursively handling nested plists like :box and quoted symbols like bold."
   (set-display-table-slot
    standard-display-table 0
    (make-glyph-code ?… 'escape-glyph))
+
+  (setq-default display-fill-column-indicator-character ?│)
 
   (defface font-lock-paren-face nil "Face for parentheses." :group 'font-lock-faces)
   (defface font-lock-bracket-face nil "Face for brackets." :group 'font-lock-faces)

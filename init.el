@@ -24,7 +24,6 @@
  create-lockfiles nil ;; Save files
  make-backup-files nil
  isearch-wrap-pause 'no ;; Editing
- large-file-warning-threshold (* 512 1024 1024) ;; for ctags
  compilation-always-kill t
  compilation-scroll-output t
  ansi-color-for-compilation-mode t ;; does this work when set this way? check.
@@ -33,7 +32,6 @@
  eshell-banner-message ""
  eshell-visual-commands '("vi" "htop" "less" "more")
  custom-file (concat user-emacs-directory "local.el")
- initial-frame-alist (append initial-frame-alist '((width . 160) (height . 60)))
  package-archives '(("melpa" . "https://melpa.org/packages/")
                     ("gnu" . "https://elpa.gnu.org/packages/")))
 
@@ -42,7 +40,8 @@
  indent-tabs-mode nil
  tab-width 2
  standard-indent 2
- whitespace-style '(face trailing tabs empty indentation::space))
+ whitespace-style '(face trailing tabs empty indentation::space)
+ cursor-in-non-selected-windows nil)
 
 (load custom-file t)
 (load-theme 'flow t)
@@ -51,6 +50,7 @@
 (when window-system
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
+  (blink-cursor-mode -1)
   (fringe-mode 0)
 
   (defmacro with-font (var font &rest body)
@@ -59,13 +59,15 @@
        (message "%s font not found, assuming defaults" ,font)))
 
   (with-font
-   mono "Rec Mono Casual"
+   mono "Rec Mono Linear"
    (set-face-attribute 'default nil :font mono :height 160)
    (set-face-attribute 'fixed-pitch nil :font mono :height 140))
 
   (with-font
    variable "Recursive Sans Casual Static"
-   (set-face-attribute 'variable-pitch nil :font variable) :height 160))
+   (set-face-attribute 'variable-pitch nil :font variable :height 160))
+
+  (set-face-attribute 'fill-column-indicator nil :family "Monospace"))
 
 (dolist (m '(fido-vertical-mode
              global-auto-revert-mode
@@ -76,39 +78,38 @@
              electric-pair-mode))
   (funcall m 1))
 
-(dolist (b `(("C-c i" ,(ff user-emacs-directory "init.el"))
+(dolist (b `(;; Navigation
+             ("C-c i" ,(ff user-emacs-directory "init.el"))
              ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
              ("C-c a" ,(il (org-agenda nil "a")))
              ("C-c g" vc-dir-root)
              ("C-c G" vc-print-root-log)
              ("C-c p" project-find-file)
              ("C-c P" ,(ff "~/src"))
-             ("M-_" ,(il (if (org-clocking-p) (org-clock-out) (org-clock-in-last))))
 
              ;; Information
              ("M-N" newsticker-show-news)
 
-             ;; Split management
+             ;; Display management
              ("C-c k" ,(il (select-window (split-window-below))))
              ("C-c l" ,(il (select-window (split-window-right))))
              ("C-c o" delete-other-windows)
              ("M-o" ,(il (other-window 1)))
              ("M-O" ,(il (other-window -1)))
-
+             ("M--" ,(il (set-frame-size nil 160 50)))
              ("M-L" flow-toggle-theme)
-             ("M-V" ,(il (load-theme 'flow t))) ;; temporary for theme work
-
-             ("C-c f" imenu)
+             ("M-V" ,(il (load-theme 'flow t)))
              ("M-RET" toggle-frame-fullscreen)
+
+             ;; Code Tools + Editing
+             ("C-c f" imenu)
              ("M-H" ,help-map)
              ("C-c t" +ctags)
              ("M-i" ,(il (+with-context (call-interactively 'rgrep))))
              ("M-I" ,(il (+with-context (call-interactively 'occur))))
-
              ("M-T" eshell)
              ("M-R" ,(il (+launch-repl "clojure")))
              ("M-Q" ,(il (+launch-repl)))
-
              ("C-h" delete-backward-char)
              ("C-j" newline) ;; autoindents
              ("M-j" ,(il (join-line -1)))
@@ -160,7 +161,8 @@
 (defun +ctags-link ()
   (when-let ((dir (locate-dominating-file default-directory ".tags")))
     (let ((tags-file (expand-file-name ".tags" dir)))
-      (unless (member tags-file tags-table-list)
+      (when (and (file-regular-p tags-file)
+                 (not (member tags-file tags-table-list)))
         (visit-tags-table tags-file t)))))
 
 (add-hook 'find-file-hook #'+ctags-link)
@@ -247,7 +249,7 @@
     (display-fill-column-indicator-mode 1)))
 (add-hook 'before-save-hook #'whitespace-cleanup)
 
-(use-package olivetti :ensure t ;; to replace (eventually)
+(use-package olivetti :ensure t
   :custom
   (olivetti-style nil)
   (olivetti-body-width 80)
@@ -265,7 +267,7 @@
    '(("CURRENT" . org-current) ("NEXT"    . org-next)))
   (org-log-done 'time)
   (org-log-into-drawer t)
-  (org-clock-idle-time 10)
+  (org-clock-idle-time nil)
   (org-agenda-span 14)
   (org-agenda-start-day "today")
   (org-agenda-start-on-weekday nil)
@@ -294,16 +296,15 @@
               ("M-RET" . nil)
               ("C-c RET" . org-insert-todo-heading)
               ("C-c r" . org-archive-subtree))
-  :hook (                               ; (org-mode . org-indent-mode)
+  :hook ((org-mode . org-indent-mode)
          (org-mode . variable-pitch-mode)
-         ;; (org-mode . (lambda () (setq-local mode-line-format nil)))
          (org-after-todo-state-change . +org-clock-todo-change))
   :config
   (advice-add 'org-refile :after (lambda (&rest _) (org-save-all-org-buffers))))
 
 (defun +org-clock-todo-change ()
-  (if (string= org-state "CURRENT")
-      (org-clock-in)))
+  (cond ((string= org-state "CURRENT") (org-clock-in))
+        ((org-clocking-p) (org-clock-out))))
 
 (use-package newsticker
   :ensure nil
