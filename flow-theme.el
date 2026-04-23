@@ -58,14 +58,14 @@ recursively handling nested plists like :box and quoted symbols like bold."
        ;; close to purple/lavender.
        (yellow         (if dark-p "#f9e2af" "#df8e1d")) ; catppucin mocha yellow
        (magenta        (if dark-p "#cba6f7" "#8839ef")) ; purple
-       (cyan           (if dark-p "#89dceb" "#04a5e5")) ; muted cyan
-       (bright-magenta "#ff00ff")       ; pure neon magenta - cursor
+       (cyan           (if dark-p "#89dceb" "#006599")) ; muted cyan
+       (bright-magenta (if dark-p "#ff00ff" "#9b009c"))       ; pure neon magenta - cursor
 
        ;; Middle layer, low but significant interest, function names
        ;; etc that appear frequently.
-       (lavender       (if dark-p "#b7bdf8" "#7287fd"))
-       (teal           (if dark-p "#94e2d5" "#179299"))
-       (sapphire       (if dark-p "#74c7ec" "#209fb5"))
+       (lavender       (if dark-p "#b7bdf8" "#404cbc"))
+       (teal           (if dark-p "#94e2d5" "#006c73"))
+       (sapphire       (if dark-p "#74c7ec" "#006b7f"))
 
        ;; Main foreground/background used for the rest of the view.
        (fg             (if dark-p "#cdd6f4" "#4c4f69"))
@@ -76,10 +76,10 @@ recursively handling nested plists like :box and quoted symbols like bold."
 
        (bg             (if dark-p "#0a0a10" "#eff1f5"))
        ;; +colors are darker/lighter depending on theme for consistent depth effect.
-       (bg+            (if dark-p "#11111b" "#dce0e8"))
-       (bg++            (if dark-p "#181825" "#e6e9ef"))
-       (bg+++          (if dark-p "#1e1e2e" "#eff1f5"))
-       (bg++++         (if dark-p "#313244" "#ccd0da"))
+       (bg+    (if dark-p "#11111b" "#eaecf1"))
+       (bg++   (if dark-p "#181825" "#e5e8ec"))
+       (bg+++  (if dark-p "#1e1e2e" "#e0e3e7"))
+       (bg++++ (if dark-p "#313244" "#d4d7dc"))
        (bg+green       (if dark-p "#0c1412" "#d1fde6")) ;; for git diffs
        (bg+green+       (if dark-p "#0e211c" "#bffbdc"))
        (bg+red         (if dark-p "#1f0809" "#f4d3d5"))
@@ -92,20 +92,8 @@ recursively handling nested plists like :box and quoted symbols like bold."
        ;; may want a more faded yellow
        (blue           (if dark-p "#89b4fa" "#1e66f5")) ; catppucin mocha sapphire
 
-
-       ;; Bright/neon colors (from alacritty bright palette)
-       (bright-black   "#787878")       ; invisible gray
-       (bright-green   "#00ff80")       ; electric green
-       (bright-yellow  "#ffb300")       ; neon amber
-       (bright-blue    "#00ccff")       ; electric cyan-blue
-       (bright-magenta "#ff00ff")       ; pure neon magenta - cursor
-       (bright-cyan    "#00ffff")       ; pure cyan
-       (bright-white   "#ffffff")
-
        ;; Semantic colors set from the above
-       (match yellow)
-
-       )
+       (match yellow))
 
   (flow-set-faces
    flow
@@ -173,7 +161,7 @@ recursively handling nested plists like :box and quoted symbols like bold."
    (completions-first-difference :foreground fg+++)
 
    ;; Syntax highlighting
-   (font-lock-comment-face :foreground fg+++)
+   (font-lock-comment-face :foreground fg++)
    (font-lock-string-face :foreground teal)
    (font-lock-keyword-face :foreground fg)
    (font-lock-function-name-face :foreground sapphire)
@@ -253,8 +241,6 @@ recursively handling nested plists like :box and quoted symbols like bold."
   (set-display-table-slot
    standard-display-table 0
    (make-glyph-code ?… 'escape-glyph))
-
-  (setq-default display-fill-column-indicator-character ?│)
 
   (defface font-lock-paren-face nil "Face for parentheses." :group 'font-lock-faces)
   (defface font-lock-bracket-face nil "Face for brackets." :group 'font-lock-faces)

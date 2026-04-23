@@ -3,6 +3,20 @@
 (setq gc-cons-threshold (* 64 1024 1024))
 (defmacro il (&rest body) `(lambda () (interactive) ,@body))
 (defmacro ff (&rest path) `(il (find-file (concat ,@path))))
+(defun +setm (param modes) (dolist (m modes) (funcall m param)))
+
+(+setm -1 '(menu-bar-mode
+            tool-bar-mode
+            scroll-bar-mode
+            blink-cursor-mode))
+
+(+setm 1 '(fido-vertical-mode
+           global-auto-revert-mode
+           save-place-mode
+           global-goto-address-mode
+           savehist-mode
+           show-paren-mode
+           electric-pair-mode))
 
 (dolist (k '(mac-command-modifier x-super-keysym))
   (when (boundp k) (set k 'meta)))
@@ -19,22 +33,19 @@
  completion-ignore-case t
  load-prefer-newer t ;; init.el > init.elc if newer
  dired-listing-switches "-lah" ;; human readable sizes
- create-lockfiles nil ;; Save files
+ create-lockfiles nil
  make-backup-files nil
  auto-save-default nil
- isearch-wrap-pause 'no ;; Editing
+ isearch-wrap-pause 'no
  compilation-always-kill t
  compilation-scroll-output t
- ansi-color-for-compilation-mode t
  vc-handled-backends '(Git)
- vc-make-backup-files nil
  eshell-banner-message ""
- eshell-visual-commands '("vi" "htop" "less" "more")
  custom-file (concat user-emacs-directory "local.el")
  package-archives '(("melpa" . "https://melpa.org/packages/")
                     ("gnu" . "https://elpa.gnu.org/packages/")))
 
-(setq-default ;; Editing
+(setq-default
  truncate-lines t
  indent-tabs-mode nil
  tab-width 2
@@ -42,17 +53,15 @@
  whitespace-style '(face trailing tabs empty indentation::space)
  cursor-in-non-selected-windows nil)
 
+(add-hook 'compilation-filter-hook #'ansi-color-compilation-filter)
+
 (load custom-file t)
 (load-theme 'flow t)
 
 (defun +font (&rest names)
   (seq-find (lambda (f) (member f (font-family-list))) names))
 
-(menu-bar-mode -1)
 (when (display-graphic-p)
-  (tool-bar-mode -1)
-  (scroll-bar-mode -1)
-  (blink-cursor-mode -1)
   (fringe-mode 0)
   (when-let ((mono (+font "Rec Mono Linear")))
     (set-face-attribute 'default     nil :font mono :height 160)
@@ -60,23 +69,13 @@
   (when-let ((vari (+font "Recursive Sans Casual Static")))
     (set-face-attribute 'variable-pitch nil :font vari :height 160))
   (when-let ((fci (+font "Menlo" "Noto Sans Mono")))
-    (set-face-attribute 'fill-column-indicator nil :font fci)))
-
-(dolist (m '(fido-vertical-mode
-             global-auto-revert-mode
-             save-place-mode
-             global-goto-address-mode
-             savehist-mode
-             show-paren-mode
-             electric-pair-mode))
-  (funcall m 1))
+    (set-face-attribute 'fill-column-indicator nil :family fci)))
 
 (dolist (b `(;; Navigation
              ("C-c i" ,(ff user-emacs-directory "init.el"))
              ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
              ("C-c a" ,(il (org-agenda nil "a")))
              ("C-c g" vc-dir-root)
-             ("C-c G" vc-print-root-log)
              ("C-c p" project-find-file)
              ("C-c P" ,(ff "~/src"))
 
@@ -277,8 +276,7 @@
               ("M-RET" . nil)
               ("C-c RET" . org-insert-todo-heading)
               ("C-c r" . org-archive-subtree))
-  :hook ((org-mode . org-indent-mode)
-         (org-mode . variable-pitch-mode)
+  :hook ((org-mode . (org-indent-mode variable-pitch-mode))
          (org-after-todo-state-change . +org-clock-todo-change))
   :config
   (advice-add 'org-refile :after (lambda (&rest _) (org-save-all-org-buffers))))
