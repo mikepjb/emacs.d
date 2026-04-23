@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Use sdkman Java 21 for jdtls
+export JAVA_HOME="$HOME/.sdkman/candidates/java/21.0.5-amzn"
+export PATH="$JAVA_HOME/bin:$PATH"
+
+# Setup paths
+HOME="${HOME:-$HOME}"
+PROJECT_NAME=$(basename "$(pwd)")
+WORKSPACE_DIR="$HOME/.cache/jdtls-workspace/$PROJECT_NAME"
+LOMBOK_PATH="$HOME/.local/share/lombok.jar"
+
+# Find jdtls installation
+JDTLS_INSTALL="/opt/homebrew/opt/jdtls/libexec"
+CONFIG_DIR="$JDTLS_INSTALL/config_mac"
+
+# Find the launcher jar
+LAUNCHER=$(find "$JDTLS_INSTALL/plugins" -name "org.eclipse.equinox.launcher_*.jar" 2>/dev/null | head -n 1)
+
+if [ -z "$LAUNCHER" ]; then
+    echo "Error: jdtls launcher not found. Install with: brew install jdtls" >&2
+    exit 1
+fi
+
+# Build command arguments
+CMD_ARGS=(
+    "$JAVA_HOME/bin/java"
+    "-Declipse.application=org.eclipse.jdt.ls.core.id1"
+    "-Dosgi.bundles.defaultStartLevel=4"
+    "-Declipse.product=org.eclipse.jdt.ls.core.product"
+    "-Dlog.protocol=true"
+    "-Dlog.level=ALL"
+    "-Djava.import.generatesMetadataFilesAtProjectRoot=false"
+    "-Djava.project.outputPath=build" # prefer gradle default
+    "-Xms1g"
+    "-Xmx2G"
+    "--add-modules=ALL-SYSTEM"
+    "--add-opens" "java.base/java.util=ALL-UNNAMED"
+    "--add-opens" "java.base/java.lang=ALL-UNNAMED"
+)
+
+# Get lombok if unavailable
+if [ ! -f "$LOMBOK_PATH" ]; then
+    curl -L https://projectlombok.org/downloads/lombok.jar -o ~/.local/share/lombok.jar
+fi
+
+CMD_ARGS+=("-javaagent:$LOMBOK_PATH")
+
+# Add launcher and configuration
+CMD_ARGS+=(
+    "-jar" "$LAUNCHER"
+    "-configuration" "$CONFIG_DIR"
+    "-data" "$WORKSPACE_DIR"
+)
+
+# Execute jdtls with all arguments
+exec "${CMD_ARGS[@]}" "$@"

@@ -7,8 +7,6 @@
 (dolist (k '(mac-command-modifier x-super-keysym))
   (when (boundp k) (set k 'meta)))
 
-(modify-coding-system-alist 'file "" 'utf-8)
-
 (setq ;; Emacs/System settings
  inhibit-startup-screen t
  ring-bell-function 'ignore
@@ -23,10 +21,11 @@
  dired-listing-switches "-lah" ;; human readable sizes
  create-lockfiles nil ;; Save files
  make-backup-files nil
+ auto-save-default nil
  isearch-wrap-pause 'no ;; Editing
  compilation-always-kill t
  compilation-scroll-output t
- ansi-color-for-compilation-mode t ;; does this work when set this way? check.
+ ansi-color-for-compilation-mode t
  vc-handled-backends '(Git)
  vc-make-backup-files nil
  eshell-banner-message ""
@@ -46,28 +45,22 @@
 (load custom-file t)
 (load-theme 'flow t)
 
+(defun +font (&rest names)
+  (seq-find (lambda (f) (member f (font-family-list))) names))
+
 (menu-bar-mode -1)
-(when window-system
+(when (display-graphic-p)
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
   (blink-cursor-mode -1)
   (fringe-mode 0)
-
-  (defmacro with-font (var font &rest body)
-    `(if (member ,font (font-family-list))
-       (let ((,var ,font)) ,@body)
-       (message "%s font not found, assuming defaults" ,font)))
-
-  (with-font
-   mono "Rec Mono Linear"
-   (set-face-attribute 'default nil :font mono :height 160)
-   (set-face-attribute 'fixed-pitch nil :font mono :height 140))
-
-  (with-font
-   variable "Recursive Sans Casual Static"
-   (set-face-attribute 'variable-pitch nil :font variable :height 160))
-
-  (set-face-attribute 'fill-column-indicator nil :family "Monospace"))
+  (when-let ((mono (+font "Rec Mono Linear")))
+    (set-face-attribute 'default     nil :font mono :height 160)
+    (set-face-attribute 'fixed-pitch nil :font mono :height 140))
+  (when-let ((vari (+font "Recursive Sans Casual Static")))
+    (set-face-attribute 'variable-pitch nil :font vari :height 160))
+  (when-let ((fci (+font "Menlo" "Noto Sans Mono")))
+    (set-face-attribute 'fill-column-indicator nil :font fci)))
 
 (dolist (m '(fido-vertical-mode
              global-auto-revert-mode
@@ -119,7 +112,7 @@
              ("M-D" duplicate-line)
              ("M-n" forward-paragraph)
              ("M-p" backward-paragraph)
-             ("M-/" replace-string) ;; maybe there's better fn that supports regions too?
+             ("M-/" replace-string)
              ("C-c m" recompile)
              ("C-c M" ,(il (+with-context (call-interactively 'compile))))))
   (global-set-key (kbd (car b)) (cadr b)))
@@ -167,38 +160,22 @@
 
 (add-hook 'find-file-hook #'+ctags-link)
 
-(defvar +repls
-  '(("python"        run-python)
-    ("ruby"          comint-run "irb")
-    ("node"          comint-run "node")
-    ("racket"        comint-run "racket")
-    ("sqlite"        sql-sqlite)
-    ("elisp"         ielm)
-    ("clojure"       inferior-lisp "clojure -A:dev")
-    ("cljs"          inferior-lisp "clojure -M:cljs")
-    ("bb"            inferior-lisp "bb"))
-  "REPL specs for `+launch-repl'. Each entry is (NAME FN &optional ARGS...).")
-
-(defun +launch-repl (&optional repl)
-  "Launch a REPL. REPL is a key from `+repls'; if nil, prompt via completing-read."
-  (interactive)
-  (let* ((choice (or repl (completing-read "REPL: " (mapcar #'car +repls) nil t)))
-         (spec   (cdr (assoc choice +repls)))
-         (fn     (car spec))
-         (args   (cdr spec)))
+(defun +repl (&optional arg)
+  (interactive "P")
+  (let* ((repls '(("clojure" inferior-lisp "clojure -A:dev")
+                  ("python" run-python)
+                  ("sqlite" sql-sqlite)
+                  ("node" comint-run "node")
+                  ("ruby" comint-run "irb")))
+         (spec (cdr (assoc (if arg (completing-read "REPL: " repls nil t)
+                             "clojure")
+                           repls))))
     (other-window-prefix)
-    (apply fn args)))
+    (apply (car spec) (cdr spec))))
 
 (defun +lisp-load-current-file ()
   (interactive)
   (lisp-load-file (buffer-file-name)))
-
-(defun +toggle-transparency ()
-  (interactive)
-  (let* ((current (frame-parameter nil 'alpha-background))
-         (new-alpha (if (= current 100) 60 100)))
-    (set-frame-parameter (selected-frame) 'alpha-background new-alpha)
-    (setf (alist-get 'alpha-background default-frame-alist) new-alpha)))
 
 (use-package paredit :ensure t
   :hook ((clojure-mode emacs-lisp-mode inferior-lisp-mode
@@ -248,6 +225,10 @@
   (lambda () (display-line-numbers-mode 1) (hl-line-mode 1)
     (display-fill-column-indicator-mode 1)))
 (add-hook 'before-save-hook #'whitespace-cleanup)
+
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '((java-mode java-ts-mode) . ("jdtlsw"))))
 
 (use-package olivetti :ensure t
   :custom
