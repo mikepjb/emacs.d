@@ -100,8 +100,7 @@
              ("M-i" ,(il (+with-context (call-interactively 'rgrep))))
              ("M-I" ,(il (+with-context (call-interactively 'occur))))
              ("M-T" eshell)
-             ("M-R" ,(il (+launch-repl "clojure")))
-             ("M-Q" ,(il (+launch-repl)))
+             ("M-R" +repl)
              ("C-h" delete-backward-char)
              ("C-j" newline) ;; autoindents
              ("M-j" ,(il (join-line -1)))
@@ -276,7 +275,8 @@
               ("M-RET" . nil)
               ("C-c RET" . org-insert-todo-heading)
               ("C-c r" . org-archive-subtree))
-  :hook ((org-mode . (org-indent-mode variable-pitch-mode))
+  :hook ((org-mode . org-indent-mode)
+         (org-mode . variable-pitch-mode)
          (org-after-todo-state-change . +org-clock-todo-change))
   :config
   (advice-add 'org-refile :after (lambda (&rest _) (org-save-all-org-buffers))))
