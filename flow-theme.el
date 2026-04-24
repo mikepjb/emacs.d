@@ -13,39 +13,12 @@
         (if (eq flow-mode 'dark) 'light 'dark))
   (load-theme 'flow t))
 
-(defvar flow--face-attr-symbols
-  '(bold italic oblique normal ultra-bold semi-bold semi-light ultra-light
-    thin unspecified inherit fixed-pitch)
-  "Symbols used as face attribute values that need quoting.")
-
-(defun flow--val->form (val)
-  (cond
-   ((and (consp val) (not (listp (cdr val)))) ; cons cell e.g. (-1 . 32)
-    `(cons ,(car val) ,(cdr val)))
-   ((and (listp val) (listp (car val)))        ; nested list e.g. :inherit (bold italic)
-    `',val)
-   ((and (listp val) (keywordp (car val)))     ; nested plist e.g. :box (...)
-    `(list ,@(flow--plist->form val)))
-   ((memq val flow--face-attr-symbols)         ; known attr symbol e.g. bold
-    `',val)
-   (t val)))                                   ; variable e.g. bg, fg, cyan
-
-(defun flow--plist->form (attrs)
-  "Convert a face attr plist into a (list ...) form,
-recursively handling nested plists like :box and quoted symbols like bold."
-  (let (result)
-    (while attrs
-      (push (pop attrs) result)
-      (push (flow--val->form (pop attrs)) result))
-    (nreverse result)))
-
-(defmacro flow-set-faces (theme &rest specs)
-  `(custom-theme-set-faces
-    ',theme
-    ,@(mapcar (lambda (spec)
-                `(list ',(car spec)
-                       (list (list t (list ,@(flow--plist->form (cdr spec)))))))
-              specs)))
+(defface font-lock-paren-face nil "" :group 'font-lock-faces)
+(defface font-lock-bracket-face nil "" :group 'font-lock-faces)
+(defface font-lock-brace-face nil "" :group 'font-lock-faces)
+(defface org-current nil "" :group 'font-lock-faces)
+(defface org-next nil "" :group 'font-lock-faces)
+(defface flow-org-bullet nil "" :group 'font-lock-faces)
 
 (let* ((dark-p (eq flow-mode 'dark))
        ;; Color organised as a pyramid for attention, with small areas
@@ -54,8 +27,7 @@ recursively handling nested plists like :box and quoted symbols like bold."
        ;; the eye with a yellow for truncation symbols in the fringes.
 
        ;; Top layer, high interest - buffer names, errors/warnings,
-       ;; prompts, cursor. Do we need all 4? Especially as magenta is
-       ;; close to purple/lavender.
+       ;; prompts, cursor.
        (yellow         (if dark-p "#f9e2af" "#df8e1d")) ; catppucin mocha yellow
        (magenta        (if dark-p "#cba6f7" "#8839ef")) ; purple
        (cyan           (if dark-p "#89dceb" "#006599")) ; muted cyan
@@ -73,7 +45,6 @@ recursively handling nested plists like :box and quoted symbols like bold."
        (fg++           (if dark-p "#a6adc8" "#6c6f85"))
        (fg+++          (if dark-p "#6c7086" "#9ca0b0"))
        (fg++++         (if dark-p "#585b70" "#8c8fa1"))
-
        (bg             (if dark-p "#0a0a10" "#eff1f5"))
        ;; +colors are darker/lighter depending on theme for consistent depth effect.
        (bg+    (if dark-p "#11111b" "#eaecf1"))
@@ -93,141 +64,130 @@ recursively handling nested plists like :box and quoted symbols like bold."
        ;; Semantic colors set from the above
        (match yellow))
 
-  (flow-set-faces
-   flow
-   (default :background bg :foreground fg)
-   (cursor :background bright-magenta :foreground bg)
-   (region :background bg++)
-   (fringe :background bg :foreground bg+++)
-   (minibuffer-prompt :foreground teal)
-   (hl-line :background bg+++)
+  (apply
+   #'custom-theme-set-faces 'flow
+   (mapcar
+    (lambda (s) `(,(car s) ((t ,(cdr s)))))
+    `((default :background ,bg :foreground ,fg)
+      (cursor :background ,bright-magenta :foreground ,bg)
+      (region :background ,bg++)
+      (fringe :background ,bg :foreground ,bg+++)
+      (minibuffer-prompt :foreground ,teal)
+      (hl-line :background ,bg+++)
 
-   ;; Mode Line
-   (mode-line :background bg :foreground fg
-              :box (:line-width 1 :color bg++++ :style nil))
-   (mode-line-inactive :background bg :foreground fg
-                       :box (:line-width 1 :color bg++++ :style nil))
-   (mode-line-buffer-id :foreground cyan :weight bold)
-   (mode-line-emphasis :foreground teal)
-   (mode-line-highlight :foreground teal)
+      (mode-line :background ,bg :foreground ,fg
+                 :box (:line-width 1 :color ,bg++++ :style nil))
+      (mode-line-inactive :background ,bg :foreground ,fg
+                          :box (:line-width 1 :color ,bg++++ :style nil))
+      (mode-line-buffer-id :foreground ,cyan :weight bold)
+      (mode-line-emphasis :foreground ,teal)
+      (mode-line-highlight :foreground ,teal)
 
-   ;; Misc. UI
-   (vertical-border :foreground bg++++)
-   (link :foreground lavender :underline t)
-   (escape-glyph :foreground bg+)
-   (icon :foreground yellow)
-   (fill-column-indicator :foreground bg+++)
+      (vertical-border :foreground ,bg++++)
+      (link :foreground ,lavender :underline t)
+      (escape-glyph :foreground ,bg+)
+      (icon :foreground ,yellow)
+      (fill-column-indicator :foreground ,bg+++)
 
-   ;; ?? status section?
-   (success :foreground green)
-   (info :foreground lavender)
-   (match :background bg :foreground match)
-   (isearch :background match :foreground bg)
-   (lazy-highlight :background match :foreground bg)
-   (query-replace :background green :foreground bg)
+      (success :foreground ,green)
+      (info :foreground ,lavender)
+      (match :background ,bg :foreground ,match)
+      (isearch :background ,match :foreground ,bg)
+      (lazy-highlight :background ,match :foreground ,bg)
+      (query-replace :background ,green :foreground ,bg)
 
-   ;; Dired
-   (dired-directory :foreground teal)
-   (dired-executable :foreground sapphire)
-   (dired-symlink :foreground lavender)
-   (dired-marked :foreground yellow :weight bold)
+      (dired-directory :foreground ,teal)
+      (dired-executable :foreground ,sapphire)
+      (dired-symlink :foreground ,lavender)
+      (dired-marked :foreground ,yellow :weight bold)
 
-   ;; Compilation
-   (compilation-info :foreground teal)
-   (compilation-warning :foreground yellow)
-   (compilation-error :foreground magenta)
+      (compilation-info :foreground ,teal)
+      (compilation-warning :foreground ,yellow)
+      (compilation-error :foreground ,magenta)
 
-   ;; Grep
-   (grep-hit-face :foreground magenta)
-   (grep-match-face :background match :foreground bg)
+      (grep-hit-face :foreground ,magenta)
+      (grep-match-face :background ,match :foreground ,bg)
 
-   ;; Git / Version Control
-   (diff-added :foreground fg :background bg+green)
-   (diff-refine-added :background bg+green+)
-   (diff-removed :background bg+red)
-   (diff-refine-removed :background bg+red+)
-   (diff-changed :foreground yellow)
-   (diff-header :foreground sapphire)
-   (diff-file-header :foreground cyan :weight bold)
+      (diff-added :foreground ,fg :background ,bg+green)
+      (diff-refine-added :background ,bg+green+)
+      (diff-removed :background ,bg+red)
+      (diff-refine-removed :background ,bg+red+)
+      (diff-changed :foreground ,yellow)
+      (diff-header :foreground ,sapphire)
+      (diff-file-header :foreground ,cyan :weight bold)
 
-   ;; Completions
-   (completions-highlight :foreground fg :background bg+++)
-   (icomplete-selected-match :foreground fg :background bg++++)
-   (completions-annotations :foreground teal)
-   (completions-common-part :foreground fg++)
-   (completions-first-difference :foreground fg+++)
+      (completions-highlight :foreground ,fg :background ,bg+++)
+      (icomplete-selected-match :foreground ,fg :background ,bg++++)
+      (completions-annotations :foreground ,teal)
+      (completions-common-part :foreground ,fg++)
+      (completions-first-difference :foreground ,fg+++)
 
-   ;; Syntax highlighting
-   (font-lock-comment-face :foreground fg++)
-   (font-lock-string-face :foreground teal)
-   (font-lock-keyword-face :foreground fg)
-   (font-lock-function-name-face :foreground sapphire)
-   (font-lock-variable-name-face :foreground lavender)
-   (font-lock-type-face :foreground fg)
-   (font-lock-constant-face :foreground sapphire)
-   (font-lock-builtin-face :foreground fg++)
+      (font-lock-comment-face :foreground ,fg++)
+      (font-lock-string-face :foreground ,teal)
+      (font-lock-keyword-face :foreground ,fg)
+      (font-lock-function-name-face :foreground ,sapphire)
+      (font-lock-variable-name-face :foreground ,lavender)
+      (font-lock-type-face :foreground ,fg)
+      (font-lock-constant-face :foreground ,sapphire)
+      (font-lock-builtin-face :foreground ,fg++)
 
-   ;; Errors and Warnings
-   (error :foreground magenta)
-   (warning :foreground yellow)
+      (error :foreground ,magenta)
+      (warning :foreground ,yellow)
 
-   ;; Line Numbers
-   (line-number :foreground fg+++)
-   (line-number-current-line :foreground fg++ :background bg+++)
+      (line-number :foreground ,fg+++)
+      (line-number-current-line :foreground ,fg++ :background ,bg+++)
 
-   ;; Document Headings
-   (markdown-header-face-1 :height 1.6 :weight bold :foreground fg
-                           :box (:line-width (-1 . 32) :color bg))
-   (markdown-header-face-2 :height 1.3 :slant italic :foreground fg
-                           :box (:line-width (-1 . 20) :color bg))
-   (markdown-header-face-3 :height 1.0 :weight bold :foreground fg
-                           :box (:line-width (-1 . 12) :color bg))
-   (markdown-header-face-4 :height 1.0 :weight bold :foreground fg)
-   (org-level-1 :height 1.6 :weight bold :foreground fg
-                :box (:line-width (-1 . 32) :color bg))
-   (org-level-2 :height 1.3 :slant italic :foreground fg
-                :box (:line-width (-1 . 20) :color bg))
-   (org-level-3 :height 1.0 :foreground fg
-                :box (:line-width (-1 . 12) :color bg))
-   ;; bullets style after this point
-   (org-level-4 :height 1.0 :foreground fg)
-   (org-level-5 :height 1.0 :foreground fg)
-   (org-level-6 :height 1.0 :foreground fg)
+      (markdown-header-face-1 :height 1.6 :weight bold :foreground ,fg
+                              :box (:line-width (-1 . 32) :color ,bg))
+      (markdown-header-face-2 :height 1.3 :slant italic :foreground ,fg
+                              :box (:line-width (-1 . 20) :color ,bg))
+      (markdown-header-face-3 :height 1.0 :weight bold :foreground ,fg
+                              :box (:line-width (-1 . 12) :color ,bg))
+      (markdown-header-face-4 :height 1.0 :weight bold :foreground ,fg)
+      (org-level-1 :height 1.6 :weight bold :foreground ,fg
+                   :box (:line-width (-1 . 32) :color ,bg))
+      (org-level-2 :height 1.3 :slant italic :foreground ,fg
+                   :box (:line-width (-1 . 20) :color ,bg))
+      (org-level-3 :height 1.0 :foreground ,fg
+                   :box (:line-width (-1 . 12) :color ,bg))
+      (org-level-4 :height 1.0 :foreground ,fg)
+      (org-level-5 :height 1.0 :foreground ,fg)
+      (org-level-6 :height 1.0 :foreground ,fg)
 
-   ;; Org Styling
-   (org-ellipsis :foreground fg+++ :underline nil)
-   (org-headline-done :foreground fg+++ :underline nil :strike-through t)
-   (org-done :foreground green :underline nil)
-   (org-todo :foreground sapphire :underline nil :inherit fixed-pitch)
-   (org-next :foreground yellow :underline nil :inherit fixed-pitch)
-   (org-current :foreground green :underline nil :inherit fixed-pitch)
-   (org-tag :foreground fg+++ :underline nil :inherit fixed-pitch)
-   (org-agenda-structure :foreground lavender)
-   (org-scheduled-previously :foreground yellow)
-   (org-hide :foreground bg :inherit fixed-pitch)
-   (org-block :inherit fixed-pitch)
-   (org-block-begin-line :inherit fixed-pitch)
-   (org-block-end-line :inherit fixed-pitch)
-   (org-code :inherit fixed-pitch)
-   (org-verbatim :inherit fixed-pitch)
-   (org-special-keyword :foreground fg+++ :inherit fixed-pitch)
-   (org-date :foreground teal :inherit fixed-pitch)
-   (org-checkbox :inherit fixed-pitch)
-   (org-meta-line :inherit fixed-pitch)
-   (org-drawer :inherit fixed-pitch)
+      (org-ellipsis :foreground ,fg+++ :underline nil)
+      (org-headline-done :foreground ,fg+++ :underline nil :strike-through t)
+      (org-done :foreground ,green :underline nil)
+      (org-todo :foreground ,sapphire :underline nil :inherit fixed-pitch)
+      (org-next :foreground ,yellow :underline nil :inherit fixed-pitch)
+      (org-current :foreground ,green :underline nil :inherit fixed-pitch)
+      (org-tag :foreground ,fg+++ :underline nil :inherit fixed-pitch)
+      (org-agenda-structure :foreground ,lavender)
+      (org-scheduled-previously :foreground ,yellow)
+      (org-hide :foreground ,bg :inherit fixed-pitch)
+      (org-block :inherit fixed-pitch)
+      (org-block-begin-line :inherit fixed-pitch)
+      (org-block-end-line :inherit fixed-pitch)
+      (org-code :inherit fixed-pitch)
+      (org-verbatim :inherit fixed-pitch)
+      (org-special-keyword :foreground ,fg+++ :inherit fixed-pitch)
+      (org-date :foreground ,teal :inherit fixed-pitch)
+      (org-checkbox :inherit fixed-pitch)
+      (org-meta-line :inherit fixed-pitch)
+      (org-drawer :inherit fixed-pitch)
+      (flow-org-bullet :foreground ,fg++++ :slant normal :underline nil)
 
-   (eshell-prompt :foreground yellow)
-   (sh-quoted-exec :foreground fg)
-   (ansi-color-black :foreground bg :background fg)
-   (ansi-color-red :foreground red :background bg)
-   (ansi-color-green :foreground green :background bg)
-   (ansi-color-yellow :foreground yellow :background bg)
-   (ansi-color-blue :foreground blue :background bg)
-   (ansi-color-magenta :foreground magenta :background bg)
+      (eshell-prompt :foreground ,yellow)
+      (sh-quoted-exec :foreground ,fg)
+      (ansi-color-black :foreground ,bg :background ,fg)
+      (ansi-color-red :foreground ,red :background ,bg)
+      (ansi-color-green :foreground ,green :background ,bg)
+      (ansi-color-yellow :foreground ,yellow :background ,bg)
+      (ansi-color-blue :foreground ,blue :background ,bg)
+      (ansi-color-magenta :foreground ,magenta :background ,bg)
 
-   (font-lock-paren-face :foreground lavender)
-   (font-lock-bracket-face :foreground sapphire)
-   (font-lock-brace-face :foreground teal))
+      (font-lock-paren-face :foreground ,lavender)
+      (font-lock-bracket-face :foreground ,sapphire)
+      (font-lock-brace-face :foreground ,teal))))
 
   ;; When fringe-mode is 0, I am not sure the truncation chars are
   ;; fontified so we set this manually and update the glyph while
@@ -235,10 +195,6 @@ recursively handling nested plists like :box and quoted symbols like bold."
   (set-display-table-slot
    standard-display-table 0
    (make-glyph-code ?… 'escape-glyph))
-
-  (defface font-lock-paren-face nil "Face for parentheses." :group 'font-lock-faces)
-  (defface font-lock-bracket-face nil "Face for brackets." :group 'font-lock-faces)
-  (defface font-lock-brace-face nil "Face for braces." :group 'font-lock-faces)
 
   (defun flow-delimiters-enable ()
     (font-lock-add-keywords
@@ -251,49 +207,19 @@ recursively handling nested plists like :box and quoted symbols like bold."
 
   (add-hook 'prog-mode-hook #'flow-delimiters-enable)
 
-  (defface org-current nil "Face for current tasks." :group 'font-lock-faces)
-  (defface org-next nil "Face for next tasks." :group 'font-lock-faces)
-
   (defun flow-org-style-bullets ()
     (font-lock-add-keywords
      nil
-     '(("^\\*\\{1,3\\} "
-        (0 (put-text-property
-            (match-beginning 0) (match-end 0) 'invisible t) nil))
-       ("^\\(\\*\\{4,\\}\\) "
-        (1 (prog1 () (compose-region
-                      (match-beginning 1) (match-end 1) "	•"))))
+     '(("^\\**\\(\\*\\) "
+        (1 (prog1 'flow-org-bullet
+             (compose-region (match-beginning 1) (match-end 1) "	◉")) t))
        ("^ *\\(-\\) "
-        (1 (prog1 () (compose-region
-                      (match-beginning 1) (match-end 1) "	•")))))
+        (1 (prog1 'flow-org-bullet
+             (compose-region (match-beginning 1) (match-end 1) "	•")) t)))
      'append)
     (font-lock-flush))
 
   (add-hook 'org-mode-hook #'flow-org-style-bullets)
-
-  (defvar flow-org-indent-min-level 4
-    "Suppress org-indent indentation for levels below this.")
-
-  (defun flow-org-indent--clear-shallow-prefixes (&rest _)
-    "Remap indent prefixes so indentation starts fresh at `flow-org-indent-min-level'."
-    (let* ((empty (org-add-props "" nil 'face 'org-indent))
-           (min flow-org-indent-min-level)
-           (vecs (list org-indent--text-line-prefixes
-                       org-indent--heading-line-prefixes
-                       org-indent--inlinetask-line-prefixes))
-           (depth (length (car vecs))))
-      ;; Remap from `min' upwards; text body offset by +1 so it sits inside its heading.
-      (cl-loop for n from min below depth
-               for remapped = (- n min -1) do
-               (aset (nth 0 vecs) n (aref (nth 0 vecs) (min (1+ remapped) (1- depth))))
-               (aset (nth 1 vecs) n (aref (nth 1 vecs) remapped))
-               (aset (nth 2 vecs) n (aref (nth 2 vecs) remapped)))
-      ;; Zero out shallow levels across all three vectors.
-      (dotimes (n min)
-        (dolist (v vecs) (aset v n empty)))))
-
-  (advice-add 'org-indent--compute-prefixes :after
-              #'flow-org-indent--clear-shallow-prefixes)
 
   (defvar flow/vc-commit-age-cache (make-hash-table :test 'equal))
 

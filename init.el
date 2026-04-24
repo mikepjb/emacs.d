@@ -69,7 +69,8 @@
   (when-let ((vari (+font "Recursive Sans Casual Static")))
     (set-face-attribute 'variable-pitch nil :font vari :height 160))
   (when-let ((fci (+font "Menlo" "Noto Sans Mono")))
-    (set-face-attribute 'fill-column-indicator nil :family fci)))
+    (set-face-attribute 'fill-column-indicator nil :family fci))
+  (setq-default display-fill-column-indicator-character ?│))
 
 (dolist (b `(;; Navigation
              ("C-c i" ,(ff user-emacs-directory "init.el"))
@@ -95,6 +96,7 @@
 
              ;; Code Tools + Editing
              ("C-c f" imenu)
+             ("C-;" completion-at-point) ;; anything more important?
              ("M-H" ,help-map)
              ("C-c t" +ctags)
              ("M-i" ,(il (+with-context (call-interactively 'rgrep))))
@@ -112,7 +114,8 @@
              ("M-p" backward-paragraph)
              ("M-/" replace-string)
              ("C-c m" recompile)
-             ("C-c M" ,(il (+with-context (call-interactively 'compile))))))
+             ("C-c M" ,(il (+with-context (call-interactively 'compile))))
+             ("C-c ." +test)))
   (global-set-key (kbd (car b)) (cadr b)))
 
 (with-eval-after-load 'icomplete
@@ -125,7 +128,6 @@
 (with-eval-after-load 'diff-mode
   (define-key diff-mode-map (kbd "M-o") nil))
 
-;; Functions
 (defun +kill-region-or-backward-word ()
   (interactive)
   (cond ((region-active-p) (call-interactively #'kill-region))
@@ -157,6 +159,16 @@
         (visit-tags-table tags-file t)))))
 
 (add-hook 'find-file-hook #'+ctags-link)
+
+(defun +test (&optional arg)
+  "Run current test file, or lint/test the whole project with C-u."
+  (interactive "P")
+  (+with-context
+   (pcase major-mode
+     ('java-mode (compile "gradle" ;; need to detect if gradlew or pom.xml is here (mvn?)
+                  ))
+     ('js-mode (compile (concat "node --test " (buffer-file-name))))
+     (_ (message "no test configuration for %s" major-mode)))))
 
 (defun +repl (&optional arg)
   (interactive "P")
