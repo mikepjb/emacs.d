@@ -3,8 +3,8 @@
 
 (defcustom flow-mode 'dark
   "Theme variant. Either 'dark or 'light"
-  :type '(choice (const :tag "Dark" 'dark)
-                 (const :tag "Light" 'light))
+  :type '(choice (const :tag "Dark" dark)
+                 (const :tag "Light" light))
   :group 'flow)
 
 (defun flow-toggle-theme ()
@@ -85,11 +85,9 @@ recursively handling nested plists like :box and quoted symbols like bold."
        (bg+red         (if dark-p "#1f0809" "#f4d3d5"))
        (bg+red+         (if dark-p "#350f11" "#ecb9bc"))
 
-       ;; rest/unsorted - to be deprecated most likely.
-       ;; not sure black etc really works here? for dual theme
+       ;; Rare colors, usually for ansi/terminal
        (red            (if dark-p "#eba0ac" "#e64553")) ; catppucin mocha maroon
        (green          (if dark-p "#a6e3a1" "#40a02b")) ; muted green
-       ;; may want a more faded yellow
        (blue           (if dark-p "#89b4fa" "#1e66f5")) ; catppucin mocha sapphire
 
        ;; Semantic colors set from the above
@@ -118,7 +116,6 @@ recursively handling nested plists like :box and quoted symbols like bold."
    (link :foreground lavender :underline t)
    (escape-glyph :foreground bg+)
    (icon :foreground yellow)
-   (xref-line-number)
    (fill-column-indicator :foreground bg+++)
 
    ;; ?? status section?
@@ -208,7 +205,6 @@ recursively handling nested plists like :box and quoted symbols like bold."
    (org-agenda-structure :foreground lavender)
    (org-scheduled-previously :foreground yellow)
    (org-hide :foreground bg :inherit fixed-pitch)
-   (org-drawer :foreground fg++ :inherit fixed-pitch)
    (org-block :inherit fixed-pitch)
    (org-block-begin-line :inherit fixed-pitch)
    (org-block-end-line :inherit fixed-pitch)
@@ -221,9 +217,7 @@ recursively handling nested plists like :box and quoted symbols like bold."
    (org-drawer :inherit fixed-pitch)
 
    (eshell-prompt :foreground yellow)
-
    (sh-quoted-exec :foreground fg)
-
    (ansi-color-black :foreground bg :background fg)
    (ansi-color-red :foreground red :background bg)
    (ansi-color-green :foreground green :background bg)
@@ -261,35 +255,19 @@ recursively handling nested plists like :box and quoted symbols like bold."
   (defface org-next nil "Face for next tasks." :group 'font-lock-faces)
 
   (defun flow-org-style-bullets ()
-    ;; Hide levels 1-3 stars completely (invisible)
     (font-lock-add-keywords
      nil
      '(("^\\*\\{1,3\\} "
-        (0 (put-text-property (match-beginning 0)
-                              (match-end 0)
-                              'invisible t)
-           nil)))
+        (0 (put-text-property
+            (match-beginning 0) (match-end 0) 'invisible t) nil))
+       ("^\\(\\*\\{4,\\}\\) "
+        (1 (prog1 () (compose-region
+                      (match-beginning 1) (match-end 1) "	•"))))
+       ("^ *\\(-\\) "
+        (1 (prog1 () (compose-region
+                      (match-beginning 1) (match-end 1) "	•")))))
      'append)
-
-    ;; Replace level 4+ stars with a bullet •
-    (font-lock-add-keywords
-     nil
-     '(("^\\(\\*\\{4,\\}\\) "
-        (1 (prog1 () (compose-region (match-beginning 1)
-                                     (match-end 1)
-                                     "	•")))))
-     'append)
-
-    ;; Replace - list markers with bullet •
-    (font-lock-add-keywords
-     nil
-     '(("^ *\\(-\\) "
-        (1 (prog1 () (compose-region (match-beginning 1)
-                                     (match-end 1)
-                                     "	•")))))
-     'append)
-
-    (font-lock-fontify-buffer))
+    (font-lock-flush))
 
   (add-hook 'org-mode-hook #'flow-org-style-bullets)
 
@@ -298,25 +276,21 @@ recursively handling nested plists like :box and quoted symbols like bold."
 
   (defun flow-org-indent--clear-shallow-prefixes (&rest _)
     "Remap indent prefixes so indentation starts fresh at `flow-org-indent-min-level'."
-    (let ((empty (org-add-props "" nil 'face 'org-indent))
-          (min flow-org-indent-min-level)
-          (depth (length org-indent--text-line-prefixes)))
-      ;; Remap FIRST while low indices still have their original values
-      (cl-loop for n from min below depth do
-               (let ((remapped (- n min -1)))
-                 ;; Text body gets +1 so it sits inside its heading, not level with it
-                 (aset org-indent--text-line-prefixes n
-                       (aref org-indent--text-line-prefixes
-                             (min (1+ remapped) (1- depth))))
-                 (aset org-indent--heading-line-prefixes n
-                       (aref org-indent--heading-line-prefixes remapped))
-                 (aset org-indent--inlinetask-line-prefixes n
-                       (aref org-indent--inlinetask-line-prefixes remapped))))
-      ;; THEN zero out the shallow levels
+    (let* ((empty (org-add-props "" nil 'face 'org-indent))
+           (min flow-org-indent-min-level)
+           (vecs (list org-indent--text-line-prefixes
+                       org-indent--heading-line-prefixes
+                       org-indent--inlinetask-line-prefixes))
+           (depth (length (car vecs))))
+      ;; Remap from `min' upwards; text body offset by +1 so it sits inside its heading.
+      (cl-loop for n from min below depth
+               for remapped = (- n min -1) do
+               (aset (nth 0 vecs) n (aref (nth 0 vecs) (min (1+ remapped) (1- depth))))
+               (aset (nth 1 vecs) n (aref (nth 1 vecs) remapped))
+               (aset (nth 2 vecs) n (aref (nth 2 vecs) remapped)))
+      ;; Zero out shallow levels across all three vectors.
       (dotimes (n min)
-        (aset org-indent--heading-line-prefixes n empty)
-        (aset org-indent--inlinetask-line-prefixes n empty)
-        (aset org-indent--text-line-prefixes n empty))))
+        (dolist (v vecs) (aset v n empty)))))
 
   (advice-add 'org-indent--compute-prefixes :after
               #'flow-org-indent--clear-shallow-prefixes)
@@ -347,8 +321,12 @@ recursively handling nested plists like :box and quoted symbols like bold."
                 (val (gethash (expand-file-name root) flow/vc-commit-age-cache)))
       (unless (memq val '(pending error)) val)))
 
-  (run-with-idle-timer 0.5 t #'flow/vc-commit-age-refresh)
-  (run-with-timer 0 60 (lambda () (clrhash flow/vc-commit-age-cache)))
+  (defvar flow--timers nil)
+  (dolist (timer flow--timers) (cancel-timer timer))
+
+  (setq flow--timers
+        (list (run-with-idle-timer 0.5 t #'flow/vc-commit-age-refresh)
+              (run-with-timer 0 60 (lambda () (clrhash flow/vc-commit-age-cache)))))
 
   (defun flow/truncate-buffer-name ()
     (let* ((name (if buffer-file-name
@@ -359,38 +337,34 @@ recursively handling nested plists like :box and quoted symbols like bold."
           name
         (concat "<" (substring name (- (length name) (- max-len 1)))))))
 
-  (let ((flow/mode-line
-         `(" "
-           (:eval (propertize
-                   (flow/truncate-buffer-name)
-                   'face
-                   '(:foreground ,cyan :weight bold)))
-           " [%*]"
-           mode-line-format-right-align
-           (:eval (concat (if (and (fboundp 'org-clocking-p) (org-clocking-p))
-                              (propertize (format " ● %s"
-                                                  (org-duration-from-minutes (org-clock-get-clocked-time)))
-                                          'face '(:foreground ,cyan :weight bold))
-                            (propertize " ○" 'face '(:foreground ,cyan :weight bold)))
-                          (propertize " | " 'face '(:foreground ,bg++++))))
-           (:eval (when (and (boundp 'vc-mode) vc-mode)
-                  (concat (replace-regexp-in-string "^ Git[-:]" "" vc-mode)
-                          (when-let ((age (flow/vc-commit-age)))
-                            (propertize (concat " (" age ")")
-                                        'face '(:foreground ,fg++++)))
-                          (propertize " | " 'face '(:foreground ,bg++++)))))
-           "%l:%c"
-           (:eval (propertize " | " 'face '(:foreground ,bg++++)))
-           (:eval (when-let ((proc (get-buffer-process (current-buffer))))
-                    (propertize (format "[%s] " (process-name proc))
-                                'face '(:foreground ,bright-magenta :weight bold))))
-           (:eval (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
-           " ")))
-    (setq-default mode-line-format flow/mode-line)))
+  (setq-default
+   mode-line-format
+   `(" "
+     (:eval (propertize
+             (flow/truncate-buffer-name)
+             'face
+             '(:foreground ,cyan :weight bold)))
+     " [%*]"
+     mode-line-format-right-align
+     (:eval (concat (if (and (fboundp 'org-clocking-p) (org-clocking-p))
+                        (propertize (format " ● %s"
+                                            (org-duration-from-minutes
+                                             (org-clock-get-clocked-time)))
+                                    'face '(:foreground ,cyan :weight bold))
+                      (propertize " ○" 'face '(:foreground ,cyan :weight bold)))
+                    (propertize " | " 'face '(:foreground ,bg++++))))
+     (:eval (when (and (boundp 'vc-mode) vc-mode)
+              (concat (replace-regexp-in-string "^ Git[-:]" "" vc-mode)
+                      (when-let ((age (flow/vc-commit-age)))
+                        (propertize (concat " (" age ")")
+                                    'face '(:foreground ,fg++++)))
+                      (propertize " | " 'face '(:foreground ,bg++++)))))
+     "%l:%c"
+     (:eval (propertize " | " 'face '(:foreground ,bg++++)))
+     (:eval (when-let ((proc (get-buffer-process (current-buffer))))
+              (propertize (format "[%s] " (process-name proc))
+                          'face '(:foreground ,bright-magenta :weight bold))))
+     (:eval (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
+     " ")))
 
 (provide-theme 'flow)
-
-;; (font-family-list)
-;; (face-at-point)
-;; (list-faces-display)
-;; (progn (disable-theme 'flow) (load-theme 'flow t))
