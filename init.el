@@ -55,6 +55,7 @@
 
 (add-hook 'compilation-filter-hook #'ansi-color-compilation-filter)
 
+(require 'external)
 (load custom-file t)
 (load-theme 'flow t)
 
@@ -144,45 +145,6 @@
               default-directory)))
      ,@body))
 
-(defun +ctags ()
-  (interactive)
-  (+with-context
-   (make-process :name "ctags" :buffer nil
-     :command '("ctags" "-eR" "-f" ".tags" "--exclude=node_modules" ".")
-     :sentinel (lambda (_ e) (message "ctags: %s" (string-trim e))))))
-
-(defun +ctags-link ()
-  (when-let ((dir (locate-dominating-file default-directory ".tags")))
-    (let ((tags-file (expand-file-name ".tags" dir)))
-      (when (and (file-regular-p tags-file)
-                 (not (member tags-file tags-table-list)))
-        (visit-tags-table tags-file t)))))
-
-(add-hook 'find-file-hook #'+ctags-link)
-
-(defun +test (&optional arg)
-  "Run current test file, or lint/test the whole project with C-u."
-  (interactive "P")
-  (+with-context
-   (pcase major-mode
-     ('java-mode (compile "gradle" ;; need to detect if gradlew or pom.xml is here (mvn?)
-                  ))
-     ('js-mode (compile (concat "node --test " (buffer-file-name))))
-     (_ (message "no test configuration for %s" major-mode)))))
-
-(defun +repl (&optional arg)
-  (interactive "P")
-  (let* ((repls '(("clojure" inferior-lisp "clojure -A:dev")
-                  ("python" run-python)
-                  ("sqlite" sql-sqlite)
-                  ("node" comint-run "node")
-                  ("ruby" comint-run "irb")))
-         (spec (cdr (assoc (if arg (completing-read "REPL: " repls nil t)
-                             "clojure")
-                           repls))))
-    (other-window-prefix)
-    (apply (car spec) (cdr spec))))
-
 (defun +lisp-load-current-file ()
   (interactive)
   (lisp-load-file (buffer-file-name)))
@@ -264,6 +226,7 @@
   (org-agenda-start-on-weekday nil)
   (org-agenda-restore-windows-after-quit t)
   (org-archive-location "~/.emacs.d/notes/archive.org::* From %s")
+  (org-archive-subtree-add-inherited-tags t)
   (org-directory "~/.emacs.d/notes")
   (org-agenda-show-inherited-tags t)
   (org-agenda-sorting-strategy '(todo-state-down priority-up))
