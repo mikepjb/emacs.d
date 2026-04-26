@@ -176,6 +176,8 @@
       (org-drawer :inherit fixed-pitch)
       (flow-org-bullet :foreground ,fg++++ :slant normal :underline nil)
 
+      (markdown-markup-face :background ,bg+++)
+
       (eshell-prompt :foreground ,yellow)
       (sh-quoted-exec :foreground ,fg)
       (ansi-color-black :foreground ,bg :background ,fg)

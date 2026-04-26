@@ -41,6 +41,7 @@
  compilation-scroll-output t
  vc-handled-backends '(Git)
  eshell-banner-message ""
+ auth-sources `(,(concat user-emacs-directory ".authinfo.gpg"))
  custom-file (concat user-emacs-directory "local.el")
  package-archives '(("melpa" . "https://melpa.org/packages/")
                     ("gnu" . "https://elpa.gnu.org/packages/")))
@@ -55,7 +56,9 @@
 
 (add-hook 'compilation-filter-hook #'ansi-color-compilation-filter)
 
+(add-to-list 'load-path user-emacs-directory)
 (require 'external)
+
 (load custom-file t)
 (load-theme 'flow t)
 
@@ -83,6 +86,8 @@
 
              ;; Information
              ("M-N" newsticker-show-news)
+             ("M-A" navi)
+             ("C-c M-A" navi-view)
 
              ;; Display management
              ("C-c k" ,(il (select-window (split-window-below))))
@@ -191,7 +196,10 @@
 (use-package typescript-mode :ensure t :custom (typescript-indent-level 2))
 (use-package json-mode :ensure t)
 (use-package js :ensure nil :custom (js-indent-level 2))
-(use-package markdown-mode :ensure t :custom (markdown-hide-markup t))
+(use-package markdown-mode :ensure t
+  :custom
+  (markdown-fontify-code-blocks-natively t)
+  (markdown-hide-markup t))
 
 (add-hook 'prog-mode-hook
   (lambda () (display-line-numbers-mode 1) (hl-line-mode 1)
