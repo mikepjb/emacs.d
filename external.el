@@ -102,6 +102,39 @@
                 (concat "fnm use && FORCE_COLOR=1 node --test " (buffer-file-name))))
      (_ (message "no test configuration for %s" major-mode)))))
 
+;; auditing
+(defun +audit-most-changed ()
+  (let* ((files (split-string
+                 (shell-command-to-string
+                  "git log --name-only --pretty=format: --since='1 year ago'")
+                 "\n" t))
+         (freq (seq-group-by #'identity files))
+         (grouped (seq-group-by #'identity files))
+         (sorted (seq-sort (lambda (a b) (> (length (cdr a))
+                                            (length (cdr b))))
+                           grouped)))
+    (mapcar (lambda (x) (cons (car x) (length (cdr x))))
+            (seq-take sorted 20))))
+
+(defun +audit-authors ()
+  "git shortlog -sn --no-merges")
+
+(defun +audit ()
+  (interactive)
+  (let ((buf (get-buffer-create "*Project Audit*")))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert (propertize "Project Audit\n\n" 'face 'bold))
+
+        (dolist (item (+audit-most-changed))
+          (let ((file (car item)) (count (cdr item)))
+            (insert (format "  %5d  %s\n" count file))))
+
+        ;; authors insert here
+        )
+      (pop-to-buffer buf))))
+
 ;;; navi: Fire-and-forget LLM queries
 (require 'auth-source)
 (require 'json)
