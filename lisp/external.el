@@ -175,12 +175,8 @@ Questions for business stakeholders:
 (defvar navi-backends
   '((local
      :endpoint "http://localhost:7777/v1/chat/completions"
-     :model "gemma-4-e2b"
+     :model "qwen3.5-9b"
      :auth-host nil)
-    (gemini
-     :endpoint "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
-     :model "gemini-3-flash-preview"
-     :auth-host "generativelanguage.googleapis.com")
     (fireworks
      :endpoint "https://api.fireworks.ai/inference/v1/chat/completions"
      :model "accounts/fireworks/models/kimi-k2p5"
@@ -282,17 +278,19 @@ the code or question presented.
 
 (defvar navi-server-command
   `("llama-server"
-    "-m" ,(expand-file-name "~/models/gemma-4-E2B-it-UD-Q4_K_XL.gguf")
+    "-m" ,(expand-file-name "~/models/Qwen3.5-9B-UD-Q3_K_XL.gguf")
     "--jinja"
     "--host" "127.0.0.1"
     "--port" "7777"
-    "-c" "65536"
+    "-c" "16384"
     "--metrics"
     "-ngl" "-1"
     "-np" "1"
-    "--temp" "1"
+    "--temp" "0.6"
     "--top-p" "0.95"
-    "--top-k" "64"))
+    "--top-k" "20"
+    "--min-p" "0.00"
+    "--repeat-penalty" "1.05"))
 
 (defun navi-server ()
   "Start llama-server in the background."

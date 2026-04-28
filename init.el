@@ -56,7 +56,7 @@
 
 (add-hook 'compilation-filter-hook #'ansi-color-compilation-filter)
 
-(add-to-list 'load-path user-emacs-directory)
+(add-to-list 'load-path (concat user-emacs-directory "lisp"))
 (require 'external)
 
 (load custom-file t)
@@ -105,6 +105,7 @@
              ("C-;" completion-at-point) ;; anything more important?
              ("M-H" ,help-map)
              ("C-c t" +ctags)
+             ("M-S" isearch-forward-symbol-at-point)
              ("M-i" ,(il (+with-context (call-interactively 'rgrep))))
              ("M-I" ,(il (+with-context (call-interactively 'occur))))
              ("M-T" eshell)
