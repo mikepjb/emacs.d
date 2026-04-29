@@ -165,6 +165,15 @@
               default-directory)))
      ,@body))
 
+(defun +vc-pr ()
+  (interactive)
+  (shell-command
+   (format "gh pr %s"
+           (pcase (completing-read "Stage: " '("Draft" "Review" "View") nil t)
+             ("Draft" "create --draft --fill")
+             ("Review" "create --fill")
+             ("View" "view --web")))))
+
 (defun +lisp-load-current-file ()
   (interactive)
   (lisp-load-file (buffer-file-name)))

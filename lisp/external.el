@@ -18,14 +18,18 @@
 (setq exec-path
       (append (mapcar #'expand-file-name *path*)
               (list exec-directory)))
+;; TODO needs to also write to .bashrc
 
-(defun eshell/gr ()
-  (if-let ((root (vc-root-dir)))
-      (eshell/cd root)
-    (error "Not in a VC repository")))
+(defun update-env ()
+  (format "export PATH='%s'" (mapconcat #'expand-file-name *path* ":"))
+  ;; open a buffer, write the file.. close the file?
+  ;; (with-temp-file "~/.bashrc"
+  ;; (write-file "bashrc"
+  ;;   (format "export %s=\"%s\"\n" var-name var-value)))
+  )
 
-(defun eshell/e (&rest args)
-  (find-file (pop args)))
+(defun eshell/gr () (eshell/cd (or (vc-root-dir) default-directory)))
+(defun eshell/e (&rest args) (find-file (pop args)))
 
 ;; external dependencies
 (defconst *external-deps*
@@ -36,6 +40,7 @@
     (sdk :message "install via https://sdkman.io/")
     (yq :linux go-yq)))
 
+;; TODO needs to also install tools lol
 (defun +install-external-deps ()
   (interactive)
   (dolist (dep *external-deps*)
@@ -130,6 +135,18 @@
        (shell-command-to-string "git shortlog -sn --no-merges --since=\"6 months ago\" HEAD")
                     "\n" t))))
 
+(defun +audit-bugs ()
+  (shell-command-to-string "git log -i -E --grep=\"fix|bug|broken\" --name-only --format='' ")
+  )
+
+;; (defun +audit-time ()
+;;   (let ((all-commits
+;;          (shell-command-to-string "git log --format='%ad' --date=format:'%Y-%m'"))
+;;         bugfixes
+;;         (shell-command-to-string "git log -i -E --grep=\"fix|bug|broken\" --format='%ad' --date=format:'%Y-%m'"))
+;;     ;; get the freq for each.. display both in a table (if you can do this in special-mode?)
+;;     ))
+
 (defun +audit ()
   (interactive)
   (let ((buf (get-buffer-create "*Project Audit*")))
@@ -138,22 +155,15 @@
         (erase-buffer)
         (special-mode)
         (insert (propertize "Project Audit\n\n" 'face 'bold))
-        (insert "Questions for developers:
+        (insert "Questions:
 
 “What’s the one area you’re afraid to touch?”
 “When’s the last time you deployed on a Friday?”
 “What broke in production in the last 90 days that wasn’t caught by tests?”
-
-Questions for the CTO/EM:
-
 “What feature has been blocked for over a year?”
 “Do you have real-time error visibility right now?”
 “What was the last feature that took significantly longer than estimated?”
-
-Questions for business stakeholders:
-
-“Are there features that got quietly turned off and never came back?”
-“Are there things you’ve stopped promising customers?”\n\n")
+“Are there features that got quietly turned off and never came back?”\n\n")
 
         (insert (propertize "Top 20 most changed files\n\n" 'face 'bold))
         (dolist (item (+audit-most-changed))
@@ -166,22 +176,19 @@ Questions for business stakeholders:
             (insert (format "%s\n" item)))
           (insert (propertize "\nAuthors (last 6 months)\n\n" 'face 'bold))
           (dolist (item (plist-get authors :last-6-months))
-            (insert (format "%s\n" item)))
-          )
-        )
+            (insert (format "%s\n" item)))))
       (pop-to-buffer buf))))
 
 ;;; navi: Fire-and-forget LLM queries
 (require 'auth-source)
 (require 'json)
 
-(defvar navi-backends
-  '((local
-     :endpoint "http://localhost:7777/v1/chat/completions"
-     :model "qwen3.5-4b"
-     :auth-host nil)))
 
-(defvar navi-backend 'local)
+(defvar navi-config
+  '(:endpoint "http://localhost:7777/v1/chat/completions"
+    :model "qwen3.5-4b"
+    :auth-host nil))
+
 (defvar navi-system-prompt
   "You are an expert senior developer specializing in Clojure, but
 proficient in Rust, Go, JavaScript, TypeScript, and Java.
@@ -196,12 +203,6 @@ Focus on idiomatic solutions and best practices. Respond directly to
 the code or question presented.
 ")
 (defvar navi-buffer-name "*navi*")
-
-(defun navi--api-key (host)
-  (when host
-    (let* ((e (car (auth-source-search :host host :require '(:secret) :max 1)))
-           (s (and e (plist-get e :secret))))
-      (if (functionp s) (funcall s) s))))
 
 (defun navi--sentinel (proc _event)
   (when (memq (process-status proc) '(exit signal))
@@ -235,7 +236,7 @@ the code or question presented.
                      (replace-regexp-in-string
                       "-\\(ts-\\)?mode\\'" "" (symbol-name major-mode)))))
      (list (read-string "navi> ") region lang)))
-  (let* ((cfg (cdr (assq navi-backend navi-backends)))
+  (let* ((cfg navi-config)
          (endpoint (plist-get cfg :endpoint))
          (model (plist-get cfg :model))
          (key (navi--api-key (plist-get cfg :auth-host)))
@@ -260,7 +261,7 @@ the code or question presented.
     (process-put proc :question full)
     (process-send-string proc payload)
     (process-send-eof proc)
-    (message "navi: query sent (%s)..." navi-backend)))
+    (message "navi: query sent")))
 
 (defun navi-view ()
   (interactive)
@@ -268,36 +269,27 @@ the code or question presented.
     (if buf (pop-to-buffer buf)
       (message "navi: no responses yet"))))
 
-(defun navi-set-backend (backend)
-  (interactive
-   (list (intern (completing-read "Backend: "
-                                  (mapcar #'car navi-backends) nil t))))
-  (setq navi-backend backend)
-  (message "navi: %s" backend))
-
-(defvar navi-server-command
-  `("llama-server"
-    "-m" ,(expand-file-name "~/models/Qwen3.5-4B-UD-Q3_K_XL.gguf")
-    "--jinja"
-    "--host" "127.0.0.1"
-    "--port" "7777"
-    "-c" "16384"
-    "--metrics"
-    "-ngl" "-1"
-    "-np" "1"
-    "--temp" "0.6"
-    "--top-p" "0.95"
-    "--top-k" "20"
-    "--min-p" "0.00"
-    "--presence-penalty" "0.00"
-    "--repeat-penalty" "1.05"))
-
 (defun navi-server ()
   "Start llama-server in the background."
   (interactive)
-  (make-process :name "navi-server"
-                :buffer (get-buffer-create "*navi-server*")
-                :command navi-server-command)
+  (make-process
+   :name "navi-server"
+   :buffer (get-buffer-create "*navi-server*")
+   :command `("llama-server"
+              "-m" ,(expand-file-name
+                     "~/models/Qwen3.5-4B-UD-Q3_K_XL.gguf")
+              "--jinja"
+              "--host" "127.0.0.1"
+              "--port" "7777"
+              "-c" "16384"
+              "--metrics"
+              "-ngl" "-1"
+              "-np" "1"
+              "--temp" "0.6"
+              "--top-p" "0.95"
+              "--top-k" "20"
+              "--min-p" "0.00"
+              "--presence-penalty" "0.0"))
   (message "navi: server started"))
 
 (provide 'external)

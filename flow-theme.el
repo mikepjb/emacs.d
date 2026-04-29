@@ -281,7 +281,7 @@
                                     'face '(:foreground ,cyan :weight bold))
                       (propertize " ○" 'face '(:foreground ,cyan :weight bold)))
                     (propertize " | " 'face '(:foreground ,bg++++))))
-     (:eval (when (and (boundp 'vc-mode) vc-mode)
+          (:eval (when (and (boundp 'vc-mode) vc-mode)
               (concat (replace-regexp-in-string "^ Git[-:]" "" vc-mode)
                       (when-let ((age (flow/vc-commit-age)))
                         (propertize (concat " (" age ")")
