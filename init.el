@@ -1,5 +1,11 @@
 ;;; 🔱 Spartan Emacs -*- lexical-binding: t; -*-
 
+;; TODO clock in / out
+;; TODO bind ibuffer and split into groups to manage multi-project buffers
+;; TODO tidy up LLM integration
+;; TODO vc ignore files too? we want to ignore .tags lol
+;; TODO fix java-mode / cc-mode indentation
+
 (setq gc-cons-threshold (* 64 1024 1024))
 (defmacro il (&rest body) `(lambda () (interactive) ,@body))
 (defmacro ff (&rest path) `(il (find-file (concat ,@path))))
@@ -27,7 +33,7 @@
  use-dialog-box nil
  use-file-dialog nil
  use-short-answers t
- split-width-threshold 170
+ split-width-threshold 160
  split-height-threshold nil
  frame-resize-pixelwise t
  completion-ignore-case t
@@ -39,6 +45,7 @@
  isearch-wrap-pause 'no
  compilation-always-kill t
  compilation-scroll-output t
+ vc-follow-symlinks t
  vc-handled-backends '(Git)
  eshell-banner-message ""
  auth-sources `(,(concat user-emacs-directory ".authinfo.gpg"))
@@ -53,6 +60,9 @@
  standard-indent 2
  whitespace-style '(face trailing tabs empty indentation::space)
  cursor-in-non-selected-windows nil)
+
+(dolist (ignored-dirs '("build" "dist" "node_modules" "target"))
+  (add-to-list 'vc-directory-exclusion-list ignored-dirs))
 
 (add-hook 'compilation-filter-hook #'ansi-color-compilation-filter)
 
@@ -101,6 +111,7 @@
              ("M-RET" toggle-frame-fullscreen)
 
              ;; Code Tools + Editing
+             ("C-c c" +org-clock-toggle)
              ("C-c f" imenu)
              ("C-;" completion-at-point) ;; anything more important?
              ("M-H" ,help-map)
@@ -134,6 +145,9 @@
 
 (with-eval-after-load 'diff-mode
   (define-key diff-mode-map (kbd "M-o") nil))
+
+(with-eval-after-load 'vc-mode
+  (define-key vc-dir-mode-map (kbd "r") 'vc-revert))
 
 (defun +kill-region-or-backward-word ()
   (interactive)
@@ -216,6 +230,14 @@
   (olivetti-style nil)
   (olivetti-body-width 80)
   :hook ((org-mode markdown-mode) . olivetti-mode))
+
+(defun +org-clock-toggle ()
+  (interactive)
+  (if (org-clocking-p) (org-clock-out)
+    (if (and (eq major-mode 'org-mode)
+             (org-entry-is-todo-p))
+        (org-todo "CURRENT")
+      (org-clock-in-last))))
 
 (use-package org :ensure nil
   :custom

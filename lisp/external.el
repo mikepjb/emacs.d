@@ -98,6 +98,9 @@
     (cond (arg     (concat cmd " test"))
           (gradle? (format "%s test --tests %s --console=plain" cmd class))
           (t       (format "%s test -Dtest=%s -B -Dsurefire.useFile=false -Dtrimstacktrace=false" cmd class))))))
+     ('typescript-mode (compile
+                        (cond (arg "fnm use && npm test")
+                              (t (concat "fnm use && FORCE_COLOR=1 npx jest " (buffer-file-name))))))
      ('js-mode (compile
                 (concat "fnm use && FORCE_COLOR=1 node --test " (buffer-file-name))))
      (_ (message "no test configuration for %s" major-mode)))))
@@ -175,12 +178,8 @@ Questions for business stakeholders:
 (defvar navi-backends
   '((local
      :endpoint "http://localhost:7777/v1/chat/completions"
-     :model "qwen3.5-9b"
-     :auth-host nil)
-    (fireworks
-     :endpoint "https://api.fireworks.ai/inference/v1/chat/completions"
-     :model "accounts/fireworks/models/kimi-k2p5"
-     :auth-host "api.fireworks.ai")))
+     :model "qwen3.5-4b"
+     :auth-host nil)))
 
 (defvar navi-backend 'local)
 (defvar navi-system-prompt
@@ -278,7 +277,7 @@ the code or question presented.
 
 (defvar navi-server-command
   `("llama-server"
-    "-m" ,(expand-file-name "~/models/Qwen3.5-9B-UD-Q3_K_XL.gguf")
+    "-m" ,(expand-file-name "~/models/Qwen3.5-4B-UD-Q3_K_XL.gguf")
     "--jinja"
     "--host" "127.0.0.1"
     "--port" "7777"
@@ -290,6 +289,7 @@ the code or question presented.
     "--top-p" "0.95"
     "--top-k" "20"
     "--min-p" "0.00"
+    "--presence-penalty" "0.00"
     "--repeat-penalty" "1.05"))
 
 (defun navi-server ()
