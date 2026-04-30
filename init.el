@@ -1,7 +1,5 @@
 ;;; 🔱 Spartan Emacs -*- lexical-binding: t; -*-
 
-;; TODO clock in / out
-;; TODO bind ibuffer and split into groups to manage multi-project buffers
 ;; TODO tidy up LLM integration
 ;; TODO vc ignore files too? we want to ignore .tags lol
 ;; TODO fix java-mode / cc-mode indentation
@@ -29,6 +27,7 @@
 
 (setq ;; Emacs/System settings
  inhibit-startup-screen t
+ ns-use-native-fullscreen nil
  ring-bell-function 'ignore
  use-dialog-box nil
  use-file-dialog nil
@@ -46,8 +45,14 @@
  compilation-always-kill t
  compilation-scroll-output t
  vc-follow-symlinks t
+ vc-hide-up-to-date t
  vc-handled-backends '(Git)
  eshell-banner-message ""
+ ;; Available: trye stroustrup / linux for java then clean up this comment, also see c-add-style
+ ;; gnu, k&r, bsd, whitesmith, stroustrup, ellemtel, linux, python, java, awk, user
+ c-default-style '((java-mode . "stroustrup")
+                   (other . "gnu"))
+ c-basic-offset 4
  auth-sources `(,(concat user-emacs-directory ".authinfo.gpg"))
  custom-file (concat user-emacs-directory "local.el")
  package-archives '(("melpa" . "https://melpa.org/packages/")
@@ -75,8 +80,16 @@
 (defun +font (&rest names)
   (seq-find (lambda (f) (member f (font-family-list))) names))
 
+(defun +toggle-transparency ()
+  (interactive)
+  (let* ((current (frame-parameter nil 'alpha-background))
+         (new (if (eq current 100) 95 100)))
+    (set-frame-parameter nil 'alpha-background new)
+    (add-to-list 'default-frame-alist '(alpha-background . 95))))
+
 (when (display-graphic-p)
   (fringe-mode 0)
+  (+toggle-transparency)
   (when-let ((mono (+font "Rec Mono Linear")))
     (set-face-attribute 'default     nil :font mono :height 160)
     (set-face-attribute 'fixed-pitch nil :font mono :height 140))
@@ -86,6 +99,20 @@
     (set-face-attribute 'fill-column-indicator nil :family fci))
   (setq-default display-fill-column-indicator-character ?│))
 
+
+(defun my/toggle-frame-alpha ()
+  "Toggle full-frame transparency (text included)."
+  (interactive)
+  (let* ((current (frame-parameter nil 'alpha))
+         (n (if (consp current) (car current) current)))
+    (set-frame-parameter nil 'alpha
+                         (if (and n (< n 100))
+                             '(100 . 100)
+                           (cons 80 80)))))
+
+(set-frame-parameter nil 'alpha-background 70)
+
+
 (dolist (b `(;; Navigation
              ("C-c i" ,(ff user-emacs-directory "init.el"))
              ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
@@ -93,6 +120,7 @@
              ("C-c g" vc-dir-root)
              ("C-c p" project-find-file)
              ("C-c P" ,(ff "~/src"))
+             ("M-B" ibuffer)
 
              ;; Information
              ("M-N" newsticker-show-news)
@@ -148,6 +176,16 @@
 
 (with-eval-after-load 'vc-mode
   (define-key vc-dir-mode-map (kbd "r") 'vc-revert))
+
+;; TODO doesn't work as I'd like, you can't see the summary line after insertion
+;; (defun my/log-edit-insert-coauthor ()
+;;   "Append a Co-authored-by trailer to new commit messages."
+;;   (save-excursion
+;;     (goto-char (point-max))
+;;     (unless (bolp) (insert "\n"))
+;;     (insert "\nCo-authored-by: Qwen 3.5 4B <noreply@qwen.ai>\n")))
+
+;; (add-hook 'log-edit-hook #'my/log-edit-insert-coauthor)
 
 (defun +kill-region-or-backward-word ()
   (interactive)
@@ -299,6 +337,34 @@
 (defun +org-clock-todo-change ()
   (cond ((string= org-state "CURRENT") (org-clock-in))
         ((org-clocking-p) (org-clock-out))))
+
+(defun +ibuffer-project-root (buf)
+  (with-current-buffer buf
+    (when-let ((proj (and buffer-file-name (project-current))))
+      (project-root proj))))
+
+(defun +ibuffer-filter-groups-by-project ()
+  (let* ((roots (seq-uniq
+                 (delq nil (mapcar #'+ibuffer-project-root (buffer-list)))
+                 #'string=))
+         (project-groups
+          (mapcar (lambda (root)
+                    (cons (format "📁 %s"
+                                  (file-name-nondirectory
+                                   (directory-file-name root)))
+                          `((filename . ,(regexp-quote (expand-file-name root))))))
+                  roots)))
+    (append project-groups
+            '(("🎸 Git"  (name . "^\\*vc"))
+              ("📝 Org"     (mode . org-mode))
+              ("⚙️ Emacs"  (name . "^\\*"))
+              ("🌐 Web"     (derived-mode . web-mode))
+              ("📦 Other"   ())))))
+
+(add-hook 'ibuffer-mode-hook
+          (lambda ()
+            (setq ibuffer-filter-groups (+ibuffer-filter-groups-by-project))
+            (ibuffer-update nil t)))
 
 (use-package newsticker
   :ensure nil
