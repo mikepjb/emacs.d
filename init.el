@@ -2,6 +2,8 @@
 
 ;; TODO tidy up LLM integration
 ;; TODO vc ignore files too? we want to ignore .tags lol
+;; TODO rgrep should also ignore .tags files lol and node_modules etc
+;; .idea intellij files too rgrep should ignore
 
 (setq gc-cons-threshold (* 64 1024 1024))
 (defmacro il (&rest body) `(lambda () (interactive) ,@body))
