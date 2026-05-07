@@ -83,10 +83,13 @@
 
 (defun +toggle-transparency ()
   (interactive)
-  (let* ((current (frame-parameter nil 'alpha-background))
-         (new (if (eq current 100) 90 100)))
-    (set-frame-parameter nil 'alpha-background new)
-    (add-to-list 'default-frame-alist '(alpha-background . 90))))
+  (let* ((level 90)
+         (attr (if (eq system-type 'darwin)
+                   'alpha 'alpha-background))
+         (current (frame-parameter nil attr))
+         (new (if (eq current 100) level 100)))
+    (set-frame-parameter nil attr new)
+    (add-to-list 'default-frame-alist '(attr . level))))
 
 (when (display-graphic-p)
   (fringe-mode 0)
@@ -100,18 +103,6 @@
     (set-face-attribute 'fill-column-indicator nil :family fci))
   (setq-default display-fill-column-indicator-character ?│))
 
-(defun my/toggle-frame-alpha ()
-  "Toggle full-frame transparency (text included)."
-  (interactive)
-  (let* ((current (frame-parameter nil 'alpha))
-         (n (if (consp current) (car current) current)))
-    (set-frame-parameter nil 'alpha
-                         (if (and n (< n 100))
-                             '(100 . 100)
-                           (cons 80 80)))))
-
-(set-frame-parameter nil 'alpha-background 70)
-
 (dolist (b `(;; Navigation
              ("C-c i" ,(ff user-emacs-directory "init.el"))
              ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
@@ -119,7 +110,7 @@
              ("C-c g" vc-dir-root)
              ("C-c p" project-find-file)
              ("C-c P" ,(ff "~/src"))
-             ("M-B" ibuffer)
+             ("M-B" ibuffer-other-window)
 
              ;; Information
              ("M-N" newsticker-show-news)
@@ -174,17 +165,9 @@
   (define-key diff-mode-map (kbd "M-o") nil))
 
 (with-eval-after-load 'vc-mode
-  (define-key vc-dir-mode-map (kbd "r") 'vc-revert))
-
-;; TODO doesn't work as I'd like, you can't see the summary line after insertion
-;; (defun my/log-edit-insert-coauthor ()
-;;   "Append a Co-authored-by trailer to new commit messages."
-;;   (save-excursion
-;;     (goto-char (point-max))
-;;     (unless (bolp) (insert "\n"))
-;;     (insert "\nCo-authored-by: Qwen 3.5 4B <noreply@qwen.ai>\n")))
-
-;; (add-hook 'log-edit-hook #'my/log-edit-insert-coauthor)
+  (define-key vc-dir-mode-map (kbd "r") 'vc-revert)
+  (define-key vc-git-log-edit-mode-map (kbd "M-k")
+              '+vc-git-log-edit-toggle-ai-attribution))
 
 (defun +kill-region-or-backward-word ()
   (interactive)
@@ -345,6 +328,7 @@
       (org-clock-in-last))))
 
 (use-package org :ensure nil
+  :bind (:map org-mode-map ("M-c" . org-insert-heading))
   :custom
   (org-modules nil)
   (org-ellipsis " ▼")
