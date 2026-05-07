@@ -93,16 +93,18 @@
                            '("build.gradle" "build.gradle.kts" "pom.xml")))))
         (gradle? (or (file-exists-p (expand-file-name "build.gradle" root))
                      (file-exists-p (expand-file-name "build.gradle.kts" root))))
-        (cmd (cond ((and gradle? (file-exists-p (expand-file-name "gradlew" root))) "./gradlew")
-                   (gradle? "gradle")
-                   ((file-exists-p (expand-file-name "mvnw" root)) "./mvnw")
-                   (t "mvn")))
+        (cmd
+         (concat (when (file-exists-p "./.sdkmanrc") "sdk env && ")
+                 (cond ((and gradle? (file-exists-p (expand-file-name "gradlew" root))) "./gradlew")
+                       (gradle? "gradle")
+                       ((file-exists-p (expand-file-name "mvnw" root)) "./mvnw")
+                       (t "mvn"))))
         (class (file-name-base (buffer-file-name)))
         (default-directory root))
    (compile
     (cond (arg     (concat cmd " test"))
           (gradle? (format "%s test --tests %s --console=plain" cmd class))
-          (t       (format "%s test -Dtest=%s -B -Dsurefire.useFile=false -Dtrimstacktrace=false" cmd class))))))
+          (t       (format "%s test -Dtest=%s -B -Dsurefire.useFile=false -DfailIfNoTests=false -Dtrimstacktrace=false" cmd class))))))
      ('typescript-mode (compile
                         (cond (arg "fnm use && npm test")
                               (t (concat "fnm use && FORCE_COLOR=1 npx jest " (buffer-file-name))))))
