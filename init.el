@@ -176,8 +176,14 @@
         (t (backward-kill-word 1))))
 
 (defvar *context-markers*
-  '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git")
-  "Files used to identify the root of a project.")
+  '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git"))
+
+(defmacro +with-context (&rest body)
+  `(let ((default-directory
+          (or (seq-some (lambda (f) (locate-dominating-file default-directory f))
+                        *context-markers*)
+              default-directory)))
+     ,@body))
 
 (defun +current-context (buffer)
   "Find the project root for BUFFER using file name or dired directory."
