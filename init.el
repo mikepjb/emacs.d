@@ -109,7 +109,7 @@
              ("C-c a" ,(il (org-agenda nil "a")))
              ("C-c g" vc-dir-root)
              ("C-c p" project-find-file)
-             ("C-c P" ,(ff "~/src"))
+             ("C-c P" ,(il (+select-folder "~/src")))
              ("M-B" ibuffer-other-window)
 
              ;; Information
@@ -121,8 +121,8 @@
              ("C-c k" ,(il (select-window (split-window-below))))
              ("C-c l" ,(il (select-window (split-window-right))))
              ("C-c o" delete-other-windows)
+             ("M-O" delete-other-windows)
              ("M-o" ,(il (other-window 1)))
-             ("M-O" ,(il (other-window -1)))
              ("M--" ,(il (set-frame-size nil 160 50)))
              ("M-L" flow-toggle-theme)
              ("M-V" ,(il (load-theme 'flow t)))
@@ -258,6 +258,15 @@
              ("Draft" "create --draft --fill")
              ("Review" "create --fill")
              ("View" "view --web")))))
+
+(defun +select-folder (path)
+  (interactive)
+  (let ((full-path (expand-file-name path)))
+    (dired
+     (concat
+      full-path "/"
+      (completing-read ">> "
+                       (directory-files full-path nil "^[A-z]"))))))
 
 (defun +lisp-load-current-file ()
   (interactive)
