@@ -203,6 +203,8 @@ Focus on idiomatic solutions and best practices. Respond directly to
 the code or question presented.
 ")
 (defvar navi-buffer-name "*navi*")
+(defun navi--api-key (a)
+  nil)
 
 (defun navi--sentinel (proc _event)
   (when (memq (process-status proc) '(exit signal))

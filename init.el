@@ -2,7 +2,6 @@
 
 ;; TODO tidy up LLM integration
 ;; TODO vc ignore files too? we want to ignore .tags lol
-;; TODO fix java-mode / cc-mode indentation
 
 (setq gc-cons-threshold (* 64 1024 1024))
 (defmacro il (&rest body) `(lambda () (interactive) ,@body))
@@ -47,6 +46,8 @@
  vc-follow-symlinks t
  vc-hide-up-to-date t
  vc-handled-backends '(Git)
+ vc-log-show-diff nil
+ vc-git-log-edit-summary-target 50
  eshell-banner-message ""
  ;; Available: trye stroustrup / linux for java then clean up this comment, also see c-add-style
  ;; gnu, k&r, bsd, whitesmith, stroustrup, ellemtel, linux, python, java, awk, user
@@ -83,9 +84,9 @@
 (defun +toggle-transparency ()
   (interactive)
   (let* ((current (frame-parameter nil 'alpha-background))
-         (new (if (eq current 100) 95 100)))
+         (new (if (eq current 100) 90 100)))
     (set-frame-parameter nil 'alpha-background new)
-    (add-to-list 'default-frame-alist '(alpha-background . 95))))
+    (add-to-list 'default-frame-alist '(alpha-background . 90))))
 
 (when (display-graphic-p)
   (fringe-mode 0)
@@ -99,7 +100,6 @@
     (set-face-attribute 'fill-column-indicator nil :family fci))
   (setq-default display-fill-column-indicator-character ?│))
 
-
 (defun my/toggle-frame-alpha ()
   "Toggle full-frame transparency (text included)."
   (interactive)
@@ -111,7 +111,6 @@
                            (cons 80 80)))))
 
 (set-frame-parameter nil 'alpha-background 70)
-
 
 (dolist (b `(;; Navigation
              ("C-c i" ,(ff user-emacs-directory "init.el"))
@@ -193,15 +192,74 @@
         ((bound-and-true-p paredit-mode) (paredit-backward-kill-word))
         (t (backward-kill-word 1))))
 
-(defconst *context-markers*
-  '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git"))
+(defvar *context-markers*
+  '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git")
+  "Files used to identify the root of a project.")
 
-(defmacro +with-context (&rest body)
-  `(let ((default-directory
-          (or (seq-some (lambda (f) (locate-dominating-file default-directory f))
-                        *context-markers*)
-              default-directory)))
-     ,@body))
+(defun +current-context (buffer)
+  "Find the project root for BUFFER using file name or dired directory."
+  (with-current-buffer buffer
+    (when-let ((file (or buffer-file-name list-buffers-directory)))
+      (let ((root (seq-some (lambda (f) (locate-dominating-file file f))
+                            *context-markers*)))
+        (when root (expand-file-name root))))))
+
+(require 'ibuffer)
+(require 'ibuf-ext)
+(require 'seq)
+
+(define-ibuffer-filter context-root
+    "Filter buffers by their project context root."
+  (:description "context root"
+   :reader (read-directory-name "Filter by values of project root: "))
+  (when-let ((root (+current-context buf)))
+    (equal (expand-file-name qualifier) root)))
+
+(define-ibuffer-column vc-status-mini
+  (:name "V")
+  (if-let* ((file buffer-file-name)
+            (state (vc-state file)))
+      (cond
+       ((memq state '(edited added)) "U")
+       ((eq state 'needs-update)    "O")
+       (t " "))
+    " "))
+
+(defun +ibuffer-apply-project-groups ()
+  "Apply dynamically generated project groups to Ibuffer."
+  (interactive)
+  (let* ((roots (delete-dups
+                 (delq nil (mapcar #'+current-context (buffer-list)))))
+         (sorted-roots (sort roots (lambda (a b) (> (length a) (length b)))))
+         (project-groups
+          (mapcar (lambda (root)
+                    (cons (format "💼 %s" (file-name-nondirectory (directory-file-name root)))
+                          `((context-root . ,root))))
+                  sorted-roots)))
+    (setq ibuffer-filter-groups
+          (append project-groups
+                  '(("📁 Dired" (mode . dired-mode))
+                    ("⚙️ Emacs" (name . "\\*.*\\*"))))))
+  (when (derived-mode-p 'ibuffer-mode)
+    (ibuffer-update nil t)))
+
+(use-package ibuffer
+  :ensure nil
+  :custom
+  (ibuffer-show-empty-filter-groups nil)
+  :config
+  (setq ibuffer-formats
+        '((mark vc-status-mini " " read-only modified " "
+                (name 30 30 :left :elide) " "
+                (mode 16 16 :left :elide))))
+  :hook (ibuffer . +ibuffer-apply-project-groups)
+  :bind (:map ibuffer-mode-map
+              ("M-o" . nil)
+              ("g"   . +ibuffer-apply-project-groups)))
+
+(defun +vc-git-log-edit-toggle-ai-attribution ()
+  (interactive)
+  (log-edit-toggle-header "Co-Authored-By" "Qwen 3.5 4B <noreply@qwen.ai>"))
 
 (defun +vc-pr ()
   (interactive)
@@ -337,34 +395,6 @@
 (defun +org-clock-todo-change ()
   (cond ((string= org-state "CURRENT") (org-clock-in))
         ((org-clocking-p) (org-clock-out))))
-
-(defun +ibuffer-project-root (buf)
-  (with-current-buffer buf
-    (when-let ((proj (and buffer-file-name (project-current))))
-      (project-root proj))))
-
-(defun +ibuffer-filter-groups-by-project ()
-  (let* ((roots (seq-uniq
-                 (delq nil (mapcar #'+ibuffer-project-root (buffer-list)))
-                 #'string=))
-         (project-groups
-          (mapcar (lambda (root)
-                    (cons (format "📁 %s"
-                                  (file-name-nondirectory
-                                   (directory-file-name root)))
-                          `((filename . ,(regexp-quote (expand-file-name root))))))
-                  roots)))
-    (append project-groups
-            '(("🎸 Git"  (name . "^\\*vc"))
-              ("📝 Org"     (mode . org-mode))
-              ("⚙️ Emacs"  (name . "^\\*"))
-              ("🌐 Web"     (derived-mode . web-mode))
-              ("📦 Other"   ())))))
-
-(add-hook 'ibuffer-mode-hook
-          (lambda ()
-            (setq ibuffer-filter-groups (+ibuffer-filter-groups-by-project))
-            (ibuffer-update nil t)))
 
 (use-package newsticker
   :ensure nil
