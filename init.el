@@ -177,7 +177,7 @@
   (with-current-buffer buffer
     (when-let ((file (or buffer-file-name list-buffers-directory)))
       (let ((root (seq-some (lambda (f) (locate-dominating-file file f))
-                            *context-markers*)))
+                            '(".git"))))
         (when root (expand-file-name root))))))
 
 (require 'ibuf-ext)
