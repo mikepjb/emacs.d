@@ -1,10 +1,5 @@
 ;;; 🔱 Spartan Emacs -*- lexical-binding: t; -*-
 
-;; TODO tidy up LLM integration
-;; TODO vc ignore files too? we want to ignore .tags lol
-;; TODO rgrep should also ignore .tags files lol and node_modules etc
-;; .idea intellij files too rgrep should ignore
-
 (setq gc-cons-threshold (* 64 1024 1024))
 (defmacro il (&rest body) `(lambda () (interactive) ,@body))
 (defmacro ff (&rest path) `(il (find-file (concat ,@path))))
@@ -51,12 +46,8 @@
  vc-log-show-diff nil
  vc-git-log-edit-summary-target 50
  eshell-banner-message ""
- ;; Available: trye stroustrup / linux for java then clean up this comment, also see c-add-style
- ;; gnu, k&r, bsd, whitesmith, stroustrup, ellemtel, linux, python, java, awk, user
- c-default-style '((java-mode . "stroustrup")
-                   (other . "gnu"))
+ c-default-style '((java-mode . "stroustrup") (other . "gnu"))
  c-basic-offset 4
- auth-sources `(,(concat user-emacs-directory ".authinfo.gpg"))
  custom-file (concat user-emacs-directory "local.el")
  package-archives '(("melpa" . "https://melpa.org/packages/")
                     ("gnu" . "https://elpa.gnu.org/packages/")))
@@ -69,8 +60,14 @@
  whitespace-style '(face trailing tabs empty indentation::space)
  cursor-in-non-selected-windows nil)
 
-(dolist (ignored-dirs '("build" "dist" "node_modules" "target"))
-  (add-to-list 'vc-directory-exclusion-list ignored-dirs))
+(defun +ignore-dirs-for (list)
+  (dolist (ignored-dirs
+           '("build" "dist" "node_modules" "target" ".tags" ".idea"))
+    (add-to-list list ignored-dirs)))
+
+(with-eval-after-load 'grep
+  (+ignore-dirs-for 'grep-find-ignored-directories))
+(+ignore-dirs-for 'vc-directory-exclusion-list)
 
 (add-hook 'compilation-filter-hook #'ansi-color-compilation-filter)
 
@@ -83,19 +80,10 @@
 (defun +font (&rest names)
   (seq-find (lambda (f) (member f (font-family-list))) names))
 
-(defun +toggle-transparency ()
-  (interactive)
-  (let* ((level 90)
-         (attr (if (eq system-type 'darwin)
-                   'alpha 'alpha-background))
-         (current (frame-parameter nil attr))
-         (new (if (eq current 100) level 100)))
-    (set-frame-parameter nil attr new)
-    (add-to-list 'default-frame-alist '(attr . level))))
-
 (when (display-graphic-p)
   (fringe-mode 0)
-  (+toggle-transparency)
+  (set-frame-parameter nil (if (eq system-type 'darwin)
+                               'alpha 'alpha-background) 88)
   (when-let ((mono (+font "Rec Mono Linear")))
     (set-face-attribute 'default     nil :font mono :height 160)
     (set-face-attribute 'fixed-pitch nil :font mono :height 140))
@@ -111,18 +99,12 @@
              ("C-c a" ,(il (org-agenda nil "a")))
              ("C-c g" vc-dir-root)
              ("C-c p" project-find-file)
-             ("C-c P" ,(il (+select-folder "~/src")))
+             ("M-P" ,(il (+select-folder "~/src")))
              ("M-B" ibuffer-other-window)
-
-             ;; Information
-             ("M-N" newsticker-show-news)
-             ("M-A" navi)
-             ("C-c M-A" navi-view)
 
              ;; Display management
              ("C-c k" ,(il (select-window (split-window-below))))
              ("C-c l" ,(il (select-window (split-window-right))))
-             ("C-c o" delete-other-windows)
              ("M-O" delete-other-windows)
              ("M-o" ,(il (other-window 1)))
              ("M--" ,(il (set-frame-size nil 160 50)))
@@ -131,12 +113,14 @@
              ("M-RET" toggle-frame-fullscreen)
 
              ;; Code Tools + Editing
+             ("M-A" navi)
+             ("C-c M-A" navi-view)
+             ("M-u" undo)
              ("C-c c" +org-clock-toggle)
-             ("C-c f" imenu)
-             ("C-;" completion-at-point) ;; anything more important?
+             ("M-F" imenu)
+             ("C-;" completion-at-point)
              ("M-H" ,help-map)
              ("C-c t" +ctags)
-             ("M-S" isearch-forward-symbol-at-point)
              ("M-i" ,(il (+with-context (call-interactively 'rgrep))))
              ("M-I" ,(il (+with-context (call-interactively 'occur))))
              ("M-T" eshell)
@@ -178,7 +162,8 @@
         (t (backward-kill-word 1))))
 
 (defvar *context-markers*
-  '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git"))
+  '("Makefile" "gradlew" "pom.xml" "go.mod"
+    "package.json" "deps.edn" ".git"))
 
 (defmacro +with-context (&rest body)
   `(let ((default-directory
@@ -195,26 +180,14 @@
                             *context-markers*)))
         (when root (expand-file-name root))))))
 
-(require 'ibuffer)
 (require 'ibuf-ext)
-(require 'seq)
 
 (define-ibuffer-filter context-root
     "Filter buffers by their project context root."
   (:description "context root"
-   :reader (read-directory-name "Filter by values of project root: "))
+                :reader (read-directory-name "Filter by values of project root: "))
   (when-let ((root (+current-context buf)))
     (equal (expand-file-name qualifier) root)))
-
-(define-ibuffer-column vc-status-mini
-  (:name "V")
-  (if-let* ((file buffer-file-name)
-            (state (vc-state file)))
-      (cond
-       ((memq state '(edited added)) "U")
-       ((eq state 'needs-update)    "O")
-       (t " "))
-    " "))
 
 (defun +ibuffer-apply-project-groups ()
   "Apply dynamically generated project groups to Ibuffer."
@@ -229,20 +202,15 @@
                   sorted-roots)))
     (setq ibuffer-filter-groups
           (append project-groups
-                  '(("📁 Dired" (mode . dired-mode))
-                    ("⚙️ Emacs" (name . "\\*.*\\*"))))))
+                  '(("⚙️ Emacs" (name . "\\*.*\\*"))))))
   (when (derived-mode-p 'ibuffer-mode)
     (ibuffer-update nil t)))
 
-(use-package ibuffer
-  :ensure nil
-  :custom
-  (ibuffer-show-empty-filter-groups nil)
-  :config
-  (setq ibuffer-formats
-        '((mark vc-status-mini " " read-only modified " "
-                (name 30 30 :left :elide) " "
-                (mode 16 16 :left :elide))))
+(use-package ibuffer :ensure nil
+  :custom (ibuffer-show-empty-filter-groups nil)
+  :config (setq ibuffer-formats
+                '((mark (name 30 30 :left :elide) " "
+                        (mode 16 16 :left :elide))))
   :hook (ibuffer . +ibuffer-apply-project-groups)
   :bind (:map ibuffer-mode-map
               ("M-o" . nil)
@@ -263,12 +231,9 @@
 
 (defun +select-folder (path)
   (interactive)
-  (let ((full-path (expand-file-name path)))
-    (dired
-     (concat
-      full-path "/"
-      (completing-read ">> "
-                       (directory-files full-path nil "^[A-z]"))))))
+  (let* ((full-path (expand-file-name path))
+         (dirs (directory-files full-path nil "^[A-z]")))
+    (dired (concat full-path "/" (completing-read ">> " dirs)))))
 
 (defun +lisp-load-current-file ()
   (interactive)
@@ -354,7 +319,7 @@
   (org-todo-keywords
    '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
   (org-todo-keyword-faces
-   '(("CURRENT" . org-current) ("NEXT"    . org-next)))
+   '(("CURRENT" . org-current) ("NEXT" . org-next)))
   (org-log-done 'time)
   (org-log-into-drawer t)
   (org-clock-idle-time nil)
@@ -396,17 +361,3 @@
 (defun +org-clock-todo-change ()
   (cond ((string= org-state "CURRENT") (org-clock-in))
         ((org-clocking-p) (org-clock-out))))
-
-(use-package newsticker
-  :ensure nil
-  :custom
-  (newsticker-retrieval-interval 1800)
-  (newsticker-wget-name "curl")
-  (newsticker-wget-arguments '("--silent" "--location"))
-  (newsticker-obsolete-item-max-age (* 3 86400))
-  (newsticker-frontend 'newsticker-treeview)
-  (newsticker-start-news-ticker-on-start nil)
-  :config
-  (setq newsticker-url-list
-        '(("Hacker News" "https://hnrss.org/frontpage" nil nil nil)
-          ("Guardian World" "https://www.theguardian.com/world/rss" nil nil nil))))
