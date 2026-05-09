@@ -156,10 +156,12 @@
 (with-eval-after-load 'diff-mode
   (define-key diff-mode-map (kbd "M-o") nil))
 
-(with-eval-after-load 'vc-mode
-  (define-key vc-dir-mode-map (kbd "r") 'vc-revert)
+(with-eval-after-load 'vc-dir
+  (define-key vc-dir-mode-map (kbd "r") 'vc-revert))
+
+(with-eval-after-load 'vc-git
   (define-key vc-git-log-edit-mode-map (kbd "M-k")
-              '+vc-git-log-edit-toggle-ai-attribution))
+               '+vc-git-log-edit-toggle-ai-attribution))
 
 (defun +kill-region-or-backward-word ()
   (interactive)
