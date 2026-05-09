@@ -293,7 +293,8 @@ the code or question presented.
               "--top-p" "0.95"
               "--top-k" "20"
               "--min-p" "0.00"
-              "--presence-penalty" "0.0"))
+              "--presence-penalty" "0.0"
+              "--repeat-penalty" "1.0"))
   (message "navi: server started"))
 
 (provide 'external)
