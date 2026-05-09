@@ -46,11 +46,17 @@
  vc-log-show-diff nil
  vc-git-log-edit-summary-target 50
  eshell-banner-message ""
- c-default-style '((java-mode . "stroustrup") (other . "gnu"))
+ c-default-style '((java-mode . "+java") (other . "gnu"))
  c-basic-offset 4
  custom-file (concat user-emacs-directory "local.el")
  package-archives '(("melpa" . "https://melpa.org/packages/")
                     ("gnu" . "https://elpa.gnu.org/packages/")))
+
+(c-add-style "+java"
+             '("stroustrup"
+               (c-offsets-alist .
+                                ((arglist-cont-nonempty . 0)
+                                 (statement-block-intro . +)))))
 
 (setq-default
  truncate-lines t
