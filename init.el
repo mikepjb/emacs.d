@@ -283,8 +283,7 @@
 (add-hook 'before-save-hook #'whitespace-cleanup)
 
 (with-eval-after-load 'eglot
-  (add-to-list 'eglot-server-programs
-               '((java-mode java-ts-mode) . ("jdtlsw"))))
+  (add-to-list 'eglot-server-programs '((java-mode java-ts-mode) . ("jdtlsw"))))
 
 (use-package olivetti :ensure t
   :custom (olivetti-style nil) (olivetti-body-width 80)
@@ -299,20 +298,14 @@
   (org-startup-with-inline-images t)
   (org-todo-keywords
    '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
-  (org-todo-keyword-faces
-   '(("CURRENT" . org-current) ("NEXT" . org-next)))
+  (org-todo-keyword-faces '(("CURRENT" . org-current) ("NEXT" . org-next)))
   (org-log-done 'time)
   (org-log-into-drawer t)
-  (org-clock-idle-time nil)
   (org-agenda-span 14)
-  (org-agenda-start-day "today")
   (org-agenda-start-on-weekday nil)
   (org-agenda-restore-windows-after-quit t)
   (org-archive-location "~/.emacs.d/notes/archive.org::* From %s")
-  (org-agenda-show-inherited-tags t)
-  (org-archive-subtree-add-inherited-tags t)
-  (org-directory "~/.emacs.d/notes")
-  (org-agenda-files '("~/.emacs.d/notes"))
+  (org-directory "~/.emacs.d/notes") (org-agenda-files '("~/.emacs.d/notes"))
   (org-agenda-sorting-strategy '(todo-state-down priority-up))
   (org-agenda-prefix-format
    '((agenda . " %i %?-12t% s") (todo . " %i ") (tags . " %i ")))
@@ -324,8 +317,7 @@
                '(org-agenda-skip-entry-if 'scheduled 'deadline 'timestamp))
               (org-agenda-overriding-header "Unscheduled TODOs")))))))
   (org-refile-targets
-   '((nil :maxlevel . 3)
-     ("~/.emacs.d/notes/archive.org" :maxlevel . 3)))
+   '((nil :maxlevel . 3) ("~/.emacs.d/notes/archive.org" :maxlevel . 3)))
   :bind (:map org-mode-map
               ("M-RET" . nil)
               ("C-c RET" . org-insert-todo-heading)
@@ -333,8 +325,7 @@
   :hook ((org-mode . org-indent-mode)
          (org-mode . variable-pitch-mode)
          (org-after-todo-state-change . +org-clock-todo-change))
-  :config
-  (advice-add 'org-refile :after (lambda (&rest _) (org-save-all-org-buffers))))
+  :config (advice-add 'org-refile :after 'org-save-all-org-buffers))
 
 (defun +org-clock-toggle ()
   (interactive)
