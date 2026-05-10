@@ -4,6 +4,7 @@
 (defmacro il (&rest body) `(lambda () (interactive) ,@body))
 (defmacro ff (&rest path) `(il (find-file (concat ,@path))))
 (defun +setm (param modes) (dolist (m modes) (funcall m param)))
+(defun +font (&rest names) (car (seq-intersection names (font-family-list))))
 
 (+setm -1 '(menu-bar-mode
             tool-bar-mode
@@ -53,12 +54,11 @@
                     ("gnu" . "https://elpa.gnu.org/packages/")))
 
 (c-add-style "+java"
-             '("stroustrup"
-               (c-offsets-alist .
-                                ((arglist-cont-nonempty . 0)
-                                 (statement-block-intro . +)))))
+             '("stroustrup" (c-offsets-alist . ((arglist-cont-nonempty . 0)
+                                                (statement-block-intro . +)))))
 
 (setq-default
+ display-fill-column-indicator-column 80
  truncate-lines t
  indent-tabs-mode nil
  tab-width 2
@@ -71,8 +71,7 @@
            '("build" "dist" "node_modules" "target" ".tags" ".idea"))
     (add-to-list list ignored-dirs)))
 
-(with-eval-after-load 'grep
-  (+ignore-dirs-for 'grep-find-ignored-directories))
+(with-eval-after-load 'grep (+ignore-dirs-for 'grep-find-ignored-directories))
 (+ignore-dirs-for 'vc-directory-exclusion-list)
 
 (add-hook 'compilation-filter-hook #'ansi-color-compilation-filter)
@@ -82,9 +81,6 @@
 
 (load custom-file t)
 (load-theme 'flow t)
-
-(defun +font (&rest names)
-  (seq-find (lambda (f) (member f (font-family-list))) names))
 
 (when (display-graphic-p)
   (fringe-mode 0)
@@ -104,7 +100,7 @@
              ("C-c n" ,(ff user-emacs-directory "notes/index.org"))
              ("C-c a" ,(il (org-agenda nil "a")))
              ("C-c g" vc-dir-root)
-             ("C-c p" project-find-file)
+             ("M-;" project-find-file)
              ("M-P" ,(il (+select-folder "~/src")))
              ("M-B" ibuffer-other-window)
 
@@ -115,7 +111,6 @@
              ("M-o" ,(il (other-window 1)))
              ("M--" ,(il (set-frame-size nil 160 50)))
              ("M-L" flow-toggle-theme)
-             ("M-V" ,(il (load-theme 'flow t)))
              ("M-RET" toggle-frame-fullscreen)
 
              ;; Code Tools + Editing
@@ -153,15 +148,11 @@
           (icomplete-fido-backward-updir) (backward-kill-word 1))))
   (define-key icomplete-minibuffer-map (kbd "C-e") #'icomplete-ret))
 
-(with-eval-after-load 'diff-mode
-  (define-key diff-mode-map (kbd "M-o") nil))
-
-(with-eval-after-load 'vc-dir
-  (define-key vc-dir-mode-map (kbd "r") 'vc-revert))
+(with-eval-after-load 'diff-mode (define-key diff-mode-map (kbd "M-o") nil))
+(with-eval-after-load 'vc-dir (define-key vc-dir-mode-map (kbd "r") 'vc-revert))
 
 (with-eval-after-load 'vc-git
-  (define-key vc-git-log-edit-mode-map (kbd "M-k")
-               '+vc-git-log-edit-toggle-ai-attribution))
+  (define-key vc-git-log-edit-mode-map (kbd "M-k") '+vc-ai-attribution))
 
 (defun +kill-region-or-backward-word ()
   (interactive)
@@ -170,8 +161,7 @@
         (t (backward-kill-word 1))))
 
 (defvar *context-markers*
-  '("Makefile" "gradlew" "pom.xml" "go.mod"
-    "package.json" "deps.edn" ".git"))
+  '("Makefile" "gradlew" "pom.xml" "go.mod" "package.json" "deps.edn" ".git"))
 
 (defmacro +with-context (&rest body)
   `(let ((default-directory
@@ -180,28 +170,24 @@
               default-directory)))
      ,@body))
 
-(defun +current-context (buffer)
-  "Find the project root for BUFFER using file name or dired directory."
+(defun +git-context (buffer)
   (with-current-buffer buffer
-    (when-let ((file (or buffer-file-name list-buffers-directory)))
-      (let ((root (seq-some (lambda (f) (locate-dominating-file file f))
-                            '(".git"))))
-        (when root (expand-file-name root))))))
+    (when-let ((path (or buffer-file-name list-buffers-directory)))
+      (expand-file-name (vc-git-root path)))))
 
 (require 'ibuf-ext)
 
 (define-ibuffer-filter context-root
     "Filter buffers by their project context root."
-  (:description "context root"
-                :reader (read-directory-name "Filter by values of project root: "))
-  (when-let ((root (+current-context buf)))
+  (:description "context root")
+  (when-let ((root (+git-context buf)))
     (equal (expand-file-name qualifier) root)))
 
 (defun +ibuffer-apply-project-groups ()
   "Apply dynamically generated project groups to Ibuffer."
   (interactive)
   (let* ((roots (delete-dups
-                 (delq nil (mapcar #'+current-context (buffer-list)))))
+                 (delq nil (mapcar #'+git-context (buffer-list)))))
          (sorted-roots (sort roots (lambda (a b) (> (length a) (length b)))))
          (project-groups
           (mapcar (lambda (root)
@@ -209,22 +195,18 @@
                           `((context-root . ,root))))
                   sorted-roots)))
     (setq ibuffer-filter-groups
-          (append project-groups
-                  '(("⚙️ Emacs" (name . "\\*.*\\*"))))))
+          (append project-groups '(("⚙️ Emacs" (name . "\\*.*\\*"))))))
   (when (derived-mode-p 'ibuffer-mode)
     (ibuffer-update nil t)))
 
 (use-package ibuffer :ensure nil
   :custom (ibuffer-show-empty-filter-groups nil)
-  :config (setq ibuffer-formats
-                '((mark (name 30 30 :left :elide) " "
-                        (mode 16 16 :left :elide))))
+  :config (setq ibuffer-formats '((mark (name 30 30 :left :elide) " "
+                                        (mode 16 16 :left :elide))))
   :hook (ibuffer . +ibuffer-apply-project-groups)
-  :bind (:map ibuffer-mode-map
-              ("M-o" . nil)
-              ("g"   . +ibuffer-apply-project-groups)))
+  :bind (:map ibuffer-mode-map ("M-o" . nil)))
 
-(defun +vc-git-log-edit-toggle-ai-attribution ()
+(defun +vc-ai-attribution ()
   (interactive)
   (log-edit-toggle-header "Co-Authored-By" "Qwen 3.5 4B <noreply@qwen.ai>"))
 
@@ -272,6 +254,7 @@
               ("M-k" . paredit-forward-barf-sexp)
               ("M-l" . paredit-forward-slurp-sexp)
               ("C-z" . paredit-splice-sexp)
+              ("M-;" . nil)
               ("M-s" . nil)))
 
 (use-package clojure-mode :ensure t
@@ -304,18 +287,8 @@
                '((java-mode java-ts-mode) . ("jdtlsw"))))
 
 (use-package olivetti :ensure t
-  :custom
-  (olivetti-style nil)
-  (olivetti-body-width 80)
+  :custom (olivetti-style nil) (olivetti-body-width 80)
   :hook ((org-mode markdown-mode) . olivetti-mode))
-
-(defun +org-clock-toggle ()
-  (interactive)
-  (if (org-clocking-p) (org-clock-out)
-    (if (and (eq major-mode 'org-mode)
-             (org-entry-is-todo-p))
-        (org-todo "CURRENT")
-      (org-clock-in-last))))
 
 (use-package org :ensure nil
   :bind (:map org-mode-map ("M-c" . org-insert-heading))
@@ -336,16 +309,13 @@
   (org-agenda-start-on-weekday nil)
   (org-agenda-restore-windows-after-quit t)
   (org-archive-location "~/.emacs.d/notes/archive.org::* From %s")
+  (org-agenda-show-inherited-tags t)
   (org-archive-subtree-add-inherited-tags t)
   (org-directory "~/.emacs.d/notes")
-  (org-agenda-show-inherited-tags t)
-  (org-agenda-sorting-strategy '(todo-state-down priority-up))
   (org-agenda-files '("~/.emacs.d/notes"))
+  (org-agenda-sorting-strategy '(todo-state-down priority-up))
   (org-agenda-prefix-format
-   '((agenda . " %i %?-12t% s")
-     (todo . " %i ")
-     (tags . " %i ")
-     (search . " %i ")))
+   '((agenda . " %i %?-12t% s") (todo . " %i ") (tags . " %i ")))
   (org-agenda-custom-commands
    '(("a" "Agenda + Unscheduled TODOs"
       ((agenda "")
@@ -365,6 +335,12 @@
          (org-after-todo-state-change . +org-clock-todo-change))
   :config
   (advice-add 'org-refile :after (lambda (&rest _) (org-save-all-org-buffers))))
+
+(defun +org-clock-toggle ()
+  (interactive)
+  (if (org-clocking-p) (org-clock-out)
+    (if (and (eq major-mode 'org-mode) (org-entry-is-todo-p))
+        (org-todo "CURRENT") (org-clock-in-last))))
 
 (defun +org-clock-todo-change ()
   (cond ((string= org-state "CURRENT") (org-clock-in))

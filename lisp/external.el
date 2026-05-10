@@ -105,12 +105,15 @@
     (cond (arg     (concat cmd " test"))
           (gradle? (format "%s test --tests %s --console=plain" cmd class))
           (t       (format "%s test -Dtest=%s -B -Dsurefire.useFile=false -DfailIfNoTests=false -Dtrimstacktrace=false" cmd class))))))
-     ('typescript-mode (compile
-                        (cond (arg "fnm use && npm test")
-                              (t (concat "fnm use && FORCE_COLOR=1 npx jest " (buffer-file-name))))))
-     ('js-mode (compile
-                (concat "fnm use && FORCE_COLOR=1 node --test " (buffer-file-name))))
+     ('typescript-mode (+test-node arg))
+     ('js-mode (+test-node arg))
      (_ (message "no test configuration for %s" major-mode)))))
+
+(defun +test-node (arg)
+  (compile
+   (cond (arg "fnm use && npm test")
+         (t (concat "fnm use && FORCE_COLOR=1 npx jest "
+                    (buffer-file-name))))))
 
 ;; auditing
 (defun +audit-most-changed ()
