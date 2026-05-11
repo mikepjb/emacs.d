@@ -273,13 +273,12 @@
 (use-package json-mode :ensure t)
 (use-package js :ensure nil :custom (js-indent-level 2))
 (use-package markdown-mode :ensure t
-  :custom
-  (markdown-fontify-code-blocks-natively t)
-  (markdown-hide-markup t))
+  :custom (markdown-fontify-code-blocks-natively t) (markdown-hide-markup t))
 
 (add-hook 'prog-mode-hook
-  (lambda () (display-line-numbers-mode 1) (hl-line-mode 1)
-    (display-fill-column-indicator-mode 1)))
+          (lambda () (+setm 1 '(display-line-numbers-mode
+                                hl-line-mode
+                                display-fill-column-indicator-mode))))
 (add-hook 'before-save-hook #'whitespace-cleanup)
 
 (with-eval-after-load 'eglot
@@ -297,7 +296,7 @@
   (org-startup-folded 'show3levels) ;; 'content also works
   (org-startup-with-inline-images t)
   (org-todo-keywords
-   '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)" "|" "DONE(d!)" "CANCELLED(x@)")))
+   '((sequence "TODO(t)" "NEXT(n)" "CURRENT(c)" "|" "DONE(d!)")))
   (org-todo-keyword-faces '(("CURRENT" . org-current) ("NEXT" . org-next)))
   (org-log-done 'time)
   (org-log-into-drawer t)
